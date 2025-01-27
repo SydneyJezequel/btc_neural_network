@@ -1,5 +1,3 @@
-print(" ************ Trading Neural Network ************ ")
-
 """ First we will import the necessary Library """
 import os
 import pandas as pd
@@ -7,29 +5,23 @@ import numpy as np
 import math
 import datetime as dt
 import matplotlib.pyplot as plt
-
 """ Evalution library """
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
 from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance, accuracy_score
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.impute import SimpleImputer
-
 """ For model building we will use these library """
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.layers import LSTM
-
 """ For Plotting we will use these library """
 import matplotlib.pyplot as plt
 from itertools import cycle
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
-
-
-
-
+import parameters
 
 
 
@@ -40,12 +32,10 @@ from plotly.subplots import make_subplots
 
 
 """ ************ Paramètres ************ """
-PATH = '../btc_neural_network/dataset/'
-PATH_TRAINING_DATASET = PATH + 'training_dataset/'
-DATASET_FILE = 'btc_historic_cotations.csv'
-FILE_CLEAN_DATASET = 'clean_dataset.csv'
-DATASET_FOR_MODEL = 'dataset_for_model.csv'
-DATASET_FOR_MODEL_WITH_TECHNICAL_INDICATORS = 'dataset_for_model_with_technical_indicators.csv'
+DATASET_PATH = parameters.DATASET_PATH
+PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
+DATASET_FILE = parameters.DATASET_FILE
+DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 
 
 
@@ -56,84 +46,7 @@ DATASET_FOR_MODEL_WITH_TECHNICAL_INDICATORS = 'dataset_for_model_with_technical_
 
 
 
-
-
-
-
-""" **************************** Loading dataset **************************** """
-print(" ************ Loading dataset ************ ")
-maindf = pd.read_csv(PATH+DATASET_FILE)
-print('Total number of days present in the dataset: ', maindf.shape[0])
-print('Total number of fields present in the dataset: ', maindf.shape[1])
-print('Nombre de lignes et colonnes: ', maindf.shape)
-print('En-têtes du dataset: ', maindf.head())
-print('maindf.tail(): ', maindf.tail())
-print('maindf.info(): ', maindf.info())
-print('maindf.describe()', maindf.describe())
-print(" ************ Vérification des données manquantes ************ ")
-print('Null Values:',maindf.isnull().values.sum())
-print('NA values:',maindf.isnull().values.any())
-
-
-
-
-
-
-
-
-
-
-
-""" **************************** EDA(Exploratory Data Analysis) **************************** """
-print(" ************ EDA(Exploratory Data Analysis) ************ ")
-
-# Affichage des dates de début et fin du dataset :
-ed=maindf.iloc[0][0]
-sd=maindf.iloc[-1][0]
-print('Starting Date : ',sd)
-print('Ending Date : ',ed)
-
-# Convertir la colonne "Date" au format datetime :
-maindf['Date'] = pd.to_datetime(maindf['Date'], format='%d/%m/%Y', errors='coerce')
-# errors='coerce' --> Les valeurs non convertie sont remplacées par Nan.
-
-# Remplacer les points par un espace, puis suppression de l'espace, enfin remplacement de la virgule par un point :
-numeric_columns = ["Dernier", "Ouv.", " Plus Haut", "Plus Bas", "Variation %"]
-for col in numeric_columns:
-    maindf.loc[:, col] = maindf[col].str.replace('.', ' ').str.replace(' ', '').str.replace(',', '.')
-    # .loc[:, col] est utilisé pour sélectionner toutes les lignes (:) de la colonne spécifiée par col.
-
-# Conversion des colonnes numériques en float :
-for col in numeric_columns:
-    maindf[col] = pd.to_numeric(maindf[col], errors='coerce')
-
-# Suppression des colonnes "Vol." et "Variation %" :
-maindf =maindf.drop(columns=['Vol.', 'Variation %'])
-print('Dataset transformé :' , maindf)
-
-# Afficher le DataFrame :
-print('Dataset transformé :' , maindf)
-print('Ecriture du dataset :')
-maindf.to_csv(PATH+FILE_CLEAN_DATASET, index=False)
-# index=False : Indique que l'index du DataFrame ne doit pas être inclus dans le fichier CSV généré.
-
-
-
-
-
-
-
-
-
-
-
-""" **************************** PREPARATION DU DATASET **************************** """
-print(" ******************** PREPARATION DU DATASET ******************** ")
-
-
-
-""" 1- Méthodes qui calculent les indicateurs techniques """
-
+""" ****************************** Classe technical indicators ****************************** """
 
 def ma(df, n):
     """ Calcul de la moyenne mobile """
@@ -168,84 +81,88 @@ def calculate_signal(dataset, taille_sma1, taille_sma2):
 
 
 
-""" 2- Modification du dataset """
 
 
-# Forme du dataset :
-datas_for_model = pd.read_csv(PATH+FILE_CLEAN_DATASET)
-print("Shape of close dataframe:", datas_for_model.shape)
 
 
-# Affichage des données :
-fig = px.line(datas_for_model, x=datas_for_model.Date, y=datas_for_model.Dernier,labels={'Date':'date','Dernier':'Close Stock'})
-fig.update_traces(marker_line_width=2, opacity=0.8, marker_line_color='orange')
-fig.update_layout(title_text='Whole period of timeframe of Bitcoin close price 2014-2025', plot_bgcolor='white',
-                  font_size=15, font_color='black')
-fig.update_xaxes(showgrid=False)
-fig.update_yaxes(showgrid=False)
-fig.show()
+""" ****************************** Classe prepare_dataset ****************************** """
+
+def format_dataset(initial_dataset):
+    """ Méthode format_dataset() """
+    tmp_dataset = initial_dataset.copy()
+    # Convertir la colonne "Date" au format datetime :
+    tmp_dataset['Date'] = pd.to_datetime(initial_dataset['Date'], format='%d/%m/%Y', errors='coerce')
+    # errors='coerce' --> Les valeurs non converties sont remplacées par NaN.
+    # Remplacer les points par un espace, puis suppression de l'espace, enfin remplacement de la virgule par un point :
+    numeric_columns = ["Dernier", "Ouv.", " Plus Haut", "Plus Bas", "Variation %"]
+    for col in numeric_columns:
+        tmp_dataset.loc[:, col] = tmp_dataset[col].str.replace('.', ' ').str.replace(' ', '').str.replace(',', '.')
+        # .loc[:, col] est utilisé pour sélectionner toutes les lignes (:) de la colonne spécifiée par col.
+    # Conversion des colonnes numériques en float :
+    for col in numeric_columns:
+        tmp_dataset[col] = pd.to_numeric(tmp_dataset[col], errors='coerce')
+    return tmp_dataset
 
 
-# Ajout des indicateurs dans les colonnes :
-datas_for_model['MA_150'] = ma(datas_for_model, 150)
-datas_for_model['MA_100'] = ma(datas_for_model, 100)
-datas_for_model['MA_50'] = ma(datas_for_model, 50)
-datas_for_model['RSI'] = rsi(datas_for_model, 14)
+
+def delete_columns(tmp_dataset):
+    """ Méthode delete_columns() """
+    # Suppression des colonnes de départ :
+    tmp_dataset = tmp_dataset.drop(columns=['Vol.', 'Variation %', 'Ouv.', ' Plus Haut', 'Plus Bas'])
+    print('Dataset transformé :', tmp_dataset)
+    return tmp_dataset
 
 
-# Ajout des signaux générés par les indicateurs :
-calculate_signal(datas_for_model, 50, 150)
-calculate_signal(datas_for_model, 100, 150)
-calculate_signal(datas_for_model, 50, 100)
+
+def add_technicals_indicators(tmp_dataset):
+    """ Méthode add_technicals_indicators() """
+    # Ajout des indicateurs dans les colonnes :
+    tmp_dataset['MA_150'] = ma(tmp_dataset, 150)
+    tmp_dataset['MA_100'] = ma(tmp_dataset, 100)
+    tmp_dataset['MA_50'] = ma(tmp_dataset, 50)
+    tmp_dataset['RSI'] = rsi(tmp_dataset, 14)
+    # Ajout des signaux générés par les indicateurs :
+    calculate_signal(tmp_dataset, 50, 150)
+    calculate_signal(tmp_dataset, 100, 150)
+    calculate_signal(tmp_dataset, 50, 100)
+    # Ignorer les valeurs NAN (Remplir les valeurs NaN avec la moyenne des colonnes) :
+    del tmp_dataset['Date']
+    imputer = SimpleImputer(strategy='mean')
+    tmp_dataset = imputer.fit_transform(tmp_dataset)
+    return tmp_dataset
 
 
-# Suppression des colonnes de départ :
-model_dataset_with_technicals_indicators =datas_for_model.drop(columns=['Ouv.', ' Plus Haut', 'Plus Bas'])
 
-
-# Contrôle des modifications :
-print("En-tête du dataset d'entrainement : ", model_dataset_with_technicals_indicators.head())
-print("dataset d'entrainement modifié (dernières lignes) pour vérifier si mes indicateurs sont bien calculés : ", model_dataset_with_technicals_indicators.tail())
-print("Enregistrement du dataset dans un fichier csv : ")
-model_dataset_with_technicals_indicators.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL_WITH_TECHNICAL_INDICATORS, index=False)
-
-
-# Ignorer les valeurs NAN (Remplir les valeurs NaN avec la moyenne des colonnes) :
-del model_dataset_with_technicals_indicators['Date']
-imputer = SimpleImputer(strategy='mean')
-model_dataset_with_technicals_indicators = imputer.fit_transform(model_dataset_with_technicals_indicators)
-print("dataset d'entrainement modifié (premières lignes) pour vérifier si j'ai bien la moyenne : ", model_dataset_with_technicals_indicators)
-
-
-# Normalisation des données par MinMaxScaler :
-scaler = MinMaxScaler(feature_range=(0,1))
-model_dataset_with_technicals_indicators = scaler.fit_transform(np.array(model_dataset_with_technicals_indicators).reshape(-1,1))
-print("forme du dataset modifié : ", model_dataset_with_technicals_indicators.shape)
-print("dataset d'entrainement normalisé : ", model_dataset_with_technicals_indicators)
+def normalize_datas(tmp_dataset):
+    """ Méthode normalize_data() """
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    return scaler.fit_transform(np.array(tmp_dataset).reshape(-1, 1))
 """
 La méthode MinMaxScaler de la bibliothèque scikit-learn est utilisée pour normaliser
 les caractéristiques (features) d'un jeu de données.
 Elle met à l'échelle chaque caractéristique dans une plage spécifiée, généralement entre 0 et 1.
 On peut faire la même chose avec un StandardScaler().
 """
+""" Méthode normalize_dataset() """
 
 
 
-""" 3- Création des datasets d'entrainement et de test """
-training_size = int(len(model_dataset_with_technicals_indicators)*0.60)
-test_size = len(model_dataset_with_technicals_indicators)-training_size
-train_data,test_data = model_dataset_with_technicals_indicators[0:training_size,:], model_dataset_with_technicals_indicators[training_size:len(model_dataset_with_technicals_indicators),:1]
-# datas_for_model[0:training_size,:] : Sélectionne les training_size premières lignes de l'array.
-# datas_for_model[training_size:len(datas_for_model),:1] : Sélectionne toutes les lignes à partir de training_size jusqu'à la fin de l'array.
-print("dataset d'entrainement : ", train_data.shape)
-print("dataset de test : ", test_data.shape)
+def create_train_and_test_dataset(model_dataset):
+    """ Méthode create_train_and_test_dataset() """
+    # Création des datasets d'entrainement et de test
+    training_size = int(len(model_dataset) * 0.60)
+    test_size = len(model_dataset) - training_size
+    train_data, test_data = model_dataset[0:training_size, :], model_dataset[training_size:len(model_dataset), :1]
+    # datas_for_model[0:training_size,:] : Sélectionne les training_size premières lignes de l'array.
+    # datas_for_model[training_size:len(datas_for_model),:1] : Sélectionne toutes les lignes à partir de training_size jusqu'à la fin de l'array.
+    print("dataset d'entrainement :", train_data.shape)
+    print("dataset de test :", test_data.shape)
+    return train_data, test_data
 
 
 
-""" 4- Conversion des arrays en matrice """
-# Définition de la fonction create_dataset pour créer des ensembles de données pour l'entraînement et les tests
-# Cette fonction prend un dataset et un time_step comme arguments
 def create_dataset(dataset, time_step=1):
+    """ Méthode create_dataset() """
     dataX, dataY = [], []
     # Boucle sur le dataset pour créer des séquences de longueur time_step :
     for i in range(len(dataset) - time_step - 1):
@@ -258,16 +175,116 @@ def create_dataset(dataset, time_step=1):
     # Convertit les listes dataX et dataY en arrays numpy pour faciliter leur utilisation dans les modèles de machine learning :
     return np.array(dataX), np.array(dataY)
 
-# Définition du time_step (longueur des séquences ex : Si 15, chaque séquence d'entrée contiendra 3 valeurs du dataset) :
-time_step = 15
-# Création des ensembles de données d'entraînement et de test en utilisant la fonction create_dataset :
-X_train, y_train = create_dataset(train_data, time_step)
-X_test, y_test = create_dataset(test_data, time_step)
-# Affichage des dimensions des ensembles de données d'entraînement et de test :
-print("X_train: ", X_train.shape)
-print("y_train: ", y_train.shape)
-print("X_test: ", X_test.shape)
-print("y_test", y_test.shape)
+
+
+def create_data_matrix(train_data, test_data, create_dataset):
+    """ Méthode create_data_matrix() """
+    # Définition du time_step (longueur des séquences ex : Si 15, chaque séquence d'entrée contiendra 3 valeurs du dataset) :
+    time_step = 15
+    # Création des ensembles de données d'entraînement et de test en utilisant la fonction create_dataset :
+    x_train, y_train = create_dataset(train_data, time_step)
+    x_test, y_test = create_dataset(test_data, time_step)
+    # Affichage des dimensions des ensembles de données d'entraînement et de test :
+    print("X_train: ", x_train.shape)
+    print("y_train: ", y_train.shape)
+    print("X_test: ", x_test.shape)
+    print("y_test: ", y_test.shape)
+    # Remodelage de X_train pour obtenir la forme [échantillons, time steps, caractéristiques]
+    # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
+    x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
+    # Remodelage de X_test pour obtenir la forme [échantillons, time steps, caractéristiques]
+    # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
+    x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
+    # Affichage des dimensions des ensembles de données d'entraînement et de test après remodelage :
+    print("X_train: ", x_train.shape)
+    print("X_test: ", x_test.shape)
+    return x_train, y_train, x_test, y_test
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" **************************** Exécution du script principal **************************** """
+
+
+
+
+print(" ************ Etape 1 : Loading dataset ************ ")
+initial_dataset = pd.read_csv(DATASET_PATH+DATASET_FILE)
+"""
+print('Total number of days present in the dataset: ', initial_dataset.shape[0])
+print('Total number of fields present in the dataset: ', initial_dataset.shape[1])
+print('Nombre de lignes et colonnes: ', initial_dataset.shape)
+print('En-têtes du dataset: ', initial_dataset.head())
+print('initial_dataset.tail(): ', initial_dataset.tail())
+print('initial_dataset.info(): ', initial_dataset.info())
+print('initial_dataset.describe()', initial_dataset.describe())
+print(" ************ Vérification des données manquantes ************ ")
+print('Null Values:', initial_dataset.isnull().values.sum())
+print('NA values:', initial_dataset.isnull().values.any())
+ed=initial_dataset.iloc[0][0]
+sd=initial_dataset.iloc[-1][0]
+print('Starting Date : ',sd)
+print('Ending Date : ',ed)
+"""
+
+
+
+
+print(" ************ Etape 2 : Preparation of the Dataset ************ ")
+# formatage des colonnes :
+tmp_dataset = format_dataset(initial_dataset)
+
+# Suppression des colonnes :
+tmp_dataset = delete_columns(tmp_dataset)
+
+# Affichage des données :
+fig = px.line(tmp_dataset, x=tmp_dataset.Date, y=tmp_dataset.Dernier,labels={'Date':'date','Dernier':'Close Stock'})
+fig.update_traces(marker_line_width=2, opacity=0.8, marker_line_color='orange')
+fig.update_layout(title_text='Whole period of timeframe of Bitcoin close price 2014-2025', plot_bgcolor='white',
+                  font_size=15, font_color='black')
+fig.update_xaxes(showgrid=False)
+fig.update_yaxes(showgrid=False)
+fig.show()
+
+# Ajout des indicateurs techniques :
+add_technicals_indicators(tmp_dataset)
+
+# Enregistrement du dataset au format csv :
+tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
+
+# Contrôle des modifications :
+print("En-tête du dataset d'entrainement : ", tmp_dataset.head())
+print("dataset d'entrainement modifié (dernières lignes) pour vérifier si mes indicateurs sont bien calculés : ", tmp_dataset.tail())
+
+# Normalise dataset :
+model_dataset = normalize_datas(tmp_dataset)
+print("dataset d'entrainement normalisé :", model_dataset)
+
+# Méthode create_dataset :
+train_data, test_data = create_train_and_test_dataset(model_dataset)
+
+# Conversion des arrays en matrice :
+x_train, y_train, x_test, y_test = create_data_matrix(train_data, test_data, create_dataset)
 
 # NOTION DE VALEUR CIBLE :
 """
@@ -280,22 +297,6 @@ apprendre à prédire.
 
 
 
-# VI- Mise en forme de la matrice pour obtenir les éléments nécessaires aux traitements
-# par les couches LSTM [échantillons, time steps, caractéristiques] :
-# On redimension les arrays en ajoutant une dimension supplémenaire.
-# Ex : L'array X_train de forme (100, 20, 1) aura la forme suivante après transformation : (100, 20, 1).
-
-# Remodelage de X_train pour obtenir la forme [échantillons, time steps, caractéristiques]
-# Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
-X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
-
-# Remodelage de X_test pour obtenir la forme [échantillons, time steps, caractéristiques]
-# Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
-X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
-
-# Affichage des dimensions des ensembles de données d'entraînement et de test après remodelage :
-print("X_train: ", X_train.shape)
-print("X_test: ", X_test.shape)
 
 
 
@@ -303,7 +304,20 @@ print("X_test: ", X_test.shape)
 
 
 
-""" ******************** Création et entrainement du modèle ******************** """
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************************ Créer une classe qui encapsule le modèle (Réseau de neurones) ************************************ """
+""" NOM DE LA CLASSE : neural_network """
 print(" ******************** Création et entrainement du modèle ******************** ")
 
 """ 
@@ -341,10 +355,6 @@ history = model.fit(X_train,y_train,validation_data=(X_test,y_test),epochs=200,b
 
 
 
-
-
-
-""" ******************** Génération de prédiction par le modèle ******************** """
 print(" ******************** Génération de prédiction par le modèle ******************** ")
 
 """
@@ -354,11 +364,49 @@ train_predict.shape, test_predict.shape
 """
 
 
+""" ************************************ Créer une classe qui encapsule le modèle (Réseau de neurones) ************************************ """
 
 
 
 
-""" ******************** Evaluation du modèle ******************** """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************************ Créer une classe qui évalue le modèle (Réseau de neurones) ************************************ """
+""" NOM DE LA CLASSE : evaluate_neural_network_training """
 print(" ******************** Evaluation du modèle ******************** ")
 
 """
@@ -786,12 +834,121 @@ fig.update_yaxes(showgrid=False)
 fig.show()
 """
 
+""" ************************************ Créer une classe qui évalue le modèle (Réseau de neurones) ************************************ """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 
 
 print(" ************ Fin du test !!! ************ ")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -909,6 +1066,7 @@ print(y_2014)
 y_2014.to_csv(PATH+FILE_CLEAN_DATASET, index=False)
 
 """
+
 
 
 
