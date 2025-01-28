@@ -13,8 +13,12 @@ from sklearn.impute import SimpleImputer
 """ For model building we will use these library """
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.layers import LSTM
+from tensorflow.keras.layers import Dense, Dropout, LSTM
+from sklearn.model_selection import KFold
+from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.regularizers import l2
+import math
+from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score, mean_gamma_deviance, mean_poisson_deviance
 """ For Plotting we will use these library """
 import matplotlib.pyplot as plt
 from itertools import cycle
@@ -176,28 +180,20 @@ def create_dataset(dataset, time_step=1):
 
 
 
-def create_data_matrix(train_data, test_data, create_dataset):
+
+def create_data_matrix(model_dataset, time_step=15):
     """ Méthode create_data_matrix() """
-    # Définition du time_step (longueur des séquences ex : Si 15, chaque séquence d'entrée contiendra 3 valeurs du dataset) :
-    time_step = 15
-    # Création des ensembles de données d'entraînement et de test en utilisant la fonction create_dataset :
-    x_train, y_train = create_dataset(train_data, time_step)
-    x_test, y_test = create_dataset(test_data, time_step)
-    # Affichage des dimensions des ensembles de données d'entraînement et de test :
-    print("X_train: ", x_train.shape)
-    print("y_train: ", y_train.shape)
-    print("X_test: ", x_test.shape)
-    print("y_test: ", y_test.shape)
-    # Remodelage de X_train pour obtenir la forme [échantillons, time steps, caractéristiques]
+    # Création des ensembles de données en utilisant la fonction create_dataset :
+    x, y = create_dataset(model_dataset, time_step)
+    # Remodelage de X pour obtenir la forme [échantillons, time steps, caractéristiques]
     # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
-    x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
-    # Remodelage de X_test pour obtenir la forme [échantillons, time steps, caractéristiques]
-    # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
-    x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
-    # Affichage des dimensions des ensembles de données d'entraînement et de test après remodelage :
-    print("X_train: ", x_train.shape)
-    print("X_test: ", x_test.shape)
-    return x_train, y_train, x_test, y_test
+    x = x.reshape(x.shape[0], x.shape[1], 1)
+    # Affichage des dimensions des ensembles de données après remodelage :
+    print("x: ", x.shape)
+    print("y: ", y.shape)
+    return x, y
+
+
 
 
 
@@ -229,22 +225,6 @@ def create_data_matrix(train_data, test_data, create_dataset):
 
 print(" ************ Etape 1 : Loading dataset ************ ")
 initial_dataset = pd.read_csv(DATASET_PATH+DATASET_FILE)
-"""
-print('Total number of days present in the dataset: ', initial_dataset.shape[0])
-print('Total number of fields present in the dataset: ', initial_dataset.shape[1])
-print('Nombre de lignes et colonnes: ', initial_dataset.shape)
-print('En-têtes du dataset: ', initial_dataset.head())
-print('initial_dataset.tail(): ', initial_dataset.tail())
-print('initial_dataset.info(): ', initial_dataset.info())
-print('initial_dataset.describe()', initial_dataset.describe())
-print(" ************ Vérification des données manquantes ************ ")
-print('Null Values:', initial_dataset.isnull().values.sum())
-print('NA values:', initial_dataset.isnull().values.any())
-ed=initial_dataset.iloc[0][0]
-sd=initial_dataset.iloc[-1][0]
-print('Starting Date : ',sd)
-print('Ending Date : ',ed)
-"""
 
 
 
@@ -279,11 +259,8 @@ print("dataset d'entrainement modifié (dernières lignes) pour vérifier si mes
 model_dataset = normalize_datas(tmp_dataset)
 print("dataset d'entrainement normalisé :", model_dataset)
 
-# Méthode create_dataset :
-train_data, test_data = create_train_and_test_dataset(model_dataset)
-
 # Conversion des arrays en matrice :
-x_train, y_train, x_test, y_test = create_data_matrix(train_data, test_data, create_dataset)
+x, y = create_data_matrix(model_dataset)
 
 # NOTION DE VALEUR CIBLE :
 """
@@ -356,191 +333,22 @@ print(" ******************** Création et entrainement du modèle **************
 
 
 
-
-
-
-"""
-----------------------------------------------------------------
-# ==> ANCIENNE VERSION :
-----------------------------------------------------------------
-
-# Création du modèle :
-# Initialisation d'un modèle séquentiel :
-model=Sequential()
-
-# model.add(LSTM(10,input_shape=(None,1),activation="relu")).
-# model.add(Dense(1))
-
-# Exécution du modèle :
-# Compilation du modèle :
-# - loss="mean_squared_error" : Utilisation de la moyenne des erreurs quadratiques comme fonction de perte (écart prévision/résultat).
-# - optimizer="adam" : Utilisation de l'optimiseur Adam pour gérer la descente de gradient (algorithme d'optimisation utilisé pour minimiser la fonction de perte. Elle ajuste les paramètres du modèle (comme les poids et les biais dans un réseau de neurones) de manière itérative pour réduire la valeur de la fonction de perte.).
-model.compile(loss="mean_squared_error",optimizer="adam")
-
-# Entrainement du modèle :
-# - X_train, y_train : données et cibles d'entraînement.
-# - validation_data=(X_test, y_test) : données et cibles de validation.
-# - epochs=200 : nombre d'époques (passages complets sur l'ensemble des données d'entraînement).
-# - batch_size=32 : taille des lots (batch size) pour l'entraînement.
-# - verbose=1 : mode verbeux pour afficher les informations de progression pendant l'entraînement.
-history = model.fit(X_train,y_train,validation_data=(X_test,y_test),epochs=200,batch_size=32,verbose=1)
-----------------------------------------------------------------
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
-----------------------------------------------------------------
-# ==> NOUVELLE VERSION SANS VALIDATION CROISEE :
-----------------------------------------------------------------
-
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.regularizers import l2
-
-# Création du modèle :
-# Initialisation d'un modèle séquentiel :
-model=Sequential()
-
-# Ajout des couches :
-model.add(LSTM(10,input_shape=(None,1),activation="relu")).     
-model.add(Dropout(0.2))                                             # Ajout du dropout.
-model.add(Dense(1, kernel_regularizer=l2(0.01)))                    # Ajout de la régularisation L2
-model.compile(loss="mean_squared_error", optimizer="adam")
-
-early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
-history = model.fit(
-    x_train,y_train,
-    validation_data=(x_test,y_test),
-    epochs=200,
-    batch_size=32,
-    verbose=1
-    callbacks=[early_stopping])
-----------------------------------------------------------------
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 """
 ----------------------------------------------------------------
 # ==> NOUVEAU SCRIPT AVEC VALIDATION CROISEE :
 ----------------------------------------------------------------
-
-from sklearn.model_selection import KFold
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dropout, Dense
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.regularizers import l2
-import math
-from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score, mean_gamma_deviance, mean_poisson_deviance
-
-# Utiliser les données préparées
-X = np.concatenate((x_train, x_test), axis=0)
-y = np.concatenate((y_train, y_test), axis=0)
-
+"""
 kfold = KFold(n_splits=5, shuffle=True, random_state=42)
 
 # Initialiser une liste pour stocker les résultats de chaque fold
 results = []
 
-for train_index, val_index in kfold.split(X):
-    X_train, X_val = X[train_index], X[val_index]
+for train_index, val_index in kfold.split(x):
+    x_train, x_val = x[train_index], x[val_index]
     y_train, y_val = y[train_index], y[val_index]
 
     model = Sequential()
-    model.add(LSTM(50, input_shape=(X_train.shape[1], 1), activation="relu"))
+    model.add(LSTM(50, input_shape=(x_train.shape[1], 1), activation="relu"))
     model.add(Dropout(0.2))
     model.add(Dense(1, kernel_regularizer=l2(0.01)))
     model.compile(loss="mean_squared_error", optimizer="adam")
@@ -548,8 +356,8 @@ for train_index, val_index in kfold.split(X):
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 
     history = model.fit(
-        X_train, y_train,
-        validation_data=(X_val, y_val),
+        x_train, y_train,
+        validation_data=(x_val, y_val),
         epochs=200,
         batch_size=32,
         verbose=1,
@@ -557,11 +365,12 @@ for train_index, val_index in kfold.split(X):
     )
 
     # Évaluer le modèle sur les données de validation
-    val_loss = model.evaluate(X_val, y_val, verbose=0)
+    val_loss = model.evaluate(x_val, y_val, verbose=0)
     results.append(val_loss)
 
     # Prédire et évaluer les métriques de performance
-    val_predict = model.predict(X_val)
+    val_predict = model.predict(x_val)
+    scaler = MinMaxScaler(feature_range=(0, 1))
     original_yval = scaler.inverse_transform(y_val.reshape(-1, 1))
     val_predict = scaler.inverse_transform(val_predict)
 
@@ -577,8 +386,12 @@ for train_index, val_index in kfold.split(X):
 print("Validation Loss for each fold: ", results)
 print("Mean Validation Loss: ", np.mean(results))
 
-----------------------------------------------------------------
-"""
+
+
+
+
+
+
 
 
 
@@ -1156,6 +969,7 @@ last_original_days_value = temp_mat
 next_predicted_days_value = temp_mat
 
 # Remplir les valeurs pour les derniers jours originaux :
+scaler = MinMaxScaler(feature_range=(0, 1))
 last_original_days_value[0:time_step + 1] = scaler.inverse_transform(closedf[len(closedf) - time_step:]).reshape(1, -1).tolist()[0]
 Sélectionne les time_step dernières valeurs de closedf, Inverse la transformation appliquée précédemment à ces valeurs, Redimensionne le tableau résultant en une seule ligne, Convertit le tableau redimensionné en une liste Python, Accède au premier élément de cette liste, qui est une liste contenant tous les éléments de la ligne, Assigne cette liste à la tranche 0:time_step + 1 de last_original_days_value.
 
@@ -1224,6 +1038,7 @@ lstmdf.extend((np.array(lst_output).reshape(-1, 1)).tolist())
 # Convertit lst_output en un tableau NumPy, Redimensionne ce tableau en une colonne, Convertit le tableau redimensionné en une liste de listes, Ajoute chaque sous-liste de cette liste de listes à lstmdf.
 
 # Appliquer la transformation inverse du scaler pour obtenir les valeurs originales :
+scaler = MinMaxScaler(feature_range=(0, 1))
 lstmdf = scaler.inverse_transform(lstmdf).reshape(1, -1).tolist()[0]
 # Inverse la transformation appliquée précédemment aux données dans lstmdf, Redimensionne le tableau résultant en une seule ligne. , Convertit le tableau redimensionné en une liste Python,  Accède au premier élément de cette liste, qui est une liste contenant tous les éléments de la ligne.
 
