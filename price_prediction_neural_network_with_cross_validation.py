@@ -187,6 +187,19 @@ def create_dataset(dataset, time_step=1):
     return np.array(dataX), np.array(dataY)
 
 
+def create_dataset2(dataset, time_step=1):
+    """ NOUVELLE VERSION - Méthode create_dataset() - Ne gère qu'un dataset """
+    dataX = []
+    # Boucle sur le dataset pour créer des séquences de longueur time_step :
+    for i in range(len(dataset) - time_step - 1):
+        # Extrait une séquence de longueur time_step à partir de l'index i
+        a = dataset[i:(i + time_step), 0]
+        # Ajoute la séquence à dataX :
+        dataX.append(a)
+        # Ajoute la valeur cible correspondante à dataY :
+    # Convertit la liste dataX en array numpy pour faciliter son utilisation dans les modèles de machine learning :
+    return np.array(dataX)
+
 
 
 def create_data_matrix(model_dataset, time_step=15):
@@ -201,6 +214,22 @@ def create_data_matrix(model_dataset, time_step=15):
     # On ne modifie pas la forme du dataset y car elle sert de valeur cible à comparer avec le dataset x :
     print("dataset y: ", y.shape)
     return x, y
+
+
+def create_data_matrix2(model_dataset, time_step=15):
+    """ NOUVELLE VERSION Méthode create_data_matrix() """
+    # Création des ensembles de données en utilisant la fonction create_dataset :
+    x = create_dataset2(model_dataset, time_step)
+    # Remodelage de X pour obtenir la forme [échantillons, time steps, caractéristiques]
+    # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
+    x = x.reshape(x.shape[0], x.shape[1], 1)
+    # Affichage des dimensions des ensembles de données après remodelage :
+    print("dataset x: ", x.shape)
+    return x
+
+
+
+
 
 
 
@@ -232,18 +261,25 @@ def create_data_matrix(model_dataset, time_step=15):
 
 
 
+
 print(" ************ Etape 1 : Loading dataset ************ ")
 initial_dataset = pd.read_csv(DATASET_PATH+DATASET_FILE)
 
 
 
 
+
+
 print(" ************ Etape 2 : Preparation of the Dataset ************ ")
+
+
 # Formatage des colonnes :
 tmp_dataset = format_dataset(initial_dataset)
 
+
 # Suppression des colonnes :
 tmp_dataset = delete_columns(tmp_dataset)
+
 
 # Affichage des données :
 fig = px.line(tmp_dataset, x=tmp_dataset.Date, y=tmp_dataset.Dernier,labels={'Date':'date','Dernier':'Close Stock'})
@@ -254,31 +290,34 @@ fig.update_xaxes(showgrid=False)
 fig.update_yaxes(showgrid=False)
 fig.show()
 
+
 # Ajout des indicateurs techniques :
 add_technicals_indicators(tmp_dataset)
 
+
 # Enregistrement du dataset au format csv :
 tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
+
 
 # Contrôle des modifications :
 print("En-tête du dataset d'entrainement : ", tmp_dataset.head())
 print("dataset d'entrainement modifié (dernières lignes) pour vérifier si mes indicateurs sont bien calculés : ", tmp_dataset.tail())
 
+
 # Obtenir le scaler ajusté :
 scaler = get_fitted_scaler(tmp_dataset)
+print("tmp_dataset : ", tmp_dataset.shape)
+
 
 # Normalise dataset :
 model_dataset = normalize_datas(tmp_dataset, scaler)
 print("dataset d'entrainement normalisé :", model_dataset)
+print("model_dataset shape : ", model_dataset.shape)
 
-# Créer les ensembles de données d'entraînement et de test
-train_data, test_data = create_train_and_test_dataset(model_dataset)
 
 # Créer les matrices de données pour l'entraînement et le test
-x_train, y_train = create_data_matrix(train_data)
-x_test, y_test = create_data_matrix(test_data)
-
-
+x_train, y_train = create_data_matrix(model_dataset)
+x_test, y_test = create_data_matrix(model_dataset)
 # NOTION DE VALEUR CIBLE :
 """
 Une valeur cible, également appelée étiquette ou label, est la valeur que l'on souhaite prédire ou prévoir
@@ -316,12 +355,37 @@ print(" ************ Etape 3 : Create and train model ************ ")
 # Initialiser TimeSeriesSplit avec le nombre de splits souhaité
 tscv = TimeSeriesSplit(n_splits=5)
 
-# Initialiser une liste pour stocker les résultats de chaque split :
+
+# Initialiser des listes pour stocker les résultats et les métriques
 results = []
+rmse_results = []
+mse_results = []
+mae_results = []
+evs_results = []
+r2_results = []
+mgd_results = []
+mpd_results = []
+training_loss_results = []
+validation_loss_results = []
+
+
+# Initialisation du compteur :
+cpt = 1
+
 
 for train_index, val_index in tscv.split(x_train):
+
+    # Affichage du tour de boucle :
+    print("tour de boucle : ", cpt)
+
     x_train_fold, x_val_fold = x_train[train_index], x_train[val_index]
     y_train_fold, y_val_fold = y_train[train_index], y_train[val_index]
+
+    print("shape of datasets : ")
+    print("x_train_fold : ", x_train_fold.shape)
+    print("y_train_fold : ", y_train_fold.shape)
+    print("x_val_fold : ", x_val_fold.shape)
+    print("y_val_fold : ", y_val_fold.shape)
 
     model = Sequential()
     model.add(LSTM(50, input_shape=(x_train_fold.shape[1], 1), activation="relu"))
@@ -347,28 +411,84 @@ for train_index, val_index in tscv.split(x_train):
     # Prédire et évaluer les métriques de performance
     val_predict = model.predict(x_val_fold)
     # Assurez-vous que les données ont la même forme que celles sur lesquelles le scaler a été ajusté
-    original_yval = scaler.inverse_transform(y_val_fold.reshape(-1, 1))
-    val_predict = scaler.inverse_transform(val_predict.reshape(-1, 1))
 
-    # original_yval = scaler.inverse_transform(y_val_fold.reshape(-1, tmp_dataset.shape[1]))
-    # val_predict = scaler.inverse_transform(val_predict.reshape(-1, tmp_dataset.shape[1]))
+    # Redimensionner les données pour qu'elles aient deux dimensions :
+    y_val_fold_reshaped = y_val_fold.reshape(-1, 1)
+    print("y_val_fold_reshaped : ", y_val_fold_reshaped.shape)
+    val_predict_reshaped = val_predict.reshape(-1, 1)
+    print("val_predict_reshaped : ", val_predict_reshaped.shape)
 
-    # original_yval = scaler.inverse_transform(y_val_fold.reshape(-1, 1))
-    # val_predict = scaler.inverse_transform(val_predict)
+    # Ajuster le scaler sur les données redimensionnées :
+    scaler.fit(y_val_fold_reshaped)
 
-    print("Validation RMSE: ", math.sqrt(mean_squared_error(original_yval, val_predict)))
-    print("Validation MSE: ", mean_squared_error(original_yval, val_predict))
-    print("Validation MAE: ", mean_absolute_error(original_yval, val_predict))
-    print("Validation Explained Variance Score: ", explained_variance_score(original_yval, val_predict))
-    print("Validation R2 Score: ", r2_score(original_yval, val_predict))
-    print("Validation MGD: ", mean_gamma_deviance(original_yval, val_predict))
-    print("Validation MPD: ", mean_poisson_deviance(original_yval, val_predict))
+    # Inverser la transformation
+    original_yval = scaler.inverse_transform(y_val_fold_reshaped)
+    val_predict_inversed = scaler.inverse_transform(val_predict_reshaped)
 
-# Afficher les résultats de la validation croisée
-print("Validation Loss for each fold: ", results)
-print("Mean Validation Loss: ", np.mean(results))
+    # Calculer les métriques
+    rmse = np.sqrt(mean_squared_error(original_yval, val_predict_inversed))
+    mse = mean_squared_error(original_yval, val_predict_inversed)
+    mae = mean_absolute_error(original_yval, val_predict_inversed)
+    evs = explained_variance_score(original_yval, val_predict_inversed)
+    r2 = r2_score(original_yval, val_predict_inversed)
+
+    # Vérifier si les valeurs sont strictement positives avant de calculer la déviance gamma et la déviance de Poisson
+    if np.all(original_yval > 0) and np.all(val_predict_inversed > 0):
+        mgd = mean_gamma_deviance(original_yval, val_predict_inversed)
+        mpd = mean_poisson_deviance(original_yval, val_predict_inversed)
+    else:
+        mgd, mpd = np.nan, np.nan
+
+    # Ajouter les résultats aux listes
+    rmse_results.append(rmse)
+    mse_results.append(mse)
+    mae_results.append(mae)
+    evs_results.append(evs)
+    r2_results.append(r2)
+    mgd_results.append(mgd)
+    mpd_results.append(mpd)
+
+    # Incrémenter le compteur de tours de boucle
+    cpt += 1
+
+# Convertir les listes en arrays numpy
+rmse_results = np.array(rmse_results)
+mse_results = np.array(mse_results)
+mae_results = np.array(mae_results)
+evs_results = np.array(evs_results)
+r2_results = np.array(r2_results)
+mgd_results = np.array(mgd_results)
+mpd_results = np.array(mpd_results)
+training_loss_results = np.array(training_loss_results)
+validation_loss_results = np.array(validation_loss_results)
+
+# Afficher les résultats
+print("Validation RMSE: ", rmse_results)
+print("Validation MSE: ", mse_results)
+print("Validation MAE: ", mae_results)
+print("Validation Explained Variance Score: ", evs_results)
+print("Validation R2 Score: ", r2_results)
+print("Validation MGD: ", mgd_results)
+print("Validation MPD: ", mpd_results)
+print("Validation Loss for each fold: ", validation_loss_results)
+print("Mean Validation Loss: ", np.mean(validation_loss_results))
+print("Training Loss for each fold: ", training_loss_results)
+print("Mean Training Loss: ", np.mean(training_loss_results))
+
+
+
 
 """ ************************************ Créer une classe qui encapsule le modèle (Réseau de neurones) ************************************ """
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -401,8 +521,30 @@ print(" ******************** Etape 5 : Overfitting Evaluation ******************
 
 
 
-print(" ******************** Training and Validation loss comparison ******************** ")
 
+
+print("Training loss 1 : ")
+# Exemple de pertes d'entraînement (à remplir avec vos valeurs réelles)
+training_loss = [0.001, 0.0005, 0.0003, 0.0002, 0.0001]
+
+# Pertes de validation
+validation_loss = [0.0020137971732765436, 0.0030710133723914623, 0.0003042859607376158, 0.0002075933152809739, 0.00011482657282613218]
+
+# Tracer les pertes
+plt.plot(training_loss, label='Training Loss')
+plt.plot(validation_loss, label='Validation Loss')
+plt.xlabel('Fold')
+plt.ylabel('Loss')
+plt.title('Training and Validation Loss Comparison')
+plt.legend()
+plt.show()
+
+
+
+
+
+
+print("Training loss 2 : Training and Validation loss comparison : ")
 """
 ==> COMMENT ANALYSER CE GRAPHE ?
 Plus les 2 courbes se suivent : Moins il y a d'overfitting.
