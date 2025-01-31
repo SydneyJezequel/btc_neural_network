@@ -375,6 +375,7 @@ cpt = 1
 
 for train_index, val_index in tscv.split(x_train):
 
+    """ Entrainement du modèle """
     # Affichage du tour de boucle :
     print("tour de boucle : ", cpt)
 
@@ -404,6 +405,11 @@ for train_index, val_index in tscv.split(x_train):
         callbacks=[early_stopping]
     )
 
+    """ Enregistrer les poids du modèle """
+    print("Enregistrement du modèle.")
+    model.save_weights(SAVE_MODEL_PATH+f'best_model_weights{cpt}.weights.h5')
+
+    """ Evaluer le modèle """
     # Évaluer le modèle sur les données de validation
     val_loss = model.evaluate(x_val_fold, y_val_fold, verbose=0)
     results.append(val_loss)
@@ -447,6 +453,8 @@ for train_index, val_index in tscv.split(x_train):
     r2_results.append(r2)
     mgd_results.append(mgd)
     mpd_results.append(mpd)
+
+
 
     # Incrémenter le compteur de tours de boucle
     cpt += 1
@@ -531,8 +539,8 @@ training_loss = [0.001, 0.0005, 0.0003, 0.0002, 0.0001]
 validation_loss = [0.0020137971732765436, 0.0030710133723914623, 0.0003042859607376158, 0.0002075933152809739, 0.00011482657282613218]
 
 # Tracer les pertes
-plt.plot(training_loss, label='Training Loss')
-plt.plot(validation_loss, label='Validation Loss')
+plt.plot(training_loss_results, label='Training Loss')
+plt.plot(validation_loss_results, label='Validation Loss')
 plt.xlabel('Fold')
 plt.ylabel('Loss')
 plt.title('Training and Validation Loss Comparison')
