@@ -27,7 +27,8 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import parameters
 from sklearn.model_selection import TimeSeriesSplit
-
+from BO.technical_indicators import technical_indicators
+from BO.prepare_dataset import prepare_dataset
 
 
 
@@ -52,14 +53,14 @@ SAVE_MODEL_PATH = parameters.SAVE_MODEL_PATH
 
 
 """ ****************************** Classe technical indicators ****************************** """
-
+"""
 def ma(df, n):
-    """ Calcul de la moyenne mobile """
+    # Calcul de la moyenne mobile
     return pd.Series(df['Dernier'].rolling(n, min_periods=n).mean(), name='MA_' + str(n))
 
 
 def rsi(df, period):
-    """ Calcul du RSI """
+    # Calcul du RSI 
     delta = df['Dernier'].diff().dropna()
     u = delta * 0
     d = u.copy()
@@ -74,7 +75,7 @@ def rsi(df, period):
 
 
 def calculate_signal(dataset, taille_sma1, taille_sma2):
-    """ Calcul du signal croisement des sma """
+    # Calcul du signal croisement des sma 
     sma1_col = 'MA_' + str(taille_sma1)
     sma2_col = 'MA_' + str(taille_sma2)
     signal_col = 'signal_' + sma1_col + '_' + sma2_col
@@ -82,7 +83,7 @@ def calculate_signal(dataset, taille_sma1, taille_sma2):
     dataset[sma2_col] = ma(dataset, taille_sma2)
     dataset[signal_col] = np.where(dataset[sma1_col] > dataset[sma2_col], 1.0, 0.0)
     return dataset
-
+"""
 
 
 
@@ -91,9 +92,9 @@ def calculate_signal(dataset, taille_sma1, taille_sma2):
 
 
 """ ****************************** Classe prepare_dataset ****************************** """
-
+"""
 def format_dataset(initial_dataset):
-    """ Méthode format_dataset() """
+    # Méthode format_dataset()
     tmp_dataset = initial_dataset.copy()
     # Convertir la colonne "Date" au format datetime :
     tmp_dataset['Date'] = pd.to_datetime(initial_dataset['Date'], format='%d/%m/%Y', errors='coerce')
@@ -107,42 +108,49 @@ def format_dataset(initial_dataset):
     for col in numeric_columns:
         tmp_dataset[col] = pd.to_numeric(tmp_dataset[col], errors='coerce')
     return tmp_dataset
+"""
 
 
 
+"""
 def delete_columns(tmp_dataset):
-    """ Méthode delete_columns() """
+    # Méthode delete_columns()
     # Suppression des colonnes de départ :
     tmp_dataset = tmp_dataset.drop(columns=['Vol.', 'Variation %', 'Ouv.', ' Plus Haut', 'Plus Bas'])
     print('Dataset transformé :', tmp_dataset)
     return tmp_dataset
+"""
 
 
 
+"""
 def add_technicals_indicators(tmp_dataset):
-    """ Méthode add_technicals_indicators() """
+    # Méthode add_technicals_indicators()
     # Ajout des indicateurs dans les colonnes :
-    tmp_dataset['MA_150'] = ma(tmp_dataset, 150)
-    tmp_dataset['MA_100'] = ma(tmp_dataset, 100)
-    tmp_dataset['MA_50'] = ma(tmp_dataset, 50)
-    tmp_dataset['RSI'] = rsi(tmp_dataset, 14)
+    tmp_dataset['MA_150'] =  technical_indicators.ma(tmp_dataset, 150)
+    tmp_dataset['MA_100'] = technical_indicators.ma(tmp_dataset, 100)
+    tmp_dataset['MA_50'] = technical_indicators.ma(tmp_dataset, 50)
+    tmp_dataset['RSI'] = technical_indicators.rsi(tmp_dataset, 14)
     # Ajout des signaux générés par les indicateurs :
-    calculate_signal(tmp_dataset, 50, 150)
-    calculate_signal(tmp_dataset, 100, 150)
-    calculate_signal(tmp_dataset, 50, 100)
+    technical_indicators.calculate_signal(tmp_dataset, 50, 150)
+    technical_indicators.calculate_signal(tmp_dataset, 100, 150)
+    technical_indicators.calculate_signal(tmp_dataset, 50, 100)
     # Ignorer les valeurs NAN (Remplir les valeurs NaN avec la moyenne des colonnes) :
     del tmp_dataset['Date']
     imputer = SimpleImputer(strategy='mean')
     tmp_dataset = imputer.fit_transform(tmp_dataset)
     return tmp_dataset
+"""
 
 
 
+"""
 def get_fitted_scaler(tmp_dataset):
-    """ Méthode pour obtenir le scaler ajusté """
+    # Méthode pour obtenir le scaler ajusté
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaler.fit(tmp_dataset)
     return scaler
+"""
 """
 La méthode MinMaxScaler de la bibliothèque scikit-learn est utilisée pour normaliser
 les caractéristiques (features) d'un jeu de données.
@@ -152,14 +160,17 @@ On peut faire la même chose avec un StandardScaler().
 
 
 
+"""
 def normalize_datas(tmp_dataset, scaler):
-    """ Méthode normalize_data() """
+    # Méthode normalize_data()
     return scaler.transform(tmp_dataset)
+"""
 
 
 
+"""
 def create_train_and_test_dataset(model_dataset):
-    """ Méthode create_train_and_test_dataset() """
+    # Méthode create_train_and_test_dataset() 
     # Création des datasets d'entrainement et de test
     training_size = int(len(model_dataset) * 0.60)
     test_size = len(model_dataset) - training_size
@@ -169,11 +180,13 @@ def create_train_and_test_dataset(model_dataset):
     print("dataset d'entrainement :", train_data.shape)
     print("dataset de test :", test_data.shape)
     return train_data, test_data
+"""
 
 
 
+"""
 def create_dataset(dataset, time_step=1):
-    """ Méthode create_dataset() """
+    # Méthode create_dataset()
     dataX, dataY = [], []
     # Boucle sur le dataset pour créer des séquences de longueur time_step :
     for i in range(len(dataset) - time_step - 1):
@@ -185,25 +198,13 @@ def create_dataset(dataset, time_step=1):
         dataY.append(dataset[i + time_step, 0])
     # Convertit les listes dataX et dataY en arrays numpy pour faciliter leur utilisation dans les modèles de machine learning :
     return np.array(dataX), np.array(dataY)
-
-"""
-def create_dataset2(dataset, time_step=1):
-    # NOUVELLE VERSION - Méthode create_dataset() - Ne gère qu'un dataset
-    dataX = []
-    # Boucle sur le dataset pour créer des séquences de longueur time_step :
-    for i in range(len(dataset) - time_step - 1):
-        # Extrait une séquence de longueur time_step à partir de l'index i
-        a = dataset[i:(i + time_step), 0]
-        # Ajoute la séquence à dataX :
-        dataX.append(a)
-        # Ajoute la valeur cible correspondante à dataY :
-    # Convertit la liste dataX en array numpy pour faciliter son utilisation dans les modèles de machine learning :
-    return np.array(dataX)
 """
 
 
+
+"""
 def create_data_matrix(model_dataset, time_step=15):
-    """ Méthode create_data_matrix() """
+    # Méthode create_data_matrix() 
     # Création des ensembles de données en utilisant la fonction create_dataset :
     x, y = create_dataset(model_dataset, time_step)
     # Remodelage de X pour obtenir la forme [échantillons, time steps, caractéristiques]
@@ -214,18 +215,6 @@ def create_data_matrix(model_dataset, time_step=15):
     # On ne modifie pas la forme du dataset y car elle sert de valeur cible à comparer avec le dataset x :
     print("dataset y: ", y.shape)
     return x, y
-
-"""
-def create_data_matrix2(model_dataset, time_step=15):
-    # NOUVELLE VERSION Méthode create_data_matrix()
-    # Création des ensembles de données en utilisant la fonction create_dataset :
-    x = create_dataset2(model_dataset, time_step)
-    # Remodelage de X pour obtenir la forme [échantillons, time steps, caractéristiques]
-    # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
-    x = x.reshape(x.shape[0], x.shape[1], 1)
-    # Affichage des dimensions des ensembles de données après remodelage :
-    print("dataset x: ", x.shape)
-    return x
 """
 
 
@@ -272,13 +261,15 @@ initial_dataset = pd.read_csv(DATASET_PATH+DATASET_FILE)
 
 print(" ************ Etape 2 : Preparation of the Dataset ************ ")
 
+prepare_dataset = prepare_dataset()
+
 
 # Formatage des colonnes :
-tmp_dataset = format_dataset(initial_dataset)
+tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
 
 
 # Suppression des colonnes :
-tmp_dataset = delete_columns(tmp_dataset)
+tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
 
 
 # Affichage des données :
@@ -292,7 +283,7 @@ fig.show()
 
 
 # Ajout des indicateurs techniques :
-add_technicals_indicators(tmp_dataset)
+prepare_dataset.add_technicals_indicators(tmp_dataset)
 
 
 # Enregistrement du dataset au format csv :
@@ -305,19 +296,19 @@ print("dataset d'entrainement modifié (dernières lignes) pour vérifier si mes
 
 
 # Obtenir le scaler ajusté :
-scaler = get_fitted_scaler(tmp_dataset)
+scaler = prepare_dataset.get_fitted_scaler(tmp_dataset)
 print("tmp_dataset : ", tmp_dataset.shape)
 
 
 # Normalise dataset :
-model_dataset = normalize_datas(tmp_dataset, scaler)
+model_dataset = prepare_dataset.normalize_datas(tmp_dataset, scaler)
 print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
 
 
 # Créer les matrices de données pour l'entraînement et le test
-x_train, y_train = create_data_matrix(model_dataset)
-x_test, y_test = create_data_matrix(model_dataset)
+x_train, y_train = prepare_dataset.create_data_matrix(model_dataset)
+x_test, y_test = prepare_dataset.create_data_matrix(model_dataset)
 # NOTION DE VALEUR CIBLE :
 """
 Une valeur cible, également appelée étiquette ou label, est la valeur que l'on souhaite prédire ou prévoir

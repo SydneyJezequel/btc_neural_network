@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.impute import SimpleImputer
-from technical_indicators import technical_indicators
+from BO.technical_indicators import technical_indicators
 
 
 
@@ -10,16 +10,17 @@ class prepare_dataset:
     """ Classe qui re-traite le dataset avant l'entrainement du modèle """
 
 
-    def __init__(self, initial_dataset):
-        self.initial_dataset = initial_dataset
+
+    def __init__(self):
+        pass
 
 
 
-    def format_dataset(self):
+    def format_dataset(self, initial_dataset):
         """ Méthode format_dataset() """
-        tmp_dataset = self.initial_dataset.copy()
+        tmp_dataset = initial_dataset.copy()
         # Convertir la colonne "Date" au format datetime :
-        tmp_dataset['Date'] = pd.to_datetime(self.initial_dataset['Date'], format='%d/%m/%Y', errors='coerce')
+        tmp_dataset['Date'] = pd.to_datetime(initial_dataset['Date'], format='%d/%m/%Y', errors='coerce')
         # errors='coerce' --> Les valeurs non converties sont remplacées par NaN.
         # Remplacer les points par un espace, puis suppression de l'espace, enfin remplacement de la virgule par un point :
         numeric_columns = ["Dernier", "Ouv.", " Plus Haut", "Plus Bas", "Variation %"]
@@ -61,10 +62,17 @@ class prepare_dataset:
 
 
 
-    def normalize_data(self, tmp_dataset):
-        """ Méthode normalize_data() """
+    def get_fitted_scaler(self, tmp_dataset):
+        """ Méthode pour obtenir le scaler ajusté """
         scaler = MinMaxScaler(feature_range=(0, 1))
-        return scaler.fit_transform(np.array(tmp_dataset).reshape(-1, 1))
+        scaler.fit(tmp_dataset)
+        return scaler
+
+
+
+    def normalize_datas(self, tmp_dataset, scaler):
+        """ Méthode normalize_data() """
+        return scaler.transform(tmp_dataset)
 
 
 
@@ -98,27 +106,51 @@ class prepare_dataset:
 
 
 
-    def create_data_matrix(self, train_data, test_data):
+    def create_data_matrix(self, dataset, time_step=15):
         """ Méthode create_data_matrix() """
-        # Définition du time_step (longueur des séquences ex : Si 15, chaque séquence d'entrée contiendra 3 valeurs du dataset) :
-        time_step = 15
-        # Création des ensembles de données d'entraînement et de test en utilisant la fonction create_dataset :
-        x_train, y_train = self.create_dataset(train_data, time_step)
-        x_test, y_test = self.create_dataset(test_data, time_step)
-        # Affichage des dimensions des ensembles de données d'entraînement et de test :
-        print("X_train: ", x_train.shape)
-        print("y_train: ", y_train.shape)
-        print("X_test: ", x_test.shape)
-        print("y_test: ", y_test.shape)
-        # Remodelage de X_train pour obtenir la forme [échantillons, time steps, caractéristiques]
+        # Création des ensembles de données en utilisant la fonction create_dataset :
+        x, y = self.create_dataset(dataset, time_step)
+        # Remodelage de X pour obtenir la forme [échantillons, time steps, caractéristiques]
         # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
-        x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
-        # Remodelage de X_test pour obtenir la forme [échantillons, time steps, caractéristiques]
-        # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
-        x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
-        # Affichage des dimensions des ensembles de données d'entraînement et de test après remodelage :
-        print("X_train: ", x_train.shape)
-        print("X_test: ", x_test.shape)
-        return x_train, y_train, x_test, y_test
+        x = x.reshape(x.shape[0], x.shape[1], 1)
+        # Affichage des dimensions des ensembles de données après remodelage :
+        print("dataset x: ", x.shape)
+        # On ne modifie pas la forme du dataset y car elle sert de valeur cible à comparer avec le dataset x :
+        print("dataset y: ", y.shape)
+        return x, y
+
+
+
+
+
+"""
+def create_dataset2(dataset, time_step=1):
+    # NOUVELLE VERSION - Méthode create_dataset() - Ne gère qu'un dataset
+    dataX = []
+    # Boucle sur le dataset pour créer des séquences de longueur time_step :
+    for i in range(len(dataset) - time_step - 1):
+        # Extrait une séquence de longueur time_step à partir de l'index i
+        a = dataset[i:(i + time_step), 0]
+        # Ajoute la séquence à dataX :
+        dataX.append(a)
+        # Ajoute la valeur cible correspondante à dataY :
+    # Convertit la liste dataX en array numpy pour faciliter son utilisation dans les modèles de machine learning :
+    return np.array(dataX)
+"""
+
+
+
+"""
+def create_data_matrix2(model_dataset, time_step=15):
+    # NOUVELLE VERSION Méthode create_data_matrix()
+    # Création des ensembles de données en utilisant la fonction create_dataset :
+    x = create_dataset2(model_dataset, time_step)
+    # Remodelage de X pour obtenir la forme [échantillons, time steps, caractéristiques]
+    # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
+    x = x.reshape(x.shape[0], x.shape[1], 1)
+    # Affichage des dimensions des ensembles de données après remodelage :
+    print("dataset x: ", x.shape)
+    return x
+"""
 
 
