@@ -7,6 +7,8 @@ from sklearn.model_selection import TimeSeriesSplit
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score, mean_gamma_deviance, mean_poisson_deviance
 import matplotlib.pyplot as plt
+import parameters
+from BO.llm import Llm
 
 
 
@@ -18,7 +20,7 @@ class NeuralNetwork:
 
 
 
-    def __init__(self, x_train, y_train, n_splits=5, save_model_path=''):
+    def __init__(self, x_train, y_train, n_splits=5, save_model_path=parameters.SAVE_MODEL_PATH):
         """ Constructeur """
         self.model = None
         self.x_train = x_train
@@ -38,10 +40,12 @@ class NeuralNetwork:
         self.training_loss_results = []
         self.validation_loss_results = []
         self.cpt = 1
+        self.all_predictions = []
+        self.all_true_values = []
 
 
 
-    def generate_model(self, x_train_fold):
+    def setting_model(self, x_train_fold):
         """ Méthode qui génère le modèle """
         self.model = Sequential()
         self.model.add(LSTM(50, input_shape=(x_train_fold.shape[1], 1), activation="relu"))
@@ -66,11 +70,7 @@ class NeuralNetwork:
             print("x_val_fold : ", x_val_fold.shape)
             print("y_val_fold : ", y_val_fold.shape)
 
-            model = self.generate_model(x_train_fold)
-            model.add(LSTM(50, input_shape=(x_train_fold.shape[1], 1), activation="relu"))
-            model.add(Dropout(0.2))
-            model.add(Dense(1, kernel_regularizer=l2(0.01)))
-            model.compile(loss="mean_squared_error", optimizer="adam")
+            model = self.setting_model(x_train_fold)
 
             early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 
@@ -95,26 +95,32 @@ class NeuralNetwork:
 
         self.convert_results_to_numpy()
 
-        self.loss_drawing(self.training_loss_results, self.validation_loss_results)
+        self.loss_drawing(history)
 
 
 
     def predict(self, model, x_val_fold, y_val_fold):
         """ Méthode de prédiction """
         val_predict = model.predict(x_val_fold)
-
         y_val_fold_reshaped = y_val_fold.reshape(-1, 1)
         print("y_val_fold_reshaped : ", y_val_fold_reshaped.shape)
         val_predict_reshaped = val_predict.reshape(-1, 1)
         print("val_predict_reshaped : ", val_predict_reshaped.shape)
-
         self.scaler.fit(y_val_fold_reshaped)
-
         original_yval = self.scaler.inverse_transform(y_val_fold_reshaped)
         val_predict_inversed = self.scaler.inverse_transform(val_predict_reshaped)
+        # Stocker les prédictions et les valeurs réelles
+        self.all_predictions.extend(val_predict_inversed)
+        self.all_true_values.extend(original_yval)
 
         self.evaluate_fold(original_yval, val_predict_inversed)
 
+
+        # Appel du LLM pour analyser les prédictions :
+        llm = Llm(self.all_predictions, self.all_true_values, parameters.API_URL, parameters.API_KEY)
+        """
+        llm.analyze_predictions()
+        """
 
 
 
@@ -158,6 +164,7 @@ class NeuralNetwork:
 
     def evaluate(self):
         """ Calcul des métriques """
+        # Enregistrer les résultats :
         mean_rmse = np.mean(self.rmse_results)
         mean_mse = np.mean(self.mse_results)
         mean_mae = np.mean(self.mae_results)
@@ -167,8 +174,7 @@ class NeuralNetwork:
         mean_mpd = np.nanmean(self.mpd_results)  # Utiliser nanmean pour gérer les NaN
         mean_validation_loss = np.mean(self.validation_loss_results)
         mean_training_loss = np.mean(self.training_loss_results)
-
-        # Afficher les résultats
+        # Afficher les résultats :
         print("Mean Validation RMSE: ", mean_rmse)
         print("Mean Validation MSE: ", mean_mse)
         print("Mean Validation MAE: ", mean_mae)
@@ -178,8 +184,7 @@ class NeuralNetwork:
         print("Mean Validation MPD: ", mean_mpd)
         print("Mean Validation Loss: ", mean_validation_loss)
         print("Mean Training Loss: ", mean_training_loss)
-
-        # Retourner les métriques moyennes
+        # Retourner les métriques moyennes :
         return {
             "mean_rmse": mean_rmse,
             "mean_mse": mean_mse,
@@ -194,13 +199,14 @@ class NeuralNetwork:
 
 
 
-    def loss_drawing(self, training_loss_results, validation_loss_results):
+    def loss_drawing(self, history):
         """ Tracer les pertes """
-        plt.plot(training_loss_results, label='Training Loss')
-        plt.plot(validation_loss_results, label='Validation Loss')
-        plt.xlabel('Fold')
-        plt.ylabel('Loss')
-        plt.title('Training and Validation Loss Comparison')
-        plt.legend()
+        loss = history.history['loss']
+        val_loss = history.history['val_loss']
+        epochs = range(len(loss))
+        plt.plot(epochs, loss, 'r', label='Training loss')
+        plt.plot(epochs, val_loss, 'b', label='Validation loss')
+        plt.title('Training and validation loss')
+        plt.legend(loc=0)
+        plt.figure()
         plt.show()
-

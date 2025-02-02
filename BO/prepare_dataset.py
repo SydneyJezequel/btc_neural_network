@@ -67,6 +67,12 @@ class PrepareDataset:
         scaler = MinMaxScaler(feature_range=(0, 1))
         scaler.fit(tmp_dataset)
         return scaler
+    """
+    La méthode MinMaxScaler de la bibliothèque scikit-learn est utilisée pour normaliser
+    les caractéristiques (features) d'un jeu de données.
+    Elle met à l'échelle chaque caractéristique dans une plage spécifiée, généralement entre 0 et 1.
+    On peut faire la même chose avec un StandardScaler().
+    """
 
 
 

@@ -34,213 +34,12 @@ from BO.neural_network import NeuralNetwork
 
 
 
-
-
-
-
 """ ****************************** Paramètres ****************************** """
 DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
 DATASET_FILE = parameters.DATASET_FILE
 DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 SAVE_MODEL_PATH = parameters.SAVE_MODEL_PATH
-
-
-
-
-
-
-
-
-
-""" ****************************** Classe technical indicators ****************************** """
-"""
-def ma(df, n):
-    # Calcul de la moyenne mobile
-    return pd.Series(df['Dernier'].rolling(n, min_periods=n).mean(), name='MA_' + str(n))
-
-
-def rsi(df, period):
-    # Calcul du RSI 
-    delta = df['Dernier'].diff().dropna()
-    u = delta * 0
-    d = u.copy()
-    u[delta > 0] = delta[delta > 0]
-    d[delta < 0] = -delta[delta < 0]
-    u[u.index[period-1]] = np.mean(u[:period])  # first value is sum of avg gains
-    u = u.drop(u.index[:(period-1)])
-    d[d.index[period-1]] = np.mean(d[:period])  # first value is sum of avg losses
-    d = d.drop(d.index[:(period-1)])
-    rs = u.ewm(com=period-1, adjust=False).mean() / d.ewm(com=period-1, adjust=False).mean()
-    return 100 - 100 / (1 + rs)
-
-
-def calculate_signal(dataset, taille_sma1, taille_sma2):
-    # Calcul du signal croisement des sma 
-    sma1_col = 'MA_' + str(taille_sma1)
-    sma2_col = 'MA_' + str(taille_sma2)
-    signal_col = 'signal_' + sma1_col + '_' + sma2_col
-    dataset[sma1_col] = ma(dataset, taille_sma1)
-    dataset[sma2_col] = ma(dataset, taille_sma2)
-    dataset[signal_col] = np.where(dataset[sma1_col] > dataset[sma2_col], 1.0, 0.0)
-    return dataset
-"""
-
-
-
-
-
-
-
-""" ****************************** Classe prepare_dataset ****************************** """
-"""
-def format_dataset(initial_dataset):
-    # Méthode format_dataset()
-    tmp_dataset = initial_dataset.copy()
-    # Convertir la colonne "Date" au format datetime :
-    tmp_dataset['Date'] = pd.to_datetime(initial_dataset['Date'], format='%d/%m/%Y', errors='coerce')
-    # errors='coerce' --> Les valeurs non converties sont remplacées par NaN.
-    # Remplacer les points par un espace, puis suppression de l'espace, enfin remplacement de la virgule par un point :
-    numeric_columns = ["Dernier", "Ouv.", " Plus Haut", "Plus Bas", "Variation %"]
-    for col in numeric_columns:
-        tmp_dataset.loc[:, col] = tmp_dataset[col].str.replace('.', ' ').str.replace(' ', '').str.replace(',', '.')
-        # .loc[:, col] est utilisé pour sélectionner toutes les lignes (:) de la colonne spécifiée par col.
-    # Conversion des colonnes numériques en float :
-    for col in numeric_columns:
-        tmp_dataset[col] = pd.to_numeric(tmp_dataset[col], errors='coerce')
-    return tmp_dataset
-"""
-
-
-
-"""
-def delete_columns(tmp_dataset):
-    # Méthode delete_columns()
-    # Suppression des colonnes de départ :
-    tmp_dataset = tmp_dataset.drop(columns=['Vol.', 'Variation %', 'Ouv.', ' Plus Haut', 'Plus Bas'])
-    print('Dataset transformé :', tmp_dataset)
-    return tmp_dataset
-"""
-
-
-
-"""
-def add_technicals_indicators(tmp_dataset):
-    # Méthode add_technicals_indicators()
-    # Ajout des indicateurs dans les colonnes :
-    tmp_dataset['MA_150'] =  technical_indicators.ma(tmp_dataset, 150)
-    tmp_dataset['MA_100'] = technical_indicators.ma(tmp_dataset, 100)
-    tmp_dataset['MA_50'] = technical_indicators.ma(tmp_dataset, 50)
-    tmp_dataset['RSI'] = technical_indicators.rsi(tmp_dataset, 14)
-    # Ajout des signaux générés par les indicateurs :
-    technical_indicators.calculate_signal(tmp_dataset, 50, 150)
-    technical_indicators.calculate_signal(tmp_dataset, 100, 150)
-    technical_indicators.calculate_signal(tmp_dataset, 50, 100)
-    # Ignorer les valeurs NAN (Remplir les valeurs NaN avec la moyenne des colonnes) :
-    del tmp_dataset['Date']
-    imputer = SimpleImputer(strategy='mean')
-    tmp_dataset = imputer.fit_transform(tmp_dataset)
-    return tmp_dataset
-"""
-
-
-
-"""
-def get_fitted_scaler(tmp_dataset):
-    # Méthode pour obtenir le scaler ajusté
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaler.fit(tmp_dataset)
-    return scaler
-"""
-"""
-La méthode MinMaxScaler de la bibliothèque scikit-learn est utilisée pour normaliser
-les caractéristiques (features) d'un jeu de données.
-Elle met à l'échelle chaque caractéristique dans une plage spécifiée, généralement entre 0 et 1.
-On peut faire la même chose avec un StandardScaler().
-"""
-
-
-
-"""
-def normalize_datas(tmp_dataset, scaler):
-    # Méthode normalize_data()
-    return scaler.transform(tmp_dataset)
-"""
-
-
-
-"""
-def create_train_and_test_dataset(model_dataset):
-    # Méthode create_train_and_test_dataset() 
-    # Création des datasets d'entrainement et de test
-    training_size = int(len(model_dataset) * 0.60)
-    test_size = len(model_dataset) - training_size
-    train_data, test_data = model_dataset[0:training_size, :], model_dataset[training_size:len(model_dataset), :1]
-    # datas_for_model[0:training_size,:] : Sélectionne les training_size premières lignes de l'array.
-    # datas_for_model[training_size:len(datas_for_model),:1] : Sélectionne toutes les lignes à partir de training_size jusqu'à la fin de l'array.
-    print("dataset d'entrainement :", train_data.shape)
-    print("dataset de test :", test_data.shape)
-    return train_data, test_data
-"""
-
-
-
-"""
-def create_dataset(dataset, time_step=1):
-    # Méthode create_dataset()
-    dataX, dataY = [], []
-    # Boucle sur le dataset pour créer des séquences de longueur time_step :
-    for i in range(len(dataset) - time_step - 1):
-        # Extrait une séquence de longueur time_step à partir de l'index i
-        a = dataset[i:(i + time_step), 0]
-        # Ajoute la séquence à dataX :
-        dataX.append(a)
-        # Ajoute la valeur cible correspondante à dataY :
-        dataY.append(dataset[i + time_step, 0])
-    # Convertit les listes dataX et dataY en arrays numpy pour faciliter leur utilisation dans les modèles de machine learning :
-    return np.array(dataX), np.array(dataY)
-"""
-
-
-
-"""
-def create_data_matrix(model_dataset, time_step=15):
-    # Méthode create_data_matrix() 
-    # Création des ensembles de données en utilisant la fonction create_dataset :
-    x, y = create_dataset(model_dataset, time_step)
-    # Remodelage de X pour obtenir la forme [échantillons, time steps, caractéristiques]
-    # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
-    x = x.reshape(x.shape[0], x.shape[1], 1)
-    # Affichage des dimensions des ensembles de données après remodelage :
-    print("dataset x: ", x.shape)
-    # On ne modifie pas la forme du dataset y car elle sert de valeur cible à comparer avec le dataset x :
-    print("dataset y: ", y.shape)
-    return x, y
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -271,16 +70,6 @@ tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
 
 # Suppression des colonnes :
 tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
-
-
-# Affichage des données :
-fig = px.line(tmp_dataset, x=tmp_dataset.Date, y=tmp_dataset.Dernier,labels={'Date':'date','Dernier':'Close Stock'})
-fig.update_traces(marker_line_width=2, opacity=0.8, marker_line_color='orange')
-fig.update_layout(title_text='Whole period of timeframe of Bitcoin close price 2014-2025', plot_bgcolor='white',
-                  font_size=15, font_color='black')
-fig.update_xaxes(showgrid=False)
-fig.update_yaxes(showgrid=False)
-fig.show()
 
 
 # Ajout des indicateurs techniques :
@@ -328,10 +117,8 @@ apprendre à prédire.
 
 
 """ ************************************ Créer une classe qui encapsule le modèle (Réseau de neurones) ************************************ """
-""" NOM DE LA CLASSE : neural_network """
 
 print(" ************ Etape 3 : Create and train model ************ ")
-
 
 """ 
 ----------------------------------------------------------------
@@ -343,150 +130,11 @@ print(" ************ Etape 3 : Create and train model ************ ")
 ----------------------------------------------------------------
 """
 
+# Instanciation du modèle :
+neural_network = NeuralNetwork(x_train, y_train)
 
-# Initialiser TimeSeriesSplit avec le nombre de splits souhaité
-"""
-tscv = TimeSeriesSplit(n_splits=5)
-"""
-
-"""
-# Initialiser des listes pour stocker les résultats et les métriques
-results = []
-rmse_results = []
-mse_results = []
-mae_results = []
-evs_results = []
-r2_results = []
-mgd_results = []
-mpd_results = []
-training_loss_results = []
-validation_loss_results = []
-"""
-
-# Initialisation du compteur :
-"""
-cpt = 1
-"""
-
-
-"""
-for train_index, val_index in tscv.split(x_train):
-
-    # Entrainement du modèle
-    # Affichage du tour de boucle :
-    print("tour de boucle : ", cpt)
-
-    x_train_fold, x_val_fold = x_train[train_index], x_train[val_index]
-    y_train_fold, y_val_fold = y_train[train_index], y_train[val_index]
-
-    print("shape of datasets : ")
-    print("x_train_fold : ", x_train_fold.shape)
-    print("y_train_fold : ", y_train_fold.shape)
-    print("x_val_fold : ", x_val_fold.shape)
-    print("y_val_fold : ", y_val_fold.shape)
-
-    model = Sequential()
-    model.add(LSTM(50, input_shape=(x_train_fold.shape[1], 1), activation="relu"))
-    model.add(Dropout(0.2))
-    model.add(Dense(1, kernel_regularizer=l2(0.01)))
-    model.compile(loss="mean_squared_error", optimizer="adam")
-
-    early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
-
-    history = model.fit(
-        x_train_fold, y_train_fold,
-        validation_data=(x_val_fold, y_val_fold),
-        epochs=200,
-        batch_size=32,
-        verbose=1,
-        callbacks=[early_stopping]
-    )
-
-    # Enregistrer les poids du modèle
-    print("Enregistrement du modèle.")
-    model.save_weights(SAVE_MODEL_PATH+f'best_model_weights{cpt}.weights.h5')
-
-    # Evaluer le modèle
-    # Évaluer le modèle sur les données de validation
-    val_loss = model.evaluate(x_val_fold, y_val_fold, verbose=0)
-    results.append(val_loss)
-
-    # Prédire et évaluer les métriques de performance
-    val_predict = model.predict(x_val_fold)
-    # Assurez-vous que les données ont la même forme que celles sur lesquelles le scaler a été ajusté
-
-    # Redimensionner les données pour qu'elles aient deux dimensions :
-    y_val_fold_reshaped = y_val_fold.reshape(-1, 1)
-    print("y_val_fold_reshaped : ", y_val_fold_reshaped.shape)
-    val_predict_reshaped = val_predict.reshape(-1, 1)
-    print("val_predict_reshaped : ", val_predict_reshaped.shape)
-
-    # Ajuster le scaler sur les données redimensionnées :
-    scaler.fit(y_val_fold_reshaped)
-
-    # Inverser la transformation
-    original_yval = scaler.inverse_transform(y_val_fold_reshaped)
-    val_predict_inversed = scaler.inverse_transform(val_predict_reshaped)
-
-    # Calculer les métriques
-    rmse = np.sqrt(mean_squared_error(original_yval, val_predict_inversed))
-    mse = mean_squared_error(original_yval, val_predict_inversed)
-    mae = mean_absolute_error(original_yval, val_predict_inversed)
-    evs = explained_variance_score(original_yval, val_predict_inversed)
-    r2 = r2_score(original_yval, val_predict_inversed)
-
-    # Vérifier si les valeurs sont strictement positives avant de calculer la déviance gamma et la déviance de Poisson
-    if np.all(original_yval > 0) and np.all(val_predict_inversed > 0):
-        mgd = mean_gamma_deviance(original_yval, val_predict_inversed)
-        mpd = mean_poisson_deviance(original_yval, val_predict_inversed)
-    else:
-        mgd, mpd = np.nan, np.nan
-
-    # Ajouter les résultats aux listes
-    rmse_results.append(rmse)
-    mse_results.append(mse)
-    mae_results.append(mae)
-    evs_results.append(evs)
-    r2_results.append(r2)
-    mgd_results.append(mgd)
-    mpd_results.append(mpd)
-
-    # Incrémenter le compteur de tours de boucle
-    cpt += 1
-
-# Convertir les listes en arrays numpy
-rmse_results = np.array(rmse_results)
-mse_results = np.array(mse_results)
-mae_results = np.array(mae_results)
-evs_results = np.array(evs_results)
-r2_results = np.array(r2_results)
-mgd_results = np.array(mgd_results)
-mpd_results = np.array(mpd_results)
-training_loss_results = np.array(training_loss_results)
-validation_loss_results = np.array(validation_loss_results)
-
-# Afficher les résultats
-print("Validation RMSE: ", rmse_results)
-print("Validation MSE: ", mse_results)
-print("Validation MAE: ", mae_results)
-print("Validation Explained Variance Score: ", evs_results)
-print("Validation R2 Score: ", r2_results)
-print("Validation MGD: ", mgd_results)
-print("Validation MPD: ", mpd_results)
-print("Validation Loss for each fold: ", validation_loss_results)
-print("Mean Validation Loss: ", np.mean(validation_loss_results))
-print("Training Loss for each fold: ", training_loss_results)
-print("Mean Training Loss: ", np.mean(training_loss_results))
-"""
-
-
-
-
-""" ************************************ Créer une classe qui encapsule le modèle (Réseau de neurones) ************************************ """
-
-
-
-neural_network = NeuralNetwork()
+# Exécution de l'entrainement :
+neural_network.train()
 
 
 
@@ -497,7 +145,9 @@ neural_network = NeuralNetwork()
 
 
 
+""" ************************************ Analyser les résultats avec un Llm ************************************ """
 
+print(" ************ Etape 4 : Analyser les résultats avec un Llm ************ ")
 
 
 

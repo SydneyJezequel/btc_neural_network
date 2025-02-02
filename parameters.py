@@ -21,3 +21,7 @@ DATASET_FOR_PREDICTIONS = PATH_PREDICTIONS_DATASET + 'btc_cotations_for_predicti
 
 
 
+
+""" ************ Paramètres du Llm ************ """
+API_KEY = ''
+API_URL = ''
