@@ -6,7 +6,7 @@ from BO.technical_indicators import technical_indicators
 
 
 
-class prepare_dataset:
+class PrepareDataset:
     """ Classe qui re-traite le dataset avant l'entrainement du modèle """
 
 

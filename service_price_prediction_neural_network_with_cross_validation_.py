@@ -28,7 +28,8 @@ from plotly.subplots import make_subplots
 import parameters
 from sklearn.model_selection import TimeSeriesSplit
 from BO.technical_indicators import technical_indicators
-from BO.prepare_dataset import prepare_dataset
+from BO.prepare_dataset import PrepareDataset
+from BO.neural_network import NeuralNetwork
 
 
 
@@ -261,7 +262,7 @@ initial_dataset = pd.read_csv(DATASET_PATH+DATASET_FILE)
 
 print(" ************ Etape 2 : Preparation of the Dataset ************ ")
 
-prepare_dataset = prepare_dataset()
+prepare_dataset = PrepareDataset()
 
 
 # Formatage des colonnes :
@@ -344,9 +345,11 @@ print(" ************ Etape 3 : Create and train model ************ ")
 
 
 # Initialiser TimeSeriesSplit avec le nombre de splits souhaité
+"""
 tscv = TimeSeriesSplit(n_splits=5)
+"""
 
-
+"""
 # Initialiser des listes pour stocker les résultats et les métriques
 results = []
 rmse_results = []
@@ -358,15 +361,18 @@ mgd_results = []
 mpd_results = []
 training_loss_results = []
 validation_loss_results = []
-
+"""
 
 # Initialisation du compteur :
+"""
 cpt = 1
+"""
 
 
+"""
 for train_index, val_index in tscv.split(x_train):
 
-    """ Entrainement du modèle """
+    # Entrainement du modèle
     # Affichage du tour de boucle :
     print("tour de boucle : ", cpt)
 
@@ -396,11 +402,11 @@ for train_index, val_index in tscv.split(x_train):
         callbacks=[early_stopping]
     )
 
-    """ Enregistrer les poids du modèle """
+    # Enregistrer les poids du modèle
     print("Enregistrement du modèle.")
     model.save_weights(SAVE_MODEL_PATH+f'best_model_weights{cpt}.weights.h5')
 
-    """ Evaluer le modèle """
+    # Evaluer le modèle
     # Évaluer le modèle sur les données de validation
     val_loss = model.evaluate(x_val_fold, y_val_fold, verbose=0)
     results.append(val_loss)
@@ -471,6 +477,7 @@ print("Validation Loss for each fold: ", validation_loss_results)
 print("Mean Validation Loss: ", np.mean(validation_loss_results))
 print("Training Loss for each fold: ", training_loss_results)
 print("Mean Training Loss: ", np.mean(training_loss_results))
+"""
 
 
 
@@ -479,7 +486,7 @@ print("Mean Training Loss: ", np.mean(training_loss_results))
 
 
 
-
+neural_network = NeuralNetwork()
 
 
 
@@ -521,6 +528,7 @@ print(" ******************** Etape 5 : Overfitting Evaluation ******************
 
 
 print("Training loss 1 : ")
+"""
 # Exemple de pertes d'entraînement (à remplir avec vos valeurs réelles)
 training_loss = [0.001, 0.0005, 0.0003, 0.0002, 0.0001]
 
@@ -535,7 +543,7 @@ plt.ylabel('Loss')
 plt.title('Training and Validation Loss Comparison')
 plt.legend()
 plt.show()
-
+"""
 
 
 
@@ -550,6 +558,8 @@ signifie que le modèle commence à surajuster les données d'entrainement).
 Si les 2 courbes suivent une tendance similaires, cela signifie que le modèle est moins susceptible de
 surajuster.
 """
+
+"""
 loss = history.history['loss']
 val_loss = history.history['val_loss']
 epochs = range(len(loss))
@@ -559,7 +569,7 @@ plt.title('Training and validation loss')
 plt.legend(loc=0)
 plt.figure()
 plt.show()
-
+"""
 
 
 
@@ -574,11 +584,11 @@ plt.show()
 
 
 print(" ******************** Génération de prédiction par le modèle ******************** ")
-
+"""
 train_predict = model.predict(x_train)
 test_predict = model.predict(x_test)
 print(train_predict.shape, test_predict.shape)
-
+"""
 
 
 
