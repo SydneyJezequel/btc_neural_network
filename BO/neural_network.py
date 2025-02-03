@@ -87,14 +87,20 @@ class NeuralNetwork:
             model.save_weights(self.save_model_path + f'best_model_weights{self.cpt}.weights.h5')
 
             val_loss = model.evaluate(x_val_fold, y_val_fold, verbose=0)
+
             self.results.append(val_loss)
 
             self.predict(model, x_val_fold, y_val_fold)
 
             self.cpt += 1
 
+        # Affichage des résultats :
+        self.display_metrics_arrays()
+        # Conversion des résultats en tableau numpey :
         self.convert_results_to_numpy()
-
+        # Affichage des résultats :
+        self.evaluate()
+        # Diagramme qui affiche les résultats :
         self.loss_drawing(history)
 
 
@@ -109,12 +115,11 @@ class NeuralNetwork:
         self.scaler.fit(y_val_fold_reshaped)
         original_yval = self.scaler.inverse_transform(y_val_fold_reshaped)
         val_predict_inversed = self.scaler.inverse_transform(val_predict_reshaped)
-        # Stocker les prédictions et les valeurs réelles
+        # Stocker les prédictions et les valeurs réelles :
         self.all_predictions.extend(val_predict_inversed)
         self.all_true_values.extend(original_yval)
-
+        # Enregistrement des prédictions :
         self.evaluate_fold(original_yval, val_predict_inversed)
-
 
         # Appel du LLM pour analyser les prédictions :
         llm = Llm(self.all_predictions, self.all_true_values, parameters.API_URL, parameters.API_KEY)
@@ -159,6 +164,20 @@ class NeuralNetwork:
         self.mpd_results = np.array(self.mpd_results)
         self.training_loss_results = np.array(self.training_loss_results)
         self.validation_loss_results = np.array(self.validation_loss_results)
+
+
+
+    def display_metrics_arrays(self):
+        """ Affichage des résultats """
+        print("Mean Validation RMSE: ", self.rmse_results)
+        print("Mean Validation MSE: ", self.mse_results)
+        print("Mean Validation MAE: ", self.mae_results)
+        print("Mean Validation Explained Variance Score: ", self.evs_results)
+        print("Mean Validation R2 Score: ", self.r2_results)
+        print("Mean Validation MGD: ", self.mgd_results)
+        print("Mean Validation MPD: ", self.mpd_results)
+        print("Mean Validation Loss: ", self.validation_loss_results)
+        print("Mean Training Loss: ", self.training_loss_results)
 
 
 
