@@ -22,7 +22,8 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 import parameters
-
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.regularizers import l2
 
 
 
@@ -229,7 +230,7 @@ def create_data_matrix(train_data, test_data, create_dataset):
 
 print(" ************ Etape 1 : Loading dataset ************ ")
 initial_dataset = pd.read_csv(DATASET_PATH+DATASET_FILE)
-"""
+
 print('Total number of days present in the dataset: ', initial_dataset.shape[0])
 print('Total number of fields present in the dataset: ', initial_dataset.shape[1])
 print('Nombre de lignes et colonnes: ', initial_dataset.shape)
@@ -244,7 +245,7 @@ ed=initial_dataset.iloc[0][0]
 sd=initial_dataset.iloc[-1][0]
 print('Starting Date : ',sd)
 print('Ending Date : ',ed)
-"""
+
 
 
 
@@ -294,9 +295,13 @@ pour entraîner les modèles de machine learning en leur fournissant des exemple
 apprendre à prédire.
 """
 
+print("NaN in X_train:", np.isnan(x_train).sum())
+print("NaN in y_train:", np.isnan(y_train).sum())
+print("NaN in X_test:", np.isnan(x_test).sum())
+print("NaN in y_test:", np.isnan(y_test).sum())
 
-
-
+print('En-têtes du dataset: ', initial_dataset.head())
+print('initial_dataset.tail(): ', initial_dataset.tail())
 
 
 
@@ -338,11 +343,6 @@ apprendre à prédire.
 
 print(" ******************** Création et entrainement du modèle ******************** ")
 
-
-
-
-
-
 """ 
 ----------------------------------------------------------------
 # Ajout d'une couche LSTM (Long Short-Term Memory) au modèle :
@@ -354,28 +354,22 @@ print(" ******************** Création et entrainement du modèle **************
 """
 
 
-
-
-
-
-
-"""
-----------------------------------------------------------------
-# ==> ANCIENNE VERSION :
-----------------------------------------------------------------
-
 # Création du modèle :
 # Initialisation d'un modèle séquentiel :
 model=Sequential()
+model.add(LSTM(10,input_shape=(None,1), activation="relu"))
+model.add(Dropout(0.2))
+model.add(Dense(1))
+# model.add(Dense(1), kernel_regularizer=l2(0.01)) ==> NE FONCTIONNE PAS.
+model.compile(loss="mean_squared_error", optimizer="adam")
 
-# model.add(LSTM(10,input_shape=(None,1),activation="relu")).
-# model.add(Dense(1))
 
 # Exécution du modèle :
 # Compilation du modèle :
 # - loss="mean_squared_error" : Utilisation de la moyenne des erreurs quadratiques comme fonction de perte (écart prévision/résultat).
 # - optimizer="adam" : Utilisation de l'optimiseur Adam pour gérer la descente de gradient (algorithme d'optimisation utilisé pour minimiser la fonction de perte. Elle ajuste les paramètres du modèle (comme les poids et les biais dans un réseau de neurones) de manière itérative pour réduire la valeur de la fonction de perte.).
-model.compile(loss="mean_squared_error",optimizer="adam")
+# model.compile(loss="mean_squared_error",optimizer="adam")
+
 
 # Entrainement du modèle :
 # - X_train, y_train : données et cibles d'entraînement.
@@ -383,243 +377,16 @@ model.compile(loss="mean_squared_error",optimizer="adam")
 # - epochs=200 : nombre d'époques (passages complets sur l'ensemble des données d'entraînement).
 # - batch_size=32 : taille des lots (batch size) pour l'entraînement.
 # - verbose=1 : mode verbeux pour afficher les informations de progression pendant l'entraînement.
-history = model.fit(X_train,y_train,validation_data=(X_test,y_test),epochs=200,batch_size=32,verbose=1)
-----------------------------------------------------------------
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
-----------------------------------------------------------------
-# ==> NOUVELLE VERSION SANS VALIDATION CROISEE :
-----------------------------------------------------------------
-
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.regularizers import l2
-
-# Création du modèle :
-# Initialisation d'un modèle séquentiel :
-model=Sequential()
-
-# Ajout des couches :
-model.add(LSTM(10,input_shape=(None,1),activation="relu")).     
-model.add(Dropout(0.2))                                             # Ajout du dropout.
-model.add(Dense(1, kernel_regularizer=l2(0.01)))                    # Ajout de la régularisation L2
-model.compile(loss="mean_squared_error", optimizer="adam")
-
-early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 history = model.fit(
     x_train,y_train,
     validation_data=(x_test,y_test),
-    epochs=200,
+    epochs=10,
     batch_size=32,
     verbose=1
-    callbacks=[early_stopping])
-----------------------------------------------------------------
-"""
+)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
-----------------------------------------------------------------
-# ==> NOUVEAU SCRIPT AVEC VALIDATION CROISEE :
-----------------------------------------------------------------
-
-from sklearn.model_selection import KFold
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dropout, Dense
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.regularizers import l2
-import math
-from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score, mean_gamma_deviance, mean_poisson_deviance
-
-# Utiliser les données préparées
-X = np.concatenate((x_train, x_test), axis=0)
-y = np.concatenate((y_train, y_test), axis=0)
-
-kfold = KFold(n_splits=5, shuffle=True, random_state=42)
-
-# Initialiser une liste pour stocker les résultats de chaque fold
-results = []
-
-for train_index, val_index in kfold.split(X):
-    X_train, X_val = X[train_index], X[val_index]
-    y_train, y_val = y[train_index], y[val_index]
-
-    model = Sequential()
-    model.add(LSTM(50, input_shape=(X_train.shape[1], 1), activation="relu"))
-    model.add(Dropout(0.2))
-    model.add(Dense(1, kernel_regularizer=l2(0.01)))
-    model.compile(loss="mean_squared_error", optimizer="adam")
-
-    early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
-
-    history = model.fit(
-        X_train, y_train,
-        validation_data=(X_val, y_val),
-        epochs=200,
-        batch_size=32,
-        verbose=1,
-        callbacks=[early_stopping]
-    )
-
-    # Évaluer le modèle sur les données de validation
-    val_loss = model.evaluate(X_val, y_val, verbose=0)
-    results.append(val_loss)
-
-    # Prédire et évaluer les métriques de performance
-    val_predict = model.predict(X_val)
-    original_yval = scaler.inverse_transform(y_val.reshape(-1, 1))
-    val_predict = scaler.inverse_transform(val_predict)
-
-    print("Validation RMSE: ", math.sqrt(mean_squared_error(original_yval, val_predict)))
-    print("Validation MSE: ", mean_squared_error(original_yval, val_predict))
-    print("Validation MAE: ", mean_absolute_error(original_yval, val_predict))
-    print("Validation Explained Variance Score: ", explained_variance_score(original_yval, val_predict))
-    print("Validation R2 Score: ", r2_score(original_yval, val_predict))
-    print("Validation MGD: ", mean_gamma_deviance(original_yval, val_predict))
-    print("Validation MPD: ", mean_poisson_deviance(original_yval, val_predict))
-
-# Afficher les résultats de la validation croisée
-print("Validation Loss for each fold: ", results)
-print("Mean Validation Loss: ", np.mean(results))
-
-----------------------------------------------------------------
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Sauvegarde du modèle :
+model.save_weights(parameters.SAVE_MODEL_PATH + f'best_model_weights_without_cross_validation.weights.h5')
 
 
 
@@ -698,7 +465,6 @@ C'est pourquoi la validation croisée est utile pour obtenir une estimation plus
 
 print(" ******************** Evaluation du sur-apprentissage ******************** ")
 
-
 """
 ==> COMMENT ANALYSER CE GRAPHE ?
 Plus les 2 courbes se suivent : Moins il y a d'overfitting.
@@ -708,10 +474,13 @@ Si les 2 courbes suivent une tendance similaires, cela signifie que le modèle e
 surajuster.
 """
 
-
-"""
 loss = history.history['loss']
 val_loss = history.history['val_loss']
+print("*************** DEBUG ****************")
+print("history : ", history)
+print("loss : ", loss)
+print("val_loss : ", val_loss)
+print("*************** DEBUG ****************")
 epochs = range(len(loss))
 plt.plot(epochs, loss, 'r', label='Training loss')
 plt.plot(epochs, val_loss, 'b', label='Validation loss')
@@ -719,18 +488,18 @@ plt.title('Training and validation loss')
 plt.legend(loc=0)
 plt.figure()
 plt.show()
-"""
+
+
 
 
 
 
 print(" ******************** Génération de prédiction par le modèle ******************** ")
 
-"""
-train_predict=model.predict(X_train)
-test_predict=model.predict(X_test)
+train_predict=model.predict(x_train)
+test_predict=model.predict(x_test)
 train_predict.shape, test_predict.shape
-"""
+
 
 
 """ ************************************ Créer une classe qui encapsule le modèle (Réseau de neurones) ************************************ """
@@ -778,7 +547,7 @@ train_predict.shape, test_predict.shape
 """ NOM DE LA CLASSE : evaluate_neural_network_training """
 print(" ******************** Evaluation du modèle ******************** ")
 
-"""
+
 # Les datasets d'entrainements et de tests sont ramenées à leur échelle d'origine :
 scaler = MinMaxScaler(feature_range=(0, 1))
 train_predict = scaler.inverse_transform(train_predict)
@@ -788,7 +557,7 @@ test_predict = scaler.inverse_transform(test_predict)
 # Note : y_train et t_train sont remodelées en matrices colonnes pour correspondre à la forme attendue par inverse_transform :
 original_ytrain = scaler.inverse_transform(y_train.reshape(-1,1)) 
 original_ytest = scaler.inverse_transform(y_test.reshape(-1,1)) 
-"""
+
 
 
 
@@ -797,7 +566,6 @@ original_ytest = scaler.inverse_transform(y_test.reshape(-1,1))
 
 """ ******************** Evaluation des metrics RMSE and MAE******************** """
 print(" ******************** Evaluation des metrics RMSE and MAE ******************** ")
-
 
 """
 -------------------------------------------------------------------------------
@@ -812,7 +580,7 @@ d'entrainement et moins aux données de test.
 
 
 
-"""
+
 # Calcule et affiche la RMSE (Root Mean Squared Error) pour les données d'entraînement.
 # La RMSE ou racine carrée de la moyenne des carrés des erreurs.
 # Elle donne une idée de la magnitude des erreurs.
@@ -850,7 +618,7 @@ print("Test data MSE: ", mean_squared_error(original_ytest, test_predict))
 # Elle est moins sensible aux grandes erreurs que la MSE.
 # Une MAE plus faible indique un meilleur ajustement du modèle aux données.
 print("Test data MAE: ", mean_absolute_error(original_ytest, test_predict))
-"""
+
 
 
 
@@ -860,26 +628,23 @@ print("Test data MAE: ", mean_absolute_error(original_ytest, test_predict))
 """ ******************** Variance Regression Score ******************** """
 print(" ******************** Variance Regression Score ******************** ")
 
-
-
-"""
 # Calcule et affiche le score de régression de la variance expliquée pour les données d'entraînement
 # Le score de variance expliquée (explained variance score) mesure la proportion
-de la variance dans les valeurs cibles qui est expliquée par le modèle :
-- Un score proche de 1 indique que le modèle explique bien la variance des données.
-- Un score proche de 0 indique que le modèle n'explique pas bien la variance des données.
+# de la variance dans les valeurs cibles qui est expliquée par le modèle :
+# - Un score proche de 1 indique que le modèle explique bien la variance des données.
+# - Un score proche de 0 indique que le modèle n'explique pas bien la variance des données.
 print("Train data explained variance regression score:",
 explained_variance_score(original_ytrain, train_predict))
 
 
 # Calcule et affiche le score de régression de la variance expliquée pour les données de test
 # Le score de variance expliquée (explained variance score) mesure la proportion
-de la variance dans les valeurs cibles qui est expliquée par le modèle :
-- Un score proche de 1 indique que le modèle explique bien la variance des données.
-- Un score proche de 0 indique que le modèle n'explique pas bien la variance des données.
+# de la variance dans les valeurs cibles qui est expliquée par le modèle :
+# - Un score proche de 1 indique que le modèle explique bien la variance des données.
+# - Un score proche de 0 indique que le modèle n'explique pas bien la variance des données.
 print("Test data explained variance regression score:",
 explained_variance_score(original_ytest, test_predict))
-"""
+
 
 
 
@@ -889,10 +654,9 @@ explained_variance_score(original_ytest, test_predict))
 """ ******************** R square score for regression ******************** """
 print(" ******************** R square score for regression ******************** ")
 
-"""
 # Calcule et affiche le score R² pour les données d'entraînement
 # Le score R² (coefficient de détermination) mesure la proportion de la variance 
-dans les valeurs cibles qui est expliquée par le modèle :
+# dans les valeurs cibles qui est expliquée par le modèle :
 # - Un score R² proche de 1 indique que le modèle explique bien la variance des données.
 # - Un score R² proche de 0 indique que le modèle n'explique pas bien la variance des données.
 # - Un score R² négatif indique que le modèle est pire que la moyenne des valeurs cibles.
@@ -901,13 +665,11 @@ print("Train data R2 score:", r2_score(original_ytrain, train_predict))
 
 # Calcule et affiche le score R² pour les données de test
 # Le score R² (coefficient de détermination) mesure la proportion de la variance 
-dans les valeurs cibles qui est expliquée par le modèle :
+# dans les valeurs cibles qui est expliquée par le modèle :
 # - Un score R² proche de 1 indique que le modèle explique bien la variance des données.
 # - Un score R² proche de 0 indique que le modèle n'explique pas bien la variance des données.
 # - Un score R² négatif indique que le modèle est pire que la moyenne des valeurs cibles.
 print("Test data R2 score:", r2_score(original_ytest, test_predict))
-"""
-
 
 """
 -------------------------------------------------------------------------------
@@ -926,38 +688,29 @@ d'entrainement et moins aux données de test.
 
 
 
-
-
-
-
-
-
-
-
-
-
 """ ********** Perte de Régression Moyenne Gamma déviance de perte de régression (MGD) et Moyenne Poisson déviance de perte de régression (MPD)  ************** """
 print(" ******** Perte de Régression Moyenne Gamma déviance de perte de régression (MGD) et Moyenne Poisson déviance de perte de régression (MPD) ************ ")
-"""
+
+
 # Afficher la perte de régression moyenne Gamma déviance pour les données d'entraînement et de test
 print("Données d'entraînement MGD :", mean_gamma_deviance(original_ytrain, train_predict))
 print("Données de test MGD :", mean_gamma_deviance(original_ytest, test_predict))
 print("----------------------------------------------------------------------")
 
+
 # Afficher la perte de régression moyenne Poisson déviance pour les données d'entraînement et de test
 print("Données d'entraînement MPD :", mean_poisson_deviance(original_ytrain, train_predict))
 print("Données de test MPD :", mean_poisson_deviance(original_ytest, test_predict))
-"""
 
-"""
-Perte de déviance Gamma :
-La perte de déviance Gamma évalue à quel point votre modèle prédit bien les temps de défaillance observés.
-La perte de déviance Gamma mesure la différence entre la déviance du modèle ajusté et la déviance d'un modèle nul :
-- Modèle ajusté : C'est le modèle que vous avez entraîné sur vos données. Il utilise les variables indépendantes pour prédire la variable dépendante.
-- Déviance du modèle ajusté : C'est la déviance calculée pour ce modèle ajusté, qui mesure à quel point les prédictions du modèle diffèrent des valeurs observées.(un modèle qui prédit simplement la moyenne de la variable dépendante).
-- Modèle nul : C'est un modèle de référence très simple qui ne prend en compte aucune variable indépendante. Il prédit simplement la moyenne de la variable dépendante pour toutes les observations.
-- Déviance d'un modèle nul : C'est la déviance calculée pour ce modèle nul, qui mesure à quel point la moyenne des observations diffère des valeurs observées.
-"""
+
+# Perte de déviance Gamma :
+# La perte de déviance Gamma évalue à quel point votre modèle prédit bien les temps de défaillance observés.
+# La perte de déviance Gamma mesure la différence entre la déviance du modèle ajusté et la déviance d'un modèle nul :
+# - Modèle ajusté : C'est le modèle que vous avez entraîné sur vos données. Il utilise les variables indépendantes pour prédire la variable dépendante.
+# - Déviance du modèle ajusté : C'est la déviance calculée pour ce modèle ajusté, qui mesure à quel point les prédictions du modèle diffèrent des valeurs observées.(un modèle qui prédit simplement la moyenne de la variable dépendante).
+# - Modèle nul : C'est un modèle de référence très simple qui ne prend en compte aucune variable indépendante. Il prédit simplement la moyenne de la variable dépendante pour toutes les observations.
+# - Déviance d'un modèle nul : C'est la déviance calculée pour ce modèle nul, qui mesure à quel point la moyenne des observations diffère des valeurs observées.
+
 
 
 

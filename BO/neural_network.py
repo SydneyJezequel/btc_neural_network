@@ -48,10 +48,10 @@ class NeuralNetwork:
     def setting_model(self, x_train_fold):
         """ Méthode qui génère le modèle """
         self.model = Sequential()
-        self.model.add(LSTM(50, input_shape=(x_train_fold.shape[1], 1), activation="relu"))
-        self.model.add(Dropout(0.2))
+        self.model.add(LSTM(parameters.LSTM_LAYERS_NUMBER, input_shape=(x_train_fold.shape[1], 1), activation=parameters.ACTIVATION_FUNCTION))
+        self.model.add(Dropout(parameters.DROPOUT))
         self.model.add(Dense(1, kernel_regularizer=l2(0.01)))
-        self.model.compile(loss="mean_squared_error", optimizer="adam")
+        self.model.compile(loss=parameters.LOSS_FUNCTION, optimizer=parameters.OPTIMIZER)
         return self.model
 
 
@@ -77,8 +77,8 @@ class NeuralNetwork:
             history = model.fit(
                 x_train_fold, y_train_fold,
                 validation_data=(x_val_fold, y_val_fold),
-                epochs=200,
-                batch_size=32,
+                epochs=parameters.EPOCHS_NUMBER,
+                batch_size=parameters.BATCH_SIZE,
                 verbose=1,
                 callbacks=[early_stopping]
             )

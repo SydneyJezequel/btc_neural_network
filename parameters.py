@@ -7,8 +7,15 @@ SAVE_MODEL_PATH = '../btc_neural_network/model/'
 
 
 
-""" ************ Paramètres du modèle ************ """
 
+""" ************ Paramètres du modèle ************ """
+LSTM_LAYERS_NUMBER = 50
+ACTIVATION_FUNCTION = "relu"
+DROPOUT = 0.2
+LOSS_FUNCTION = "mean_squared_error"
+OPTIMIZER = "adam"
+EPOCHS_NUMBER = 200
+BATCH_SIZE = 32
 
 
 
@@ -17,7 +24,6 @@ SAVE_MODEL_PATH = '../btc_neural_network/model/'
 LOAD_MODEL_PATH = SAVE_MODEL_PATH
 PATH_PREDICTIONS_DATASET = DATASET_PATH + 'dataset_for_predictions/'
 DATASET_FOR_PREDICTIONS = PATH_PREDICTIONS_DATASET + 'btc_cotations_for_predictions.csv'
-
 
 
 
