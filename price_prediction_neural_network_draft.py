@@ -126,27 +126,18 @@ def add_technicals_indicators(tmp_dataset):
     calculate_signal(tmp_dataset, 50, 150)
     calculate_signal(tmp_dataset, 100, 150)
     calculate_signal(tmp_dataset, 50, 100)
-    # Suppression de la colonne 'Date' :
-    date_column = tmp_dataset['Date']
-    tmp_dataset = tmp_dataset.drop(columns=['Date'])
-    # Remplir les valeurs NaN avec la moyenne des colonnes :
+    # Ignorer les valeurs NAN (Remplir les valeurs NaN avec la moyenne des colonnes) :
+    del tmp_dataset['Date']
     imputer = SimpleImputer(strategy='mean')
-    tmp_dataset_imputed = imputer.fit_transform(tmp_dataset)
-    # Reconversion en DataFrame avec les noms de colonnes d'origine :
-    tmp_dataset = pd.DataFrame(tmp_dataset_imputed, columns=tmp_dataset.columns)
-    # Réintégration de la colonne 'Date' :
-    tmp_dataset['Date'] = date_column
+    tmp_dataset = imputer.fit_transform(tmp_dataset)
     return tmp_dataset
-
 
 
 
 def normalize_datas(tmp_dataset):
     """ Méthode normalize_data() """
-    # Suppression de la colonne 'Date' avant la normalisation
-    tmp_dataset = tmp_dataset.drop(columns=['Date'])
     scaler = MinMaxScaler(feature_range=(0, 1))
-    return scaler.fit_transform(tmp_dataset)
+    return scaler.fit_transform(np.array(tmp_dataset).reshape(-1, 1))
 """
 La méthode MinMaxScaler de la bibliothèque scikit-learn est utilisée pour normaliser
 les caractéristiques (features) d'un jeu de données.
@@ -287,8 +278,8 @@ tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
 
 
 # Contrôle des modifications :
-print("En-tête du dataset d'entrainement : ", tmp_dataset.head())
-print("dataset d'entrainement modifié (dernières lignes) pour vérifier si mes indicateurs sont bien calculés : ", tmp_dataset.tail())
+# print("En-tête du dataset d'entrainement : ", tmp_dataset.head())
+# print("dataset d'entrainement modifié (dernières lignes) pour vérifier si mes indicateurs sont bien calculés : ", tmp_dataset.tail())
 print('Null Values dataset final : ', tmp_dataset.isnull().values.sum())
 print('NA values dataset final :', tmp_dataset.isnull().values.any())
 
@@ -296,6 +287,8 @@ print('NA values dataset final :', tmp_dataset.isnull().values.any())
 # Normalise dataset :
 model_dataset = normalize_datas(tmp_dataset)
 print("dataset d'entrainement normalisé :", model_dataset)
+print('Null Values dataset final : ', model_dataset.isnull().values.sum())
+print('NA values dataset final :', model_dataset.isnull().values.any())
 
 
 # Méthode create_dataset :
@@ -312,21 +305,13 @@ print('NA values test_data :', test_data.isnull().values.any())
 """
 
 
+
+
 # Conversion des arrays en matrice :
-time_step = 15
-x_train, y_train = create_dataset(train_data, time_step)
-x_test, y_test = create_dataset(test_data, time_step)
-print("X_train: ", x_train.shape)
-print("y_train: ", y_train.shape)
-print("X_test: ", x_test.shape)
-print("y_test", y_test.shape)
+x_train, y_train, x_test, y_test = create_data_matrix(train_data, test_data, create_dataset)
+print("VERIFICATION DES MATRICES A FAIRE ???????")
 
 
-# reshape input to be [samples, time steps, features] which is required for LSTM
-x_train = x_train.reshape(x_train.shape[0],x_train.shape[1] , 1)
-x_test = x_test.reshape(x_test.shape[0],x_test.shape[1] , 1)
-print("X_train: ", x_train.shape)
-print("X_test: ", x_test.shape)
 
 
 # NOTION DE VALEUR CIBLE :
@@ -337,6 +322,34 @@ Les valeurs cibles sont utilisées
 pour entraîner les modèles de machine learning en leur fournissant des exemples de ce qu'ils doivent
 apprendre à prédire.
 """
+
+print("NaN in X_train:", np.isnan(x_train).sum())
+print("NaN in y_train:", np.isnan(y_train).sum())
+print("NaN in X_test:", np.isnan(x_test).sum())
+print("NaN in y_test:", np.isnan(y_test).sum())
+
+print('En-têtes du dataset: ', initial_dataset.head())
+print('initial_dataset.tail(): ', initial_dataset.tail())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -369,20 +382,21 @@ print(" ******************** Création et entrainement du modèle **************
 """
 
 
-
 # Création du modèle :
 # Initialisation d'un modèle séquentiel :
 model=Sequential()
-model.add(LSTM(50,input_shape=(None, 1), activation="relu"))
-# model.add(Dropout(0.2))
+model.add(LSTM(10,input_shape=(None,1), activation="relu"))
+model.add(Dropout(0.2))
 model.add(Dense(1))
+# model.add(Dense(1), kernel_regularizer=l2(0.01)) ==> NE FONCTIONNE PAS.
 model.compile(loss="mean_squared_error", optimizer="adam")
+
+
 # Exécution du modèle :
 # Compilation du modèle :
 # - loss="mean_squared_error" : Utilisation de la moyenne des erreurs quadratiques comme fonction de perte (écart prévision/résultat).
 # - optimizer="adam" : Utilisation de l'optimiseur Adam pour gérer la descente de gradient (algorithme d'optimisation utilisé pour minimiser la fonction de perte. Elle ajuste les paramètres du modèle (comme les poids et les biais dans un réseau de neurones) de manière itérative pour réduire la valeur de la fonction de perte.).
 # model.compile(loss="mean_squared_error",optimizer="adam")
-
 
 
 # Entrainement du modèle :
@@ -394,7 +408,7 @@ model.compile(loss="mean_squared_error", optimizer="adam")
 history = model.fit(
     x_train,y_train,
     validation_data=(x_test,y_test),
-    epochs=200,
+    epochs=5, # 200
     batch_size=32,
     verbose=1
 )
