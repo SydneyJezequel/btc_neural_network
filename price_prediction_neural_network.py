@@ -5,6 +5,10 @@ import numpy as np
 import math
 import datetime as dt
 import matplotlib.pyplot as plt
+from keras.src.utils.audio_dataset_utils import prepare_dataset
+
+from BO.prepare_dataset import PrepareDataset
+
 """ Evalution library """
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
 from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance, accuracy_score
@@ -24,6 +28,7 @@ from plotly.subplots import make_subplots
 import parameters
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.regularizers import l2
+from BO.prepare_dataset import PrepareDataset
 
 
 
@@ -140,13 +145,14 @@ def add_technicals_indicators(tmp_dataset):
 
 
 
-
+"""
 def normalize_datas(tmp_dataset):
-    """ Méthode normalize_data() """
+    #  Méthode normalize_data()
     # Suppression de la colonne 'Date' avant la normalisation
     tmp_dataset = tmp_dataset.drop(columns=['Date'])
     scaler = MinMaxScaler(feature_range=(0, 1))
     return scaler.fit_transform(tmp_dataset)
+"""
 """
 La méthode MinMaxScaler de la bibliothèque scikit-learn est utilisée pour normaliser
 les caractéristiques (features) d'un jeu de données.
@@ -236,6 +242,10 @@ def create_data_matrix(train_data, test_data, create_dataset):
 
 
 
+# Initialisation de la classe qui prépare le dataset :
+prepare_dataset = PrepareDataset()
+
+
 
 print(" ************ Etape 1 : Loading dataset ************ ")
 initial_dataset = pd.read_csv(DATASET_PATH+DATASET_FILE)
@@ -268,6 +278,8 @@ tmp_dataset = format_dataset(initial_dataset)
 tmp_dataset = delete_columns(tmp_dataset)
 
 
+
+"""
 # Affichage des données :
 fig = px.line(tmp_dataset, x=tmp_dataset.Date, y=tmp_dataset.Dernier,labels={'Date':'date','Dernier':'Close Stock'})
 fig.update_traces(marker_line_width=2, opacity=0.8, marker_line_color='orange')
@@ -276,14 +288,18 @@ fig.update_layout(title_text='Whole period of timeframe of Bitcoin close price 2
 fig.update_xaxes(showgrid=False)
 fig.update_yaxes(showgrid=False)
 fig.show()
+"""
+
 
 
 # Ajout des indicateurs techniques :
-add_technicals_indicators(tmp_dataset)
+# tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
+
 
 
 # Enregistrement du dataset au format csv :
 tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
+
 
 
 # Contrôle des modifications :
@@ -293,8 +309,21 @@ print('Null Values dataset final : ', tmp_dataset.isnull().values.sum())
 print('NA values dataset final :', tmp_dataset.isnull().values.any())
 
 
+
+tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
+
+print(" forme tmp_dataset : ", tmp_dataset.shape)
+
 # Normalise dataset :
-model_dataset = normalize_datas(tmp_dataset)
+# model_dataset = normalize_datas(tmp_dataset)
+# Obtenir le scaler ajusté :
+scaler = prepare_dataset.get_fitted_scaler(tmp_dataset)
+# Normalise dataset :
+model_dataset = prepare_dataset.normalize_datas(tmp_dataset, scaler)
+print("dataset d'entrainement normalisé :", model_dataset)
+print("model_dataset shape : ", model_dataset.shape)
+
+
 print("dataset d'entrainement normalisé :", model_dataset)
 
 
@@ -394,7 +423,7 @@ model.compile(loss="mean_squared_error", optimizer="adam")
 history = model.fit(
     x_train,y_train,
     validation_data=(x_test,y_test),
-    epochs=200,
+    epochs=200, # 10
     batch_size=32,
     verbose=1
 )
@@ -544,10 +573,16 @@ train_predict.shape, test_predict.shape
 
 
 
+print("Forme de train_predict :", train_predict.shape)
+print("Forme de test_predict : ", test_predict.shape)
+print("Forme de original_ytrain :", y_train.shape)
+print("Forme de original_ytest:", y_test.shape)
 
 
-
-
+test = y_train.reshape(-1, 1)
+print("Forme de original_ytrain reshape :", test.shape)
+test2 = y_test.reshape(-1, 1)
+print("Forme de original_ytest reshape :", test2)
 
 
 
@@ -562,10 +597,19 @@ train_predict.shape, test_predict.shape
 print(" ******************** Evaluation du modèle ******************** ")
 
 
+# train_predict et test_predict ont la même forme que y_train et y_test :
+train_predict = train_predict.reshape(-1, 1)
+test_predict = test_predict.reshape(-1, 1)
+
+
+
+# Conversion du scaler :
+scaler = prepare_dataset.get_fitted_scaler(train_predict)
 # Les datasets d'entrainements et de tests sont ramenées à leur échelle d'origine :
-scaler = MinMaxScaler(feature_range=(0, 1))
 train_predict = scaler.inverse_transform(train_predict)
 test_predict = scaler.inverse_transform(test_predict)
+
+
 
 # Inverse la transformation des valeurs cibles d'entraînement pour les ramener à leur échelle d'origine
 # Note : y_train et t_train sont remodelées en matrices colonnes pour correspondre à la forme attendue par inverse_transform :

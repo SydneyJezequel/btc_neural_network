@@ -13,9 +13,9 @@ INDICATEURS UTILISES POUR EVALUER LA QUALITE DE L'ENTRAINEMENT :
 
 COMMENT ANALYSERS LES INDICATEURS :
 * Validation RMSE (Root Mean Squared Error) : Mesure l'écart moyen entre les prédictions et les valeurs réelles. Elle devrait diminuer avec l'entraînement mais peut atteindre un plateau ou augmenter en cas de surapprentissage.
-* Validation MSE (Mean Squared Error) : Mesure la moyenne des carrés des erreurs. Elle devrait également diminuer mais peut atteindre un plateau ou augmenter en cas de surapprentissage.
+* Validation MSE (Mean Squared Error) : Mesure la moyenne des carrés des erreurs. Elle devrait diminuer mais peut atteindre un plateau ou augmenter en cas de surapprentissage.
 * Validation MAE (Mean Absolute Error) : Mesure l'erreur absolue moyenne entre les prédictions et les valeurs réelles. Elle devrait diminuer mais peut atteindre un plateau ou augmenter en cas de surapprentissage.
-* Validation Explained Variance Score : Mesure la proportion de la variance dans les valeurs réelles expliquée par le modèle. Elle devrait se rapprocher de 1 mais peut atteindre un plateau puis diminuer en cas de surapprentissage.
+* Validation EVS (Explained Variance Score) : Mesure la proportion de la variance dans les valeurs réelles expliquée par le modèle. Elle devrait se rapprocher de 1 mais peut atteindre un plateau puis diminuer en cas de surapprentissage.
 * Validation R2 Score : Mesure la proportion de la variance dans les valeurs réelles prédite par le modèle. Elle devrait se rapprocher de 1 mais peut atteindre un plateau puis diminuer en cas de surapprentissage.
 * Validation MGD (Mean Gamma Deviance) : Mesure la déviance moyenne pour une distribution gamma. Elle devrait diminuer mais peut atteindre un plateau ou augmenter en cas de surapprentissage.
 * Validation MPD (Mean Poisson Deviance) : Mesure la déviance moyenne pour une distribution de Poisson. Elle devrait diminuer avec l'entraînement.

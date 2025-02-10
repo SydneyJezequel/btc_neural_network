@@ -72,10 +72,6 @@ tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
 tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
 
 
-# Ajout des indicateurs techniques :
-prepare_dataset.add_technicals_indicators(tmp_dataset)
-
-
 # Enregistrement du dataset au format csv :
 tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
 
@@ -83,6 +79,10 @@ tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
 # Contrôle des modifications :
 print("En-tête du dataset d'entrainement : ", tmp_dataset.head())
 print("dataset d'entrainement modifié (dernières lignes) pour vérifier si mes indicateurs sont bien calculés : ", tmp_dataset.tail())
+
+
+# Ajout des indicateurs techniques :
+tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
 
 
 # Obtenir le scaler ajusté :
