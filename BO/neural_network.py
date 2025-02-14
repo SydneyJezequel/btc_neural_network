@@ -72,7 +72,7 @@ class NeuralNetwork:
 
             model = self.setting_model(x_train_fold)
 
-            early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+            early_stopping = EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
 
             history = model.fit(
                 x_train_fold, y_train_fold,

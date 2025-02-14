@@ -27,11 +27,10 @@ POINTS A CONSIDERER LORS DE L'ANALYSE DES INDICATEURS :
 * Variabilité : Les métriques peuvent varier d'un fold à l'autre en raison de la variabilité des données. La validation croisée est utile pour obtenir une estimation plus robuste de la performance du modèle. Plus les résultats des métriques RMSE, MSE et MAE seront proches entre les données de test et d'entraînement, moins il y aura de surajustement. Une grande disparité indique que le modèle réagit bien aux données d'entraînement mais moins aux données de test.
 
 
-
-
-
-
-
-
+A QUOI CORRESPONDENT LES DIFFERENTS INDICATEURS ?
+* Les métriques d'erreur (RMSE, MSE, MAE) : Ils mesurent la différence entre les valeurs prédites par le modèle et les valeurs réelles. Elles sont utilisées pour évaluer la précision du modèle.
+* L'Explained Variance Score : Il mesure la proportion de la variance des données réelles qui est expliquée par le modèle.
+* Le coefficients de détermination : Il mesure la proportion de la variance des données réelles qui est expliquée par le modèle, en tenant compte de la moyenne des données.
+* Les métriques de descente (MGD et MPD) : Ils mesurent la performance du modèle en termes de descente de gradient, c'est-à-dire la capacité du modèle à minimiser l'erreur au cours des itérations.
 
 

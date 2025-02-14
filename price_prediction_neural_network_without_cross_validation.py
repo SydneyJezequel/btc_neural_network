@@ -20,6 +20,7 @@ import parameters
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.callbacks import Callback
+from tensorflow.keras.callbacks import EarlyStopping
 
 
 
@@ -340,7 +341,8 @@ x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
 
 # Création du modèle
 model = Sequential()
-model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
+model.add(LSTM(50, input_shape=(None, 1), activation="relu"))
+# model.add(Dropout(0.2))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
 
@@ -396,6 +398,11 @@ class MetricsCallback(Callback):
             metrics_history["train_mpd"].append(mean_poisson_deviance(original_ytrain, train_predict))
             metrics_history["test_mpd"].append(mean_poisson_deviance(original_ytest, test_predict))
 
+
+# Définition du EarlyStopping :
+# early_stopping = EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
+
+
 # Entraînement du modèle avec le callback
 history = model.fit(
     x_train, y_train,
@@ -403,11 +410,13 @@ history = model.fit(
     epochs=200,
     batch_size=32,
     verbose=1,
-    callbacks=[MetricsCallback()]
+    callbacks=[MetricsCallback()] # [MetricsCallback(), early_stopping] #
 )
+
 
 # Sauvegarde du modèle
 model.save_weights(parameters.SAVE_MODEL_PATH + f'best_model_weights_without_cross_validation.weights.h5')
+
 
 # Affichage des métriques stockées
 # Affichage des métriques stockées
