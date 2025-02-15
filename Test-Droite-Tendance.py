@@ -46,25 +46,34 @@ data['Date'] = pd.to_datetime(data['Date'], format='%d/%m/%Y', errors='coerce')
 numeric_columns = ["Dernier", "Ouv.", " Plus Haut", "Plus Bas", "Variation %"]
 for col in numeric_columns:
     data.loc[:, col] = data[col].str.replace('.', ' ').str.replace(' ', '').str.replace(',', '.')
+    data[col] = pd.to_numeric(data[col], errors='coerce')
 
 
-# Suppression des colonnes inutiles :
-data.drop(columns=['Vol.', 'Variation %', 'Ouv.',])
+# Suppression des colonnes inutiles
+data.drop(columns=['Vol.', 'Variation %'], inplace=True)
 
 
 # Dataset pré-traitement :
 print("dataset pré-traitement : ", data)
 
 
-# Création d'un DataFrame / Que fait cette colonne ?
-df = pd.DataFrame(data)
+# Trier le DataFrame par la colonne 'Date'
+data = data.sort_values(by='Date')
+
+
+# Sélectionner les 300 derniers jours
+last_300_days = data.tail(200)
+
+
+# Création d'un DataFrame
+df = pd.DataFrame(last_300_days)
 df['Date'] = pd.to_datetime(df['Date'])
 df.set_index('Date', inplace=True)
 
 
 # Conversion des données pour matplotlib
 df['Date_Num'] = mdates.date2num(df.index)
-ohlc = df[['Date_Num', 'Dernier', ' Plus Haut', 'Plus Bas']].values
+ohlc = df[['Date_Num', 'Dernier', 'Ouv.', ' Plus Haut', 'Plus Bas']].values
 
 
 # Création du graphique
@@ -73,11 +82,11 @@ candlestick_ohlc(ax, ohlc, width=0.6, colorup='g', colordown='r')
 
 
 # Tracer une droite de tendance haussière
-ax.plot(df['Date_Num'], df['Plus Bas'].rolling(window=2).min(), color='blue', label='Tendance Haussière')
+# ax.plot(df['Date_Num'], df['Plus Bas'].rolling(window=2).min(), color='blue', label='Tendance Haussière')
 
 
 # Tracer une droite de tendance baissière
-ax.plot(df['Date_Num'], df[' Plus Haut'].rolling(window=2).max(), color='red', label='Tendance Baissière')
+# ax.plot(df['Date_Num'], df[' Plus Haut'].rolling(window=2).max(), color='red', label='Tendance Baissière')
 
 
 # Configuration du graphique
