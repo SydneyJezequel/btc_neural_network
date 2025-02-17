@@ -402,8 +402,8 @@ print(" ******************** Création et entrainement du modèle **************
 # Création du modèle :
 # Initialisation d'un modèle séquentiel :
 model=Sequential()
-model.add(LSTM(50,input_shape=(None, 1), activation="relu"))
-model.add(Dropout(0.2))
+model.add(LSTM(10,input_shape=(None, 1), activation="relu"))
+# model.add(Dropout(0.2))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
 # Exécution du modèle :

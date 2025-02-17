@@ -3,7 +3,8 @@ DATASET_PATH = '../btc_neural_network/dataset/'
 PATH_TRAINING_DATASET = DATASET_PATH + 'training_dataset/'
 DATASET_FILE = 'btc_historic_cotations.csv'
 DATASET_FOR_MODEL = 'dataset_for_model.csv'
-SAVE_MODEL_PATH = '../btc_neural_network/model/'
+SAVE_MODEL_PATH = '../btc_neural_network/model/trained_model/'
+MODEL_FOR_PREDICTIONS_PATH = '../btc_neural_network/model/model_for_predictions/'
 
 
 

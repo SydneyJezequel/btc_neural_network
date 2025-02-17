@@ -341,7 +341,7 @@ x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
 
 # Création du modèle
 model = Sequential()
-model.add(LSTM(50, input_shape=(None, 1), activation="relu"))
+model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 # model.add(Dropout(0.2))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
@@ -415,7 +415,7 @@ history = model.fit(
 
 
 # Sauvegarde du modèle
-model.save_weights(parameters.SAVE_MODEL_PATH + f'best_model_weights_without_cross_validation.weights.h5')
+model.save_weights(parameters.SAVE_MODEL_PATH + f'model.weights.h5')
 
 
 # Affichage des métriques stockées
