@@ -36,12 +36,19 @@ from sklearn.model_selection import TimeSeriesSplit
 
 
 
+
+
 """ ****************************** Paramètres ****************************** """
 DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
 DATASET_FILE = parameters.DATASET_FILE
 DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 SAVE_MODEL_PATH = parameters.SAVE_MODEL_PATH
+MODEL_FOR_PREDICTIONS_PATH = parameters.MODEL_FOR_PREDICTIONS_PATH
+
+
+
+
 
 
 
@@ -521,13 +528,8 @@ print("Mean Training Loss: ", np.mean(training_loss_results))
 
 """ ************************************ Créer une classe qui évalue le modèle (Réseau de neurones) ************************************ """
 """ NOM DE LA CLASSE : evaluate_neural_network_training """
-
+"""
 print(" ******************** Etape 5 : Overfitting Evaluation ******************** ")
-
-
-
-
-
 
 print("Training loss 1 : ")
 # Exemple de pertes d'entraînement (à remplir avec vos valeurs réelles)
@@ -544,20 +546,28 @@ plt.ylabel('Loss')
 plt.title('Training and Validation Loss Comparison')
 plt.legend()
 plt.show()
-
-
-
-
-
-
-print("Training loss 2 : Training and Validation loss comparison : ")
 """
+
+
+
+
+
+
+
+
+
+"""
+print("Training loss 2 : Training and Validation loss comparison : ")
+
+
 ==> COMMENT ANALYSER CE GRAPHE ?
 Plus les 2 courbes se suivent : Moins il y a d'overfitting.
 Si la perte d'entrainement continue à diminuer alors que la perte de validation augmente, cela 
 signifie que le modèle commence à surajuster les données d'entrainement).
 Si les 2 courbes suivent une tendance similaires, cela signifie que le modèle est moins susceptible de
 surajuster.
+"""
+
 """
 loss = history.history['loss']
 val_loss = history.history['val_loss']
@@ -568,6 +578,7 @@ plt.title('Training and validation loss')
 plt.legend(loc=0)
 plt.figure()
 plt.show()
+"""
 
 
 
@@ -581,15 +592,58 @@ plt.show()
 
 
 
+print(" ******************** Evaluation Globale du modèle ******************** ")
 
-print(" ******************** Génération de prédiction par le modèle ******************** ")
 
-train_predict = model.predict(x_train)
+# Vérification de l'existence du fichier :
+weights_path = os.path.join(MODEL_FOR_PREDICTIONS_PATH, 'model.weights.h5')
+if not os.path.exists(weights_path):
+    raise FileNotFoundError(f"Le fichier de poids n'existe pas à l'emplacement spécifié : {weights_path}")
+
+
+# Chargement des poids :
+model.load_weights(weights_path)
+
+
+# Évaluer le modèle sur l'ensemble de test
+test_loss = model.evaluate(x_test, y_test, verbose=0)
+
+# Prédire et évaluer les métriques de performance sur l'ensemble de test
 test_predict = model.predict(x_test)
-print(train_predict.shape, test_predict.shape)
 
+# Redimensionner les données pour qu'elles aient deux dimensions :
+y_test_reshaped = y_test.reshape(-1, 1)
+test_predict_reshaped = test_predict.reshape(-1, 1)
 
+# Ajuster le scaler sur les données redimensionnées :
+scaler.fit(y_test_reshaped)
 
+# Inverser la transformation
+original_ytest = scaler.inverse_transform(y_test_reshaped)
+test_predict_inversed = scaler.inverse_transform(test_predict_reshaped)
+
+# Calculer les métriques
+rmse_test = np.sqrt(mean_squared_error(original_ytest, test_predict_inversed))
+mse_test = mean_squared_error(original_ytest, test_predict_inversed)
+mae_test = mean_absolute_error(original_ytest, test_predict_inversed)
+evs_test = explained_variance_score(original_ytest, test_predict_inversed)
+r2_test = r2_score(original_ytest, test_predict_inversed)
+
+# Vérifier si les valeurs sont strictement positives avant de calculer la déviance gamma et la déviance de Poisson
+if np.all(original_ytest > 0) and np.all(test_predict_inversed > 0):
+    mgd_test = mean_gamma_deviance(original_ytest, test_predict_inversed)
+    mpd_test = mean_poisson_deviance(original_ytest, test_predict_inversed)
+else:
+    mgd_test, mpd_test = np.nan, np.nan
+
+# Afficher les résultats
+print("Test RMSE: ", rmse_test)
+print("Test MSE: ", mse_test)
+print("Test MAE: ", mae_test)
+print("Test Explained Variance Score: ", evs_test)
+print("Test R2 Score: ", r2_test)
+print("Test MGD: ", mgd_test)
+print("Test MPD: ", mpd_test)
 
 
 

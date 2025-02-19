@@ -8,6 +8,7 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
 import matplotlib.pyplot as plt  # Correction de l'importation
+import joblib
 
 
 
@@ -59,6 +60,10 @@ def create_train_and_test_dataset(model_dataset):
 
 
 
+
+
+
+
 """ **************************** Exécution du script principal **************************** """
 
 
@@ -88,7 +93,8 @@ print(" forme dataset 0 : ", dataset.shape)
 
 # Initialisation du scaler :
 print("forme du dataset 1 : ", dataset.shape)
-scaler = prepare_dataset.get_fitted_scaler(dataset)
+# scaler = prepare_dataset.get_fitted_scaler(dataset)
+scaler = joblib.load('scaler.save')
 print("forme du dataset 2 : ", dataset.shape)
 print("dataset 2 : ", dataset)
 
@@ -102,6 +108,11 @@ print("dataset normalisé shape : ", dataset.shape)
 # Création des datasets d'entraînement et de test :
 train_data, test_data = create_train_and_test_dataset(dataset)
 test_data = dataset
+
+"""
+# Chargement du dataset de test :
+test_data = joblib.load('test_data.save')
+"""
 print("forme du dataset 3 : ", test_data.shape)
 print("dataset 3 : ", test_data)
 

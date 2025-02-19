@@ -19,6 +19,8 @@ class PredictionsGenerator:
         self.time_step = time_step
         self.scaler = scaler
 
+
+
     def prepare_data_for_prediction(self):
         """ Préparation des données pour la prédiction """
         # x_input = self.test_data[-self.time_step:, :2].reshape(1, -1)  # Sélectionnez uniquement les 2 premières colonnes

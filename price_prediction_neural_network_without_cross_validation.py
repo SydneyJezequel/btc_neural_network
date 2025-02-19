@@ -21,6 +21,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.callbacks import EarlyStopping
+import joblib
 
 
 
@@ -309,6 +310,7 @@ print(" forme tmp_dataset : ", tmp_dataset.shape)
 # model_dataset = normalize_datas(tmp_dataset)
 # Obtenir le scaler ajusté :
 scaler = prepare_dataset.get_fitted_scaler(tmp_dataset)
+joblib.dump(scaler, 'scaler.save')
 # Normalise dataset :
 model_dataset = prepare_dataset.normalize_datas(tmp_dataset, scaler)
 print("dataset d'entrainement normalisé :", model_dataset)
@@ -320,16 +322,10 @@ print("dataset d'entrainement normalisé :", model_dataset)
 
 # Méthode create_dataset :
 train_data, test_data = create_train_and_test_dataset(model_dataset)
-"""
-print("train_data.head() : ", train_data.head())
-print("train_data.isnull() : ", train_data.tail())
-print('Null Values train_data : ', train_data.isnull().values.sum())
-print('NA values train_data :', train_data.isnull().values.any())
-print("test_data.head() : ", test_data.head())
-print("test_data.tail() : ", test_data.tail())
-print('Null Values test_data : ', test_data.isnull().values.sum())
-print('NA values test_data :', test_data.isnull().values.any())
-"""
+
+
+# Sauvegarde du dataset de test pour les prédictions :
+joblib.dump(test_data, 'test_data.save')
 
 
 # Conversion des arrays en matrice
@@ -339,12 +335,14 @@ x_test, y_test = create_dataset(test_data, time_step)
 x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
 x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
 
+
 # Création du modèle
 model = Sequential()
 model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 # model.add(Dropout(0.2))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
+
 
 # Initialisation des tableaux pour stocker les métriques
 metrics_history = {
