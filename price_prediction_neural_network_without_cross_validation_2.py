@@ -22,6 +22,8 @@ from tensorflow.keras.regularizers import l2
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.callbacks import EarlyStopping
 import joblib
+from itertools import cycle
+
 
 
 
@@ -90,6 +92,9 @@ def format_dataset(initial_dataset):
     tmp_dataset = initial_dataset.copy()
     # Convertir la colonne "Date" au format datetime :
     tmp_dataset['Date'] = pd.to_datetime(initial_dataset['Date'], format='%d/%m/%Y', errors='coerce')
+    # Trier le dataset par date en ordre chronologique :
+    tmp_dataset = tmp_dataset.sort_values(by='Date')
+    print("tmp_dataset trié : ", tmp_dataset)
     # errors='coerce' --> Les valeurs non converties sont remplacées par NaN.
     # Remplacer les points par un espace, puis suppression de l'espace, enfin remplacement de la virgule par un point :
     numeric_columns = ["Dernier", "Ouv.", " Plus Haut", "Plus Bas", "Variation %"]
@@ -268,7 +273,6 @@ tmp_dataset = format_dataset(initial_dataset)
 tmp_dataset = delete_columns(tmp_dataset)
 
 
-
 """
 # Affichage des données :
 fig = px.line(tmp_dataset, x=tmp_dataset.Date, y=tmp_dataset.Dernier,labels={'Date':'date','Dernier':'Close Stock'})
@@ -278,18 +282,6 @@ fig.update_layout(title_text='Whole period of timeframe of Bitcoin close price 2
 fig.update_xaxes(showgrid=False)
 fig.update_yaxes(showgrid=False)
 fig.show()
-"""
-
-
-
-
-"""
-# Ajout des indicateurs techniques :
-tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
-
-
-# Enregistrement du dataset au format csv :
-tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
 """
 
 
@@ -315,6 +307,8 @@ scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize
 joblib.dump(scaler, 'scaler.save')
 # Normalise dataset :
 model_dataset = tmp_dataset
+
+print("dataset")
 normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
 # Remplacement des colonnes normalisées dans le DataFrame d'origine
 model_dataset[columns_to_normalize] = normalized_datas
@@ -323,12 +317,51 @@ print("model_dataset shape : ", model_dataset.shape)
 
 
 # Sauvegarde du dataset retraité pour traitement par le modèle :
+model_dataset.to_csv(PATH_TRAINING_DATASET+'dataset_modified_with_date.csv', index=False)
+
+
+
+"""
+# ************************* CONTROLE DES DATES ************************* #
+# Vérifier les valeurs manquantes dans la colonne 'Date'
+if model_dataset['Date'].isnull().any():
+    print("Il y a des valeurs manquantes dans la colonne 'Date'.")
+else:
+    print("Il n'y a pas de valeurs manquantes dans la colonne 'Date'.")
+# Vérifier la continuité des dates
+# Déterminer la plage de dates attendue
+start_date = model_dataset['Date'].min()
+end_date = model_dataset['Date'].max()
+# Créer une série de toutes les dates attendues dans cette plage
+all_dates = pd.date_range(start=start_date, end=end_date)
+# Vérifier si toutes les dates attendues sont présentes dans le dataset
+missing_dates = [date for date in all_dates if date not in model_dataset['Date'].values]
+
+if missing_dates:
+    print(f"Il y a des dates manquantes : {missing_dates}")
+else:
+    print("Toutes les dates sont présentes dans le dataset.")
+# ************************* CONTROLE DES DATES ************************* #
+"""
+
+
+
+date_column = model_dataset['Date']
+del tmp_dataset['Date']
 model_dataset.to_csv(PATH_TRAINING_DATASET+'dataset_modified_for_model.csv', index=False)
-print('dataset sauvegardé')
+print("model_dataset shape juste avant traitement : ", model_dataset.shape)
 
 
 # Méthode create_dataset :
 train_data, test_data = create_train_and_test_dataset(model_dataset)
+
+
+
+# ************************* CONTROLE DES DATASET 'Train' et 'Test' ************************* #
+train_data.to_csv(PATH_TRAINING_DATASET+'train_data.csv', index=False)
+test_data.to_csv(PATH_TRAINING_DATASET+'test_data.csv', index=False)
+# ************************* CONTROLE DES DATASET 'Train' et 'Test' ************************* #
+
 
 
 # Conversion des arrays en matrice
@@ -337,6 +370,51 @@ x_train, y_train = create_dataset(train_data, time_step)
 x_test, y_test = create_dataset(test_data, time_step)
 x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
 x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
+
+
+
+"""
+# ************************* TESTS ************************* #
+if (y_train < 0).any():
+    print("Il y a des valeurs négatives dans y_train")
+if (y_test < 0).any():
+    print("Il y a des valeurs négatives dans y_test")
+if (x_train < 0).any():
+    print("Il y a des valeurs négatives dans x_train")
+if (x_test < 0).any():
+    print("Il y a des valeurs négatives dans x_test")
+
+print("x_train : ", x_train)
+print("x_test : ", x_test)
+print("y_train : ", y_train)
+print("y_test : ", y_test)
+
+
+# Aplatir les données 3D en 2D
+x_train_2d = x_train.reshape(x_train.shape[0], -1)
+x_test_2d = x_test.reshape(x_test.shape[0], -1)
+# Convertir en DataFrame
+x_train_df = pd.DataFrame(x_train_2d)
+x_test_df = pd.DataFrame(x_test_2d)
+y_train_df = pd.DataFrame(y_train)
+y_test_df = pd.DataFrame(y_test)
+# Sauvegarder en format CSV
+x_train_df.to_csv('x_train.csv', index=False)
+y_train_df.to_csv('y_train.csv', index=False)
+x_test_df.to_csv('x_test.csv', index=False)
+y_test_df.to_csv('y_test.csv', index=False)
+# ************************* TESTS ************************* #
+"""
+
+
+
+# ************ Vérification du nombre de dimensions **************** #
+print("x_train shape:", x_train.shape)
+print("y_train shape:", y_train.shape)
+print("x_test shape:", x_test.shape)
+print("y_test shape:", y_test.shape)
+# ************ Vérification du nombre de dimensions **************** #
+
 
 
 # Création du modèle
@@ -383,6 +461,13 @@ class MetricsCallback(Callback):
             original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
             original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
 
+            """
+            print("original_ytrain : ")
+            print(original_ytrain)
+            print("train_predict : ")
+            print(train_predict)
+            """
+
             metrics_history["epoch"].append(epoch + 1)
             metrics_history["train_rmse"].append(math.sqrt(mean_squared_error(original_ytrain, train_predict)))
             metrics_history["train_mse"].append(mean_squared_error(original_ytrain, train_predict))
@@ -415,12 +500,11 @@ history = model.fit(
 )
 
 
-# Sauvegarde du modèle
+# Sauvegarde du modèle :
 model.save_weights(parameters.SAVE_MODEL_PATH + f'model.weights.h5')
 
 
-# Affichage des métriques stockées
-# Affichage des métriques stockées
+# Affichage des métriques stockées :
 print("Metrics History:")
 for metric, values in metrics_history.items():
     print(f"{metric}: {values}")
@@ -456,74 +540,51 @@ plt.show()
 """ ******************** Comparaison entre le prix original et les prédictions ******************** """
 print(" ******************** Comparaison entre le prix original et les prédictions ******************** ")
 
-"""
-I- PREDICTION D'ENTRAINEMENT :
-# Décaler les prédictions d'entraînement pour le tracé :
+train_predict = model.predict(x_train)
+test_predict = model.predict(x_test)
+
+# Utilisez uniquement la colonne pertinente pour les prédictions
+# train_predict = scaler.inverse_transform(train_predict)
+# test_predict = scaler.inverse_transform(test_predict)
+train_predict = scaler.inverse_transform(np.hstack([train_predict] * len(columns_to_normalize)))
+test_predict = scaler.inverse_transform(np.hstack([test_predict] * len(columns_to_normalize)))
+
+
 look_back = time_step
-# Créer un tableau vide de la même forme que closedf pour stocker les prédictions d'entraînement :
-trainPredictPlot = np.empty_like(closedf)
-# Initialiser toutes les valeurs de trainPredictPlot à NaN :
+trainPredictPlot = np.empty_like(model_dataset)
 trainPredictPlot[:, :] = np.nan
-# Remplir trainPredictPlot avec les prédictions d'entraînement, en les décalant de 'look_back' positions :
-trainPredictPlot[look_back:len(train_predict) + look_back, :] = train_predict
-# Afficher la forme des données prédites d'entraînement :
+trainPredictPlot[look_back:len(train_predict) + look_back, 0] = train_predict[:, 0]
 print("Données prédites d'entraînement :", trainPredictPlot.shape)
 
 
-
-II- PREDICTION DE TEST :
-# Créer un tableau vide de la même forme que closedf pour stocker les prédictions de test :
-testPredictPlot = np.empty_like(closedf)
-# Initialiser toutes les valeurs de testPredictPlot à NaN :
+testPredictPlot = np.empty_like(model_dataset)
 testPredictPlot[:, :] = np.nan
-# Remplir testPredictPlot avec les prédictions de test, en les décalant de 'look_back * 2 + 1' positions :
-testPredictPlot[len(train_predict) + (look_back * 2) + 1:len(closedf) - 1, :] = test_predict
-# Les prédictions d'entraînement (train_predict) sont insérées dans trainPredictPlot, mais décalées de look_back positions. Cela signifie que les prédictions commencent à l'index look_back et se poursuivent jusqu'à la fin des prédictions disponibles.
-# Afficher la forme des données prédites de test :
+testPredictPlot[len(train_predict) + (look_back * 2) + 1:len(model_dataset) - 1, 0] = test_predict[:, 0]
 print("Données prédites de test :", testPredictPlot.shape)
 
 
-
-III- DEFINIR LE GRAPHIQUE :
-# Noms des traces pour le graphique
-# Créer un itérateur cyclique pour les noms des traces : Un itérateur cyclique est un outil pratique pour répéter une séquence d'éléments de manière infinie :
 names = cycle(['Prix de clôture original', 'Prix de clôture prédit (entraînement)', 'Prix de clôture prédit (test)'])
 
 
+close_stock = model_dataset.copy()
+close_stock['Date'] = date_column
 
-IV- CREER LE DATAFRAME POUR LE TRACE :
-# Créer un DataFrame avec les dates, les prix de clôture originaux, et les prix de clôture prédits (entraînement et test)
+
 plotdf = pd.DataFrame({
-    'date': close_stock['Date'],
     'original_close': close_stock['Dernier'],
-    'train_predicted_close': trainPredictPlot.reshape(1, -1)[0].tolist(),
-    'test_predicted_close': testPredictPlot.reshape(1, -1)[0].tolist()
+    'train_predicted_close': trainPredictPlot[:, 0].tolist(),
+    'test_predicted_close': testPredictPlot[:, 0].tolist()
 })
-"""
-"""
-NOTIONS DE DATAFRAME :
-Un DataFrame est une structure de données bidimensionnelle, similaire à une table ou un 
-tableau dans une base de données relationnelle, ou encore à une feuille de calcul Excel.
-Les DataFrames sont couramment utilisés dans l'analyse de données et la science des 
-données pour stocker, manipuler et analyser des données structurées.
-"""
-"""
 
 
-
-V- CREER LE GRAPHIQUE :
-# Utiliser Plotly Express pour créer un graphique en ligne avec les données du DataFrame
 fig = px.line(
     plotdf,
-    x=plotdf['date'],
-    y=[plotdf['original_close'], plotdf['train_predicted_close'], plotdf['test_predicted_close']],
-    labels={'value': 'Prix de l\'action', 'date': 'Date'}
+    x=plotdf.index,
+    y=['original_close', 'train_predicted_close', 'test_predicted_close'],
+    labels={'value': 'Prix de l\'action', 'index': 'Date'}
 )
 
 
-
-VI- METTRE A JOUR LA DISPOSITION DU GRAPHIQUE :
-# Mettre à jour le titre, la couleur de fond, la taille et la couleur de la police, et le titre de la légende
 fig.update_layout(
     title_text='Comparaison entre le prix de clôture original et le prix de clôture prédit',
     plot_bgcolor='white',
@@ -533,18 +594,26 @@ fig.update_layout(
 )
 
 
-
-VII- METTRE A JOUR LES NOMS DES TRACES :
-# Mettre à jour les noms des traces en utilisant l'itérateur cyclique 'names'
 fig.for_each_trace(lambda t: t.update(name=next(names)))
 
 
-
-VIII- METTRE A JOUR LES AXES :
-# Désactiver la grille sur les axes x et y
 fig.update_xaxes(showgrid=False)
 fig.update_yaxes(showgrid=False)
+fig.show()
 """
+NOTIONS DE DATAFRAME :
+Un DataFrame est une structure de données bidimensionnelle, similaire à une table ou un 
+tableau dans une base de données relationnelle, ou encore à une feuille de calcul Excel.
+Les DataFrames sont couramment utilisés dans l'analyse de données et la science des 
+données pour stocker, manipuler et analyser des données structurées.
+"""
+
+
+
+
+
+
+
 
 
 
@@ -553,9 +622,6 @@ fig.update_yaxes(showgrid=False)
 
 """ ******************** Prédictions des 30 prochains jours ******************** """
 print(" ******************** Prédictions des 30 prochains jours ******************** ")
-
-"""
-#I- PREPARER LES DONNEES D'ENTREE POUR LA PREDICTION :
 
 # Sélectionner les dernières 'time_step' valeurs des données de test pour l'entrée initiale :
 x_input = test_data[len(test_data) - time_step:].reshape(1, -1)
@@ -571,6 +637,8 @@ n_steps = time_step
 i = 0
 # Définir le nombre de jours à prédire :
 pred_days = 30
+
+
 # Boucle de prédiction pour les prochains jours :
 while i < pred_days:
     if len(temp_input) > time_step:
@@ -599,9 +667,12 @@ while i < pred_days:
         # Incrémenter le compteur de boucle :
         i += 1
 
+
 # Afficher le nombre de prédictions générées :
 print("Nombre de prédictions pour les prochains jours :", len(lst_output))
-"""
+
+
+
 
 
 
@@ -731,95 +802,6 @@ fig.update_yaxes(showgrid=False)
 # Afficher le graphique :
 fig.show()
 """
-
-""" ************************************ Créer une classe qui évalue le modèle (Réseau de neurones) ************************************ """
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-print(" ************ Fin du test !!! ************ ")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
