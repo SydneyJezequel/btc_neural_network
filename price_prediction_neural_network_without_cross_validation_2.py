@@ -297,9 +297,44 @@ print(" forme tmp_dataset shape : ", tmp_dataset.shape)
 print(" forme tmp_dataset : ", tmp_dataset)
 
 
+
 # Normalise dataset :
 # model_dataset = normalize_datas(tmp_dataset)
 # Obtenir le scaler ajusté :
+
+
+
+"""
+# ******************** Vérification du dataset avant transformation ******************** #
+import seaborn as sns
+
+# Visualisation des distributions des caractéristiques importantes
+features_to_plot = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'RSI']
+
+for feature in features_to_plot:
+    plt.figure(figsize=(10, 6))
+    sns.histplot(tmp_dataset[feature], kde=True, bins=30)
+    plt.title(f'Distribution of {feature}')
+    plt.xlabel(feature)
+    plt.ylabel('Frequency')
+    plt.show()
+
+# Tracé de l'évolution du prix en fonction des dates
+plt.figure(figsize=(14, 7))
+plt.plot(tmp_dataset['Date'], tmp_dataset['Dernier'], label='Prix de clôture', color='b')
+plt.title('Évolution du Prix de Clôture en Fonction des Dates')
+plt.xlabel('Date')
+plt.ylabel('Prix de Clôture')
+plt.grid(True)
+plt.legend()
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+# ******************** Vérification du dataset ******************** #
+"""
+
+
 
 tmp_dataset_copy = tmp_dataset.copy()
 columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100']
@@ -307,6 +342,7 @@ scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize
 joblib.dump(scaler, 'scaler.save')
 # Normalise dataset :
 model_dataset = tmp_dataset
+
 
 print("dataset")
 normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
@@ -318,6 +354,37 @@ print("model_dataset shape : ", model_dataset.shape)
 
 # Sauvegarde du dataset retraité pour traitement par le modèle :
 model_dataset.to_csv(PATH_TRAINING_DATASET+'dataset_modified_with_date.csv', index=False)
+
+
+
+# ******************** Vérification du dataset après la normalisation ******************** #
+import seaborn as sns
+
+# Visualisation des distributions des caractéristiques importantes
+features_to_plot = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'RSI']
+
+for feature in features_to_plot:
+    plt.figure(figsize=(10, 6))
+    sns.histplot(tmp_dataset[feature], kde=True, bins=30)
+    plt.title(f'Distribution of {feature}')
+    plt.xlabel(feature)
+    plt.ylabel('Frequency')
+    plt.show()
+
+# Tracé de l'évolution du prix en fonction des dates
+plt.figure(figsize=(14, 7))
+plt.plot(tmp_dataset['Date'], tmp_dataset['Dernier'], label='Prix de clôture', color='b')
+plt.title('Évolution du Prix de Clôture en Fonction des Dates')
+plt.xlabel('Date')
+plt.ylabel('Prix de Clôture')
+plt.grid(True)
+plt.legend()
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+# ******************** Vérification du dataset après la normalisation ******************** #
+
 
 
 
@@ -461,12 +528,46 @@ class MetricsCallback(Callback):
             original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
             original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
 
+
+
+            # ********************** TEST ********************* #
+            original_ytrain = pd.DataFrame(original_ytrain)
+            original_ytest = pd.DataFrame(original_ytest)
+            train_predict = pd.DataFrame(train_predict)
+            test_predict = pd.DataFrame(test_predict)
+            """
+            if (original_ytrain < 0).any():
+                print("Il y a des valeurs négatives dans original_ytrain")
+            else:
+                print("pas de valeurs négatives dans original_ytrain")
+            if (original_ytest < 0).any():
+                print("Il y a des valeurs négatives dans original_ytest")
+            else :
+                print("pas de valeurs négatives dans original_ytest")
+            print('Null Values dataset final original_ytrain : ', original_ytrain.isnull().values.sum())
+            print('NA values dataset final original_ytest :', original_ytest.isnull().values.any())
+            if (train_predict < 0).any():
+                print("Il y a des valeurs négatives dans train_predict")
+            if (test_predict < 0).any():
+                print("Il y a des valeurs négatives dans test_predict")
+    
+            print('Null Values dataset final : ', train_predict.isnull().values.sum())
+            print('NA values dataset final :', test_predict.isnull().values.any())
+            """
+
             """
             print("original_ytrain : ")
             print(original_ytrain)
             print("train_predict : ")
             print(train_predict)
             """
+            original_ytrain.to_csv(PATH_TRAINING_DATASET + 'original_ytrain.csv', index=False)
+            original_ytest.to_csv(PATH_TRAINING_DATASET + 'original_ytest.csv', index=False)
+            train_predict.to_csv(PATH_TRAINING_DATASET + 'train_predict.csv', index=False)
+            test_predict.to_csv(PATH_TRAINING_DATASET + 'test_predict.csv', index=False)
+            # ********************** TEST ********************* #
+
+
 
             metrics_history["epoch"].append(epoch + 1)
             metrics_history["train_rmse"].append(math.sqrt(mean_squared_error(original_ytrain, train_predict)))
