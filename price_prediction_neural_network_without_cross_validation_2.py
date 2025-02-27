@@ -429,7 +429,10 @@ train_data.to_csv(PATH_TRAINING_DATASET+'train_data.csv', index=False)
 test_data.to_csv(PATH_TRAINING_DATASET+'test_data.csv', index=False)
 # ************************* CONTROLE DES DATASET 'Train' et 'Test' ************************* #
 
-
+print("train_data type  : ", type(train_data))
+print("test_data type  : ", type(test_data))
+print("COLONNES DE train_data:", train_data.columns.tolist())
+print("COLONNES DE test_data:", test_data.columns.tolist())
 
 # Conversion des arrays en matrice
 time_step = 15
@@ -490,6 +493,7 @@ model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 # model.add(Dropout(0.2))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
+
 
 
 # Initialisation des tableaux pour stocker les métriques

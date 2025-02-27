@@ -27,8 +27,8 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import parameters
 from sklearn.model_selection import TimeSeriesSplit
-
-
+from BO.prepare_dataset import PrepareDataset
+import joblib
 
 
 
@@ -129,8 +129,9 @@ def delete_columns(tmp_dataset):
 
 
 
+"""
 def add_technicals_indicators(tmp_dataset):
-    """ Méthode add_technicals_indicators() """
+    # Méthode add_technicals_indicators()
     # Ajout des indicateurs dans les colonnes :
     tmp_dataset['MA_150'] = ma(tmp_dataset, 150)
     tmp_dataset['MA_100'] = ma(tmp_dataset, 100)
@@ -144,6 +145,32 @@ def add_technicals_indicators(tmp_dataset):
     del tmp_dataset['Date']
     imputer = SimpleImputer(strategy='mean')
     tmp_dataset = imputer.fit_transform(tmp_dataset)
+    return tmp_dataset
+"""
+
+
+
+def add_technicals_indicators(tmp_dataset):
+    """ Méthode add_technicals_indicators() """
+    # Ajout des indicateurs dans les colonnes :
+    tmp_dataset['MA_150'] = ma(tmp_dataset, 150)
+    tmp_dataset['MA_100'] = ma(tmp_dataset, 100)
+    tmp_dataset['MA_50'] = ma(tmp_dataset, 50)
+    tmp_dataset['RSI'] = rsi(tmp_dataset, 14)
+    # Ajout des signaux générés par les indicateurs :
+    calculate_signal(tmp_dataset, 50, 150)
+    calculate_signal(tmp_dataset, 100, 150)
+    calculate_signal(tmp_dataset, 50, 100)
+    # Suppression de la colonne 'Date' :
+    date_column = tmp_dataset['Date']
+    tmp_dataset = tmp_dataset.drop(columns=['Date'])
+    # Remplir les valeurs NaN avec la moyenne des colonnes :
+    imputer = SimpleImputer(strategy='mean')
+    tmp_dataset_imputed = imputer.fit_transform(tmp_dataset)
+    # Reconversion en DataFrame avec les noms de colonnes d'origine :
+    tmp_dataset = pd.DataFrame(tmp_dataset_imputed, columns=tmp_dataset.columns)
+    # Réintégration de la colonne 'Date' :
+    tmp_dataset['Date'] = date_column
     return tmp_dataset
 
 
@@ -174,16 +201,14 @@ def create_train_and_test_dataset(model_dataset):
     training_size = int(len(model_dataset) * 0.60)
     test_size = len(model_dataset) - training_size
     train_data, test_data = model_dataset[0:training_size, :], model_dataset[training_size:len(model_dataset), :1]
-    # datas_for_model[0:training_size,:] : Sélectionne les training_size premières lignes de l'array.
-    # datas_for_model[training_size:len(datas_for_model),:1] : Sélectionne toutes les lignes à partir de training_size jusqu'à la fin de l'array.
     print("dataset d'entrainement :", train_data.shape)
     print("dataset de test :", test_data.shape)
     return train_data, test_data
 
 
-
+"""
 def create_dataset(dataset, time_step=1):
-    """ Méthode create_dataset() """
+    # Méthode create_dataset()
     dataX, dataY = [], []
     # Boucle sur le dataset pour créer des séquences de longueur time_step :
     for i in range(len(dataset) - time_step - 1):
@@ -195,21 +220,23 @@ def create_dataset(dataset, time_step=1):
         dataY.append(dataset[i + time_step, 0])
     # Convertit les listes dataX et dataY en arrays numpy pour faciliter leur utilisation dans les modèles de machine learning :
     return np.array(dataX), np.array(dataY)
-
 """
-def create_dataset2(dataset, time_step=1):
-    # NOUVELLE VERSION - Méthode create_dataset() - Ne gère qu'un dataset
-    dataX = []
+
+
+def create_dataset(dataset, time_step=1):
+    """ Méthode create_dataset() """
+    dataX, dataY = [], []
     # Boucle sur le dataset pour créer des séquences de longueur time_step :
     for i in range(len(dataset) - time_step - 1):
         # Extrait une séquence de longueur time_step à partir de l'index i
-        a = dataset[i:(i + time_step), 0]
+        a = dataset.iloc[i:(i + time_step), 0]
         # Ajoute la séquence à dataX :
         dataX.append(a)
         # Ajoute la valeur cible correspondante à dataY :
-    # Convertit la liste dataX en array numpy pour faciliter son utilisation dans les modèles de machine learning :
-    return np.array(dataX)
-"""
+        dataY.append(dataset.iloc[i + time_step, 0])
+    # Convertit les listes dataX et dataY en arrays numpy pour faciliter leur utilisation dans les modèles de machine learning :
+    return np.array(dataX), np.array(dataY)
+
 
 
 def create_data_matrix(model_dataset, time_step=15):
@@ -225,18 +252,6 @@ def create_data_matrix(model_dataset, time_step=15):
     print("dataset y: ", y.shape)
     return x, y
 
-"""
-def create_data_matrix2(model_dataset, time_step=15):
-    # NOUVELLE VERSION Méthode create_data_matrix()
-    # Création des ensembles de données en utilisant la fonction create_dataset :
-    x = create_dataset2(model_dataset, time_step)
-    # Remodelage de X pour obtenir la forme [échantillons, time steps, caractéristiques]
-    # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
-    x = x.reshape(x.shape[0], x.shape[1], 1)
-    # Affichage des dimensions des ensembles de données après remodelage :
-    print("dataset x: ", x.shape)
-    return x
-"""
 
 
 
@@ -301,29 +316,54 @@ fig.update_yaxes(showgrid=False)
 fig.show()
 
 
-# Ajout des indicateurs techniques :
-add_technicals_indicators(tmp_dataset)
-
-
-# Enregistrement du dataset au format csv :
-tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
-
 
 # Contrôle des modifications :
 print("En-tête du dataset d'entrainement : ", tmp_dataset.head())
 print("dataset d'entrainement modifié (dernières lignes) pour vérifier si mes indicateurs sont bien calculés : ", tmp_dataset.tail())
 
 
-# Obtenir le scaler ajusté :
-scaler = get_fitted_scaler(tmp_dataset)
-print("tmp_dataset : ", tmp_dataset.shape)
+
+# Ajout des indicateurs techniques :
+prepare_dataset = PrepareDataset()
+tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
+print(" forme tmp_dataset shape : ", tmp_dataset.shape)
+print(" forme tmp_dataset : ", tmp_dataset)
 
 
+# Enregistrement du dataset au format csv :
+tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
+
+
+tmp_dataset_copy = tmp_dataset.copy()
+columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100']
+prepare_dataset = PrepareDataset()
+scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
+joblib.dump(scaler, 'scaler.save')
 # Normalise dataset :
-model_dataset = normalize_datas(tmp_dataset, scaler)
+model_dataset = tmp_dataset
+
+
+print("dataset")
+normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
+# Remplacement des colonnes normalisées dans le DataFrame d'origine
+model_dataset[columns_to_normalize] = normalized_datas
 print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
 
+
+# Sauvegarde du dataset retraité pour traitement par le modèle :
+model_dataset.to_csv(PATH_TRAINING_DATASET+'dataset_modified_with_date.csv', index=False)
+
+
+
+print("MODEL DATASET  : ", type(model_dataset))
+print("COLONNES DE MODEL DATASET :", tmp_dataset.columns.tolist())
+
+date_column = model_dataset['Date']
+del tmp_dataset['Date']
+model_dataset.to_csv(PATH_TRAINING_DATASET+'dataset_modified_for_model.csv', index=False)
+print("model_dataset shape juste avant traitement : ", model_dataset.shape)
+print("COLONNES DE MODEL DATASET :", tmp_dataset.columns.tolist())
 
 # Créer les matrices de données pour l'entraînement et le test
 x_train, y_train = create_data_matrix(model_dataset)
