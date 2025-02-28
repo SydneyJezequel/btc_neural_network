@@ -18,6 +18,7 @@ DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
 DATASET_FILE = parameters.DATASET_FILE
 DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
+SAVE_MODEL_PATH = parameters.SAVE_MODEL_PATH
 
 
 
@@ -214,7 +215,7 @@ print("test_mpd : ", test_mpd)
 
 
 # Sauvegarde du modèle
-joblib.dump(model, 'gradient_boosting_model.pkl')
+joblib.dump(model, SAVE_MODEL_PATH+'gradient_boosting_model.pkl')
 
 
 # Visualisation des résultats
