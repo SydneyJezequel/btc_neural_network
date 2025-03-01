@@ -176,6 +176,10 @@ print("model_dataset shape : ", model_dataset.shape)
 model_dataset.to_csv(PATH_TRAINING_DATASET + 'dataset_modified_with_date.csv', index=False)
 
 
+# Suppression de la colonne date :
+del model_dataset['Date']
+
+
 # Création des datasets d'entrainement et test :
 train_data, test_data = create_train_and_test_dataset(model_dataset)
 print("train_data type  : ", type(train_data))
@@ -248,10 +252,31 @@ class MetricsCallback(Callback):
             metrics_history["test_explained_variance"].append(explained_variance_score(original_ytest, test_predict))
             metrics_history["train_r2"].append(r2_score(original_ytrain, train_predict))
             metrics_history["test_r2"].append(r2_score(original_ytest, test_predict))
-            metrics_history["train_mgd"].append(mean_gamma_deviance(original_ytrain, train_predict))
-            metrics_history["test_mgd"].append(mean_gamma_deviance(original_ytest, test_predict))
-            metrics_history["train_mpd"].append(mean_poisson_deviance(original_ytrain, train_predict))
-            metrics_history["test_mpd"].append(mean_poisson_deviance(original_ytest, test_predict))
+            # Vérification des valeurs strictement positives avant le calcul de la déviance gamma :
+            if np.all(original_ytrain > 0) and np.all(train_predict > 0):
+                mgd = mean_gamma_deviance(original_ytrain, train_predict)
+                metrics_history["train_mgd"].append(mgd)
+            else:
+                metrics_history["train_mgd"].append(np.nan)
+
+            if np.all(original_ytest > 0) and np.all(test_predict > 0):
+                mgd = mean_gamma_deviance(original_ytest, test_predict)
+                metrics_history["test_mgd"].append(mgd)
+            else:
+                metrics_history["test_mgd"].append(np.nan)
+            # Vérification des valeurs strictement positives avant le calcul de la déviance poisson :
+            if np.all(original_ytrain > 0) and np.all(train_predict > 0):
+                mpd = mean_poisson_deviance(original_ytrain, train_predict)
+                metrics_history["train_mpd"].append(mpd)
+            else:
+                metrics_history["train_mpd"].append(np.nan)
+
+            if np.all(original_ytest > 0) and np.all(test_predict > 0):
+                mpd = mean_poisson_deviance(original_ytest, test_predict)
+                metrics_history["test_mpd"].append(mpd)
+            else:
+                metrics_history["test_mpd"].append(np.nan)
+
 
 
 # Entraînement du modèle :
@@ -285,4 +310,33 @@ plt.title('Training and validation loss')
 plt.legend(loc=0)
 plt.figure()
 plt.show()
+
+
+# Évaluation du sur-apprentissage avec agrandissement des zones ou se trouvent les courbes :
+def plot_loss(history):
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    loss_array = np.array(loss)
+    val_loss_array = np.array(val_loss)
+    plt.figure(figsize=(12, 6))
+    plt.plot(loss_array, label='Training Loss', color='red')
+    plt.plot(val_loss_array, label='Validation Loss', color='blue')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.title('Training and Validation Loss (Zoomed)')
+    plt.legend()
+    plt.ylim(0, 0.003)  # Zoom sur la zone des pertes basses
+    plt.grid(True)
+    plt.show()
+plot_loss(history)
+
+
+# Affichage des sur et sous apprentissage :
+# Conversion en tableaux NumPy :
+loss_array = np.array(loss)
+val_loss_array = np.array(val_loss)
+# Affichage des tableaux :
+print("Loss Array:", loss_array)
+print("Validation Loss Array:", val_loss_array)
+
 
