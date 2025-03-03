@@ -55,9 +55,15 @@ class PrepareDataset:
         technical_indicators.calculate_signal(tmp_dataset, 100, 150)
         technical_indicators.calculate_signal(tmp_dataset, 50, 100)
         # Ignorer les valeurs NAN (Remplir les valeurs NaN avec la moyenne des colonnes) :
-        del tmp_dataset['Date']
+        """ ************************ CONTROLE ************************ """
+        # Supprimer les lignes où MA_150 est NaN
+        tmp_dataset = tmp_dataset.dropna(subset=['MA_150'])
+        tmp_dataset.to_csv('../btc_neural_network/dataset/training_dataset/dataset_for_model.csv', index=False)
+        """ ************************ CONTROLE ************************ """
+        """
         imputer = SimpleImputer(strategy='mean')
         tmp_dataset = imputer.fit_transform(tmp_dataset)
+        """
         return tmp_dataset
 
 
@@ -80,6 +86,14 @@ class PrepareDataset:
         """ Méthode normalize_data() """
         return scaler.transform(tmp_dataset)
 
+
+    """
+    def normalize_datas2(self, tmp_dataset, scaler, columns_to_normalize):
+        #  Méthode normalize_datas() 
+        # Normalisation des colonnes spécifiées
+        scaler.transform(tmp_dataset_copy[columns_to_normalize])
+        return tmp_dataset_copy
+    """
 
 
     def create_train_and_test_dataset(self, model_dataset):

@@ -23,11 +23,7 @@ from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.callbacks import EarlyStopping
 import joblib
 
-
-
-
-
-
+from price_prediction_neural_network_with_cross_validation import model_dataset
 
 """ ****************************** Paramètres ****************************** """
 DATASET_PATH = parameters.DATASET_PATH
@@ -64,6 +60,7 @@ def rsi(df, period):
     d = d.drop(d.index[:(period-1)])
     rs = u.ewm(com=period-1, adjust=False).mean() / d.ewm(com=period-1, adjust=False).mean()
     return 100 - 100 / (1 + rs)
+
 
 
 def calculate_signal(dataset, taille_sma1, taille_sma2):
@@ -270,29 +267,13 @@ tmp_dataset = format_dataset(initial_dataset)
 tmp_dataset = delete_columns(tmp_dataset)
 
 
-
-"""
-# Affichage des données :
-fig = px.line(tmp_dataset, x=tmp_dataset.Date, y=tmp_dataset.Dernier,labels={'Date':'date','Dernier':'Close Stock'})
-fig.update_traces(marker_line_width=2, opacity=0.8, marker_line_color='orange')
-fig.update_layout(title_text='Whole period of timeframe of Bitcoin close price 2014-2025', plot_bgcolor='white',
-                  font_size=15, font_color='black')
-fig.update_xaxes(showgrid=False)
-fig.update_yaxes(showgrid=False)
-fig.show()
-"""
-
-
-
-
-"""
 # Ajout des indicateurs techniques :
-tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
+# tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
+# print("tmp_datastet AVEC SMA : ", tmp_dataset)
 
 
 # Enregistrement du dataset au format csv :
 tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
-"""
 
 
 # Contrôle des modifications :
@@ -303,21 +284,27 @@ print('NA values dataset final :', tmp_dataset.isnull().values.any())
 
 
 tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
-print(" forme tmp_dataset shape : ", tmp_dataset.shape)
-print(" forme tmp_dataset : ", tmp_dataset)
-
+print(" forme tmp_dataset : ", tmp_dataset.shape)
+# joblib.dump(tmp_dataset, 'tmp_dataset.save')
+print(" dataset avant transformation : ", tmp_dataset)
+tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
 
 # Normalise dataset :
 # model_dataset = normalize_datas(tmp_dataset)
 # Obtenir le scaler ajusté :
 scaler = prepare_dataset.get_fitted_scaler(tmp_dataset)
-joblib.dump(scaler, 'scaler.save')
+joblib.dump(scaler, '../scaler.save')
+
+
 # Normalise dataset :
 model_dataset = prepare_dataset.normalize_datas(tmp_dataset, scaler)
+# NOUVELLE VERSION :
+# columns_to_scale = tmp_dataset.columns[:-3]
+# model_dataset = prepare_dataset.normalize_datas2(tmp_dataset, scaler, columns_to_scale)
+print("model_dataset : ", model_dataset )
 print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
-
-
+print("dataset retransformé : ", scaler.inverse_transform(model_dataset))
 print("dataset d'entrainement normalisé :", model_dataset)
 
 
@@ -326,7 +313,7 @@ train_data, test_data = create_train_and_test_dataset(model_dataset)
 
 
 # Sauvegarde du dataset de test pour les prédictions :
-joblib.dump(test_data, 'TRASH/test_data.save')
+joblib.dump(test_data, 'test_data.save')
 
 
 # Conversion des arrays en matrice
@@ -364,12 +351,15 @@ metrics_history = {
     "test_mpd": [],
 }
 
+
 # Callback personnalisé pour stocker les métriques toutes les 50 epochs
 class MetricsCallback(Callback):
     def on_epoch_end(self, epoch, logs=None):
         if (epoch + 1) % 50 == 0:
             train_predict = self.model.predict(x_train)
             test_predict = self.model.predict(x_test)
+
+            print("train_predict.shape, test_predict.shape : ", train_predict.shape, test_predict.shape)
 
             train_predict = train_predict.reshape(-1, 1)
             test_predict = test_predict.reshape(-1, 1)
@@ -403,6 +393,13 @@ class MetricsCallback(Callback):
 
 
 # Entraînement du modèle avec le callback
+print("SHAPE : ")
+print(x_train.shape)
+print(y_train.shape)
+print(x_test.shape)
+print(y_test.shape)
+
+
 history = model.fit(
     x_train, y_train,
     validation_data=(x_test, y_test),
@@ -417,8 +414,7 @@ history = model.fit(
 model.save_weights(parameters.SAVE_MODEL_PATH + f'model.weights.h5')
 
 
-# Affichage des métriques stockées
-# Affichage des métriques stockées
+# Affichage des métriques stockées :
 print("Metrics History:")
 for metric, values in metrics_history.items():
     print(f"{metric}: {values}")
@@ -434,544 +430,4 @@ plt.title('Training and validation loss')
 plt.legend(loc=0)
 plt.figure()
 plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-""" ******************** Comparaison entre le prix original et les prédictions ******************** """
-print(" ******************** Comparaison entre le prix original et les prédictions ******************** ")
-
-"""
-I- PREDICTION D'ENTRAINEMENT :
-# Décaler les prédictions d'entraînement pour le tracé :
-look_back = time_step
-# Créer un tableau vide de la même forme que closedf pour stocker les prédictions d'entraînement :
-trainPredictPlot = np.empty_like(closedf)
-# Initialiser toutes les valeurs de trainPredictPlot à NaN :
-trainPredictPlot[:, :] = np.nan
-# Remplir trainPredictPlot avec les prédictions d'entraînement, en les décalant de 'look_back' positions :
-trainPredictPlot[look_back:len(train_predict) + look_back, :] = train_predict
-# Afficher la forme des données prédites d'entraînement :
-print("Données prédites d'entraînement :", trainPredictPlot.shape)
-
-
-
-II- PREDICTION DE TEST :
-# Créer un tableau vide de la même forme que closedf pour stocker les prédictions de test :
-testPredictPlot = np.empty_like(closedf)
-# Initialiser toutes les valeurs de testPredictPlot à NaN :
-testPredictPlot[:, :] = np.nan
-# Remplir testPredictPlot avec les prédictions de test, en les décalant de 'look_back * 2 + 1' positions :
-testPredictPlot[len(train_predict) + (look_back * 2) + 1:len(closedf) - 1, :] = test_predict
-# Les prédictions d'entraînement (train_predict) sont insérées dans trainPredictPlot, mais décalées de look_back positions. Cela signifie que les prédictions commencent à l'index look_back et se poursuivent jusqu'à la fin des prédictions disponibles.
-# Afficher la forme des données prédites de test :
-print("Données prédites de test :", testPredictPlot.shape)
-
-
-
-III- DEFINIR LE GRAPHIQUE :
-# Noms des traces pour le graphique
-# Créer un itérateur cyclique pour les noms des traces : Un itérateur cyclique est un outil pratique pour répéter une séquence d'éléments de manière infinie :
-names = cycle(['Prix de clôture original', 'Prix de clôture prédit (entraînement)', 'Prix de clôture prédit (test)'])
-
-
-
-IV- CREER LE DATAFRAME POUR LE TRACE :
-# Créer un DataFrame avec les dates, les prix de clôture originaux, et les prix de clôture prédits (entraînement et test)
-plotdf = pd.DataFrame({
-    'date': close_stock['Date'],
-    'original_close': close_stock['Dernier'],
-    'train_predicted_close': trainPredictPlot.reshape(1, -1)[0].tolist(),
-    'test_predicted_close': testPredictPlot.reshape(1, -1)[0].tolist()
-})
-"""
-"""
-NOTIONS DE DATAFRAME :
-Un DataFrame est une structure de données bidimensionnelle, similaire à une table ou un 
-tableau dans une base de données relationnelle, ou encore à une feuille de calcul Excel.
-Les DataFrames sont couramment utilisés dans l'analyse de données et la science des 
-données pour stocker, manipuler et analyser des données structurées.
-"""
-"""
-
-
-
-V- CREER LE GRAPHIQUE :
-# Utiliser Plotly Express pour créer un graphique en ligne avec les données du DataFrame
-fig = px.line(
-    plotdf,
-    x=plotdf['date'],
-    y=[plotdf['original_close'], plotdf['train_predicted_close'], plotdf['test_predicted_close']],
-    labels={'value': 'Prix de l\'action', 'date': 'Date'}
-)
-
-
-
-VI- METTRE A JOUR LA DISPOSITION DU GRAPHIQUE :
-# Mettre à jour le titre, la couleur de fond, la taille et la couleur de la police, et le titre de la légende
-fig.update_layout(
-    title_text='Comparaison entre le prix de clôture original et le prix de clôture prédit',
-    plot_bgcolor='white',
-    font_size=15,
-    font_color='black',
-    legend_title_text='Prix de clôture'
-)
-
-
-
-VII- METTRE A JOUR LES NOMS DES TRACES :
-# Mettre à jour les noms des traces en utilisant l'itérateur cyclique 'names'
-fig.for_each_trace(lambda t: t.update(name=next(names)))
-
-
-
-VIII- METTRE A JOUR LES AXES :
-# Désactiver la grille sur les axes x et y
-fig.update_xaxes(showgrid=False)
-fig.update_yaxes(showgrid=False)
-"""
-
-
-
-
-
-
-""" ******************** Prédictions des 30 prochains jours ******************** """
-print(" ******************** Prédictions des 30 prochains jours ******************** ")
-
-"""
-#I- PREPARER LES DONNEES D'ENTREE POUR LA PREDICTION :
-
-# Sélectionner les dernières 'time_step' valeurs des données de test pour l'entrée initiale :
-x_input = test_data[len(test_data) - time_step:].reshape(1, -1)
-# Convertir l'entrée en une liste :
-temp_input = list(x_input)
-# Convertir la liste en une liste de listes (pour manipulation ultérieure) :
-temp_input = temp_input[0].tolist()
-# Initialiser la liste pour stocker les prédictions :
-lst_output = []
-# Définir le nombre de pas de temps (time_step) :
-n_steps = time_step
-# Initialiser le compteur de boucle :
-i = 0
-# Définir le nombre de jours à prédire :
-pred_days = 30
-# Boucle de prédiction pour les prochains jours :
-while i < pred_days:
-    if len(temp_input) > time_step:
-        # Préparer l'entrée pour la prédiction en utilisant les 'time_step' dernières valeurs :
-        x_input = np.array(temp_input[1:])
-        x_input = x_input.reshape(1, -1)
-        x_input = x_input.reshape((1, n_steps, 1))
-        # Prédire la valeur suivante en utilisant le modèle :
-        yhat = model.predict(x_input, verbose=0)
-        # Ajouter la prédiction à temp_input et mettre à jour temp_input :
-        temp_input.extend(yhat[0].tolist())
-        temp_input = temp_input[1:]
-        # Ajouter la prédiction à la liste des sorties :
-        lst_output.extend(yhat.tolist())
-        # Incrémenter le compteur de boucle :
-        i += 1
-    else:
-        # Préparer l'entrée pour la prédiction en utilisant les valeurs initiales :
-        x_input = x_input.reshape((1, n_steps, 1))
-        # Prédire la valeur suivante en utilisant le modèle :
-        yhat = model.predict(x_input, verbose=0)
-        # Ajouter la prédiction à temp_input :
-        temp_input.extend(yhat[0].tolist())
-        # Ajouter la prédiction à la liste des sorties :
-        lst_output.extend(yhat.tolist())
-        # Incrémenter le compteur de boucle :
-        i += 1
-
-# Afficher le nombre de prédictions générées :
-print("Nombre de prédictions pour les prochains jours :", len(lst_output))
-"""
-
-
-
-
-
-
-""" ******************** Prix des 15 derniers jours du jeu de données et des 30 prochains jours prédits ******************** """
-print(" ******************** Prix des 15 derniers jours du jeu de données et des 30 prochains jours prédits ******************** ")
-
-"""
-# I- CREATION DE TABLEAUX DES JOURS UTILISES ET DES JOURS PREDITS :
-# Créer un tableau pour les derniers jours utilisés pour la prédiction :
-last_days = np.arange(1, time_step + 1)
-# Créer un tableau pour les jours prédits :
-day_pred = np.arange(time_step + 1, time_step + pred_days + 1)
-# Afficher les tableaux :
-print("Derniers jours utilisés pour la prédiction :", last_days)
-print("Jours prédits :", day_pred)
-
-
-
-# II- CREATION UNE MATRICE TEMPORAIRE REMPLIE DE Nan :
-temp_mat = np.empty((len(last_days) + pred_days + 1, 1))
-temp_mat[:] = np.nan
-temp_mat = temp_mat.reshape(1, -1).tolist()[0]
-
-
-
-# III- INITIALISER LES VALEURS POUR LES DERNIERS JOURS ORIGINAUX ET PREDITS :
-last_original_days_value = temp_mat
-next_predicted_days_value = temp_mat
-
-# Remplir les valeurs pour les derniers jours originaux :
-last_original_days_value[0:time_step + 1] = scaler.inverse_transform(closedf[len(closedf) - time_step:]).reshape(1, -1).tolist()[0]
-Sélectionne les time_step dernières valeurs de closedf, Inverse la transformation appliquée précédemment à ces valeurs, Redimensionne le tableau résultant en une seule ligne, Convertit le tableau redimensionné en une liste Python, Accède au premier élément de cette liste, qui est une liste contenant tous les éléments de la ligne, Assigne cette liste à la tranche 0:time_step + 1 de last_original_days_value.
-
-# Remplir les valeurs pour les jours prédits :
-next_predicted_days_value[time_step + 1:] = scaler.inverse_transform(np.array(lst_output).reshape(-1, 1)).reshape(1, -1).tolist()[0]
-# Sélectionne les time_step dernières valeurs de closedf, Inverse la transformation appliquée précédemment à ces valeurs, Redimensionne le tableau résultant en une seule ligne, Convertit le tableau redimensionné en une liste Python, Accède au premier élément de cette liste, qui est une liste contenant tous les éléments de la ligne, Assigne cette liste à la tranche 0:time_step + 1 de last_original_days_value.
-
-
-
-# IV- CREATION DU DATAFRAME POUR LE TRACE :
-new_pred_plot = pd.DataFrame({
-    'last_original_days_value': last_original_days_value,
-    'next_predicted_days_value': next_predicted_days_value
-})
-
-
-
-# V- CREER UN ITERATEUR CYCLIQUE POUR LE NOM DES TRACES :
-# Noms des traces pour le graphique :
-# Un itérateur cyclique est un outil pratique pour répéter une séquence d'éléments de manière infinie :
-names = cycle(['Prix de clôture des 15 derniers jours', 'Prix de clôture prédit pour les 30 prochains jours'])
-
-
-
-# VI- CREER LE GRAPHIQUE :
-fig = px.line(
-    new_pred_plot,
-    x=new_pred_plot.index,
-    y=[new_pred_plot['last_original_days_value'], new_pred_plot['next_predicted_days_value']],
-    labels={'value': 'Prix de l\'action', 'index': 'Timestamp'}
-)
-
-
-
-# VII- METTRE A JOUR LA DISPOSITION DU GRAPHIQUE :
-fig.update_layout(
-    title_text='Comparaison des 15 derniers jours vs les 30 prochains jours',
-    plot_bgcolor='white',
-    font_size=15,
-    font_color='black',
-    legend_title_text='Prix de clôture'
-)
-# Mettre à jour les noms des traces :
-fig.for_each_trace(lambda t: t.update(name=next(names)))
-# Mettre à jour les axes :
-fig.update_xaxes(showgrid=False)
-fig.update_yaxes(showgrid=False)
-# Afficher le graphique :
-fig.show()
-"""
-
-
-
-
-
-
-""" ******************** Ensemble des prix de clôture avec la période de prédiction des 30 prochains jours ******************** """
-print(" ******************** Ensemble des prix de clôture avec la période de prédiction des 30 prochains jours ******************** ")
-
-"""
-# Convertir les données de clôture en une liste :
-lstmdf = closedf.tolist()
-
-# Ajouter les prédictions à la liste des données de clôture :
-lstmdf.extend((np.array(lst_output).reshape(-1, 1)).tolist())
-# Convertit lst_output en un tableau NumPy, Redimensionne ce tableau en une colonne, Convertit le tableau redimensionné en une liste de listes, Ajoute chaque sous-liste de cette liste de listes à lstmdf.
-
-# Appliquer la transformation inverse du scaler pour obtenir les valeurs originales :
-lstmdf = scaler.inverse_transform(lstmdf).reshape(1, -1).tolist()[0]
-# Inverse la transformation appliquée précédemment aux données dans lstmdf, Redimensionne le tableau résultant en une seule ligne. , Convertit le tableau redimensionné en une liste Python,  Accède au premier élément de cette liste, qui est une liste contenant tous les éléments de la ligne.
-
-# Créer un itérateur cyclique pour les noms des traces :
-names = cycle(['Close price'])
-
-# Créer le graphique en ligne avec Plotly Express :
-fig = px.line(lstmdf, labels={'value': 'Stock price', 'index': 'Timestamp'})
-
-# Mettre à jour la disposition du graphique :
-fig.update_layout(
-    title_text='Plotting whole closing stock price with prediction',
-    plot_bgcolor='white',
-    font_size=15,
-    font_color='black',
-    legend_title_text='Stock'
-)
-
-# Mettre à jour les noms des traces en utilisant l'itérateur cyclique :
-fig.for_each_trace(lambda t: t.update(name=next(names)))
-
-# Désactiver la grille sur les axes x et y :
-fig.update_xaxes(showgrid=False)
-fig.update_yaxes(showgrid=False)
-
-# Afficher le graphique :
-fig.show()
-"""
-
-""" ************************************ Créer une classe qui évalue le modèle (Réseau de neurones) ************************************ """
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-print(" ************ Fin du test !!! ************ ")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-""" ************************** VERSION POUR 2014 ************************** """
-
-"""
-
-# Analyse du prix depuis le début :
-maindf['Date'] = pd.to_datetime(maindf['Date'], format='%d/%m/%Y')
-y_2014 = maindf.loc[(maindf['Date'] >= '01/01/2014') & (maindf['Date'] <= '31/12/2014')]
-
-# Convertir la colonne "Date" au format datetime :
-y_2014['Date'] = pd.to_datetime(y_2014['Date'], format='%d/%m/%Y', errors='coerce')
-
-# Remplacer les points par un espace, puis suppression de l'espace, enfin remplacement de la virgule par un point :
-numeric_columns = ["Dernier", "Ouv.", " Plus Haut", "Plus Bas", "Variation %"]
-for col in numeric_columns:
-    y_2014.loc[:, col] = y_2014[col].str.replace('.', ' ').str.replace(' ', '').str.replace(',', '.')
-
-# Conversion des colonnes numériques en float :
-for col in numeric_columns:
-    y_2014[col] = pd.to_numeric(y_2014[col], errors='coerce')
-
-# Suppression des colonnes "Vol." et "Variation %" :
-y_2014 = y_2014.drop(columns=['Vol.', 'Variation %'])
-print('y_2014 sans colonnes en moins :' , y_2014)
-
-# Afficher le DataFrame
-print("************* Affichage de l'année 2025 *************")
-print(y_2014)
-y_2014.to_csv(PATH+FILE_CLEAN_DATASET, index=False)
-
-"""
-
-
-
-
-
-
-
-
-
-
-
-
 

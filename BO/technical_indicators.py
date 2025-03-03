@@ -37,10 +37,10 @@ class technical_indicators:
         """ Calcul du signal croisement des sma """
         sma1_col = 'MA_' + str(taille_sma1)
         sma2_col = 'MA_' + str(taille_sma2)
-        signal_col = 'signal_' + sma1_col + '_' + sma2_col
+        signal_col = sma1_col +  '_supérieure_'  + sma2_col
         dataset[sma1_col] = technical_indicators.ma(dataset, taille_sma1)
         dataset[sma2_col] = technical_indicators.ma(dataset, taille_sma2)
-        dataset[signal_col] = np.where(dataset[sma1_col] > dataset[sma2_col], 1.0, 0.0)
+        dataset[signal_col] = dataset[sma1_col] > dataset[sma2_col]
         return dataset
 
 
