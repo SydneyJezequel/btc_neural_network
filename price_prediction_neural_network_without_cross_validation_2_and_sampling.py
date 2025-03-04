@@ -199,7 +199,7 @@ print("y_test shape:", y_test.shape)
 
 # Création du modèle :
 model = Sequential()
-model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
+model.add(LSTM(50, input_shape=(None, 1), activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
 

@@ -128,6 +128,10 @@ tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
 
 # Ajout des caractéristiques de lag :
 lags = [1, 7, 30, 60, 90, 180, 365]
+# lags = [1, 7, 30, 365]
+# lags = [7, 30, 365]
+# lags = [30, 365]
+# lags = [30, 60, 90, 180, 365]
 tmp_dataset = add_lag_features(tmp_dataset, lags)
 tmp_dataset = tmp_dataset.dropna()  # Supprimer les lignes avec des valeurs NaN introduites par les lags
 
