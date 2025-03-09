@@ -20,7 +20,7 @@ import joblib
 
 DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
-DATASET_FILE = parameters.DATASET_FILE
+TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 
 
@@ -142,7 +142,8 @@ prepare_dataset = PrepareDataset()
 
 
 print(" ************ Etape 1 : Loading dataset ************ ")
-initial_dataset = pd.read_csv(DATASET_PATH + DATASET_FILE)
+# initial_dataset = pd.read_csv(DATASET_PATH + DATASET_FILE)
+initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
 
 
 print(" ************ Etape 2 : Preparation of the Dataset ************ ")
@@ -199,7 +200,7 @@ print("y_test shape:", y_test.shape)
 
 # Création du modèle :
 model = Sequential()
-model.add(LSTM(50, input_shape=(None, 1), activation="relu"))
+model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
 
@@ -338,5 +339,102 @@ val_loss_array = np.array(val_loss)
 # Affichage des tableaux :
 print("Loss Array:", loss_array)
 print("Validation Loss Array:", val_loss_array)
+
+
+
+
+
+
+""" ************************* Controle du surapprentissage ************************* """
+
+
+""" Affichage des résidus """
+# Visualiser les résidus de tests et d'entrainements (différence valeur prédite et réelle) :
+def plot_residuals(y_true, y_pred, title):
+    # Trace les résidus
+    residuals = y_true - y_pred
+    plt.figure(figsize=(10, 6))
+    plt.plot(residuals, label='Residuals')
+    plt.axhline(y=0, color='r', linestyle='--')
+    plt.title(title)
+    plt.xlabel('Observations')
+    plt.ylabel('Residuals')
+    plt.legend()
+    plt.show()
+
+
+# Tracer les résidus
+train_predict = model.predict(x_train)
+test_predict = model.predict(x_test)
+
+train_predict = train_predict.reshape(-1, 1)
+test_predict = test_predict.reshape(-1, 1)
+
+scaler = prepare_dataset.get_fitted_scaler(train_predict)
+train_predict = scaler.inverse_transform(train_predict)
+test_predict = scaler.inverse_transform(test_predict)
+
+original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
+original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
+
+plot_residuals(original_ytrain, train_predict, 'Training Residuals')
+plot_residuals(original_ytest, test_predict, 'Test Residuals')
+
+
+
+
+
+
+""" Faire des prédictions sur un dataset indépendant """
+
+def predict_on_new_data(new_data_path, model, scaler, time_step=15):
+    """Faire des prédictions sur un dataset indépendant"""
+
+    # Charger et préparer le nouveau dataset
+    new_dataset = pd.read_csv(new_data_path)
+    new_dataset = format_dataset(new_dataset)
+    new_dataset = delete_columns(new_dataset)
+
+    # Ajouter les indicateurs techniques
+    prepare_dataset = PrepareDataset()
+    new_dataset = prepare_dataset.add_technicals_indicators(new_dataset)
+
+    # Supprimer les lignes avec des valeurs manquantes
+    new_dataset = new_dataset.dropna()
+
+    # Normaliser les données
+    columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100']
+
+    # Vérifiez que toutes les colonnes à normaliser existent
+    missing_columns = [col for col in columns_to_normalize if col not in new_dataset.columns]
+    if missing_columns:
+        raise ValueError(f"Missing columns in new dataset: {missing_columns}")
+
+    # Utiliser la méthode normalize_datas pour normaliser les données
+    normalized_datas = prepare_dataset.normalize_datas(new_dataset[columns_to_normalize], scaler)
+    new_dataset[columns_to_normalize] = normalized_datas
+
+    # Suppression de la colonne date :
+    del new_dataset['Date']
+
+    # Créer le dataset pour la prédiction
+    x_new, _ = create_dataset(new_dataset, time_step)
+    x_new = x_new.reshape(x_new.shape[0], x_new.shape[1], 1)
+
+    # Faire des prédictions
+    new_predictions = model.predict(x_new)
+    new_predictions = scaler.inverse_transform(new_predictions)
+
+    return new_predictions
+
+
+
+
+# Exemple d'utilisation de la fonction pour faire des prédictions sur un nouveau dataset
+DATASET_FILE_FOR_TEST_PREDICTIONS = parameters.DATASET_FILE_FOR_TEST_PREDICTIONS
+dataset_for_test_predictions = PATH_TRAINING_DATASET + DATASET_FILE_FOR_TEST_PREDICTIONS
+new_predictions = predict_on_new_data(dataset_for_test_predictions, model, scaler)
+print("New Predictions:", new_predictions)
+
 
 

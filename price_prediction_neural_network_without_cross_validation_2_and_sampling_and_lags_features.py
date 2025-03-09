@@ -16,7 +16,7 @@ import joblib
 """ ************************* Paramètres ************************* """
 DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
-DATASET_FILE = parameters.DATASET_FILE
+TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 
 """ ************************* Méthodes ************************* """
@@ -115,11 +115,19 @@ def subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1):
     combined_data = combined_data.sort_values(by='Date').reset_index(drop=True)
     return combined_data
 
+
+
+
+
+
 """ ************************* Exécution du script principal ************************* """
 prepare_dataset = PrepareDataset()
 
+
 print(" ************ Etape 1 : Loading dataset ************ ")
-initial_dataset = pd.read_csv(DATASET_PATH + DATASET_FILE)
+# initial_dataset = pd.read_csv(DATASET_PATH + DATASET_FILE)
+initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + DATASET_FILE)
+
 
 print(" ************ Etape 2 : Preparation of the Dataset ************ ")
 tmp_dataset = format_dataset(initial_dataset)
@@ -127,7 +135,8 @@ tmp_dataset = delete_columns(tmp_dataset)
 tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
 
 # Ajout des caractéristiques de lag :
-lags = [1, 7, 30, 60, 90, 180, 365]
+# lags = [1, 7, 30, 60, 90, 180, 365]
+lags = [1, 7]
 # lags = [1, 7, 30, 365]
 # lags = [7, 30, 365]
 # lags = [30, 365]
@@ -135,11 +144,14 @@ lags = [1, 7, 30, 60, 90, 180, 365]
 tmp_dataset = add_lag_features(tmp_dataset, lags)
 tmp_dataset = tmp_dataset.dropna()  # Supprimer les lignes avec des valeurs NaN introduites par les lags
 
+
 # Définir une date de coupure pour séparer les anciennes et récentes données :
 cutoff_date = '2020-01-01'
 
+
 # Appliquer le sous-échantillonnage :
 tmp_dataset = subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
+
 
 # Normalisation :
 tmp_dataset_copy = tmp_dataset.copy()
@@ -153,11 +165,14 @@ model_dataset[columns_to_normalize] = normalized_datas
 print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
 
+
 # Sauvegarde du dataset pour contrôle :
 model_dataset.to_csv(PATH_TRAINING_DATASET + 'dataset_modified_with_date.csv', index=False)
 
+
 # Suppression de la colonne date :
 del model_dataset['Date']
+
 
 # Création des datasets d'entrainement et test :
 train_data, test_data = create_train_and_test_dataset(model_dataset)
@@ -175,11 +190,13 @@ print("y_train shape:", y_train.shape)
 print("x_test shape:", x_test.shape)
 print("y_test shape:", y_test.shape)
 
+
 # Création du modèle :
 model = Sequential()
 model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
+
 
 # Initialisation des tableaux pour stocker les métriques :
 metrics_history = {
@@ -199,6 +216,7 @@ metrics_history = {
     "train_mpd": [],
     "test_mpd": [],
 }
+
 
 # Callback pour stocker les métriques toutes les 50 epochs :
 class MetricsCallback(Callback):
@@ -253,6 +271,7 @@ class MetricsCallback(Callback):
             else:
                 metrics_history["test_mpd"].append(np.nan)
 
+
 # Entraînement du modèle :
 history = model.fit(
     x_train, y_train,
@@ -263,13 +282,16 @@ history = model.fit(
     callbacks=[MetricsCallback()]
 )
 
+
 # Sauvegarde du modèle :
 model.save_weights(parameters.SAVE_MODEL_PATH + f'model.weights.h5')
+
 
 # Affichage des métriques stockées :
 print("Metrics History:")
 for metric, values in metrics_history.items():
     print(f"{metric}: {values}")
+
 
 # Évaluation du sur-apprentissage :
 loss = history.history['loss']
@@ -281,6 +303,7 @@ plt.title('Training and validation loss')
 plt.legend(loc=0)
 plt.figure()
 plt.show()
+
 
 # Évaluation du sur-apprentissage avec agrandissement des zones où se trouvent les courbes :
 def plot_loss(history):
@@ -300,6 +323,7 @@ def plot_loss(history):
     plt.show()
 plot_loss(history)
 
+
 # Affichage des sur et sous apprentissage :
 # Conversion en tableaux NumPy :
 loss_array = np.array(loss)
@@ -307,3 +331,100 @@ val_loss_array = np.array(val_loss)
 # Affichage des tableaux :
 print("Loss Array:", loss_array)
 print("Validation Loss Array:", val_loss_array)
+
+
+
+
+
+
+""" ************************* Controle du surapprentissage ************************* """
+
+
+""" Affichage des résidus """
+# Visualiser les résidus de tests et d'entrainements (différence valeur prédite et réelle) :
+def plot_residuals(y_true, y_pred, title):
+    # Trace les résidus
+    residuals = y_true - y_pred
+    plt.figure(figsize=(10, 6))
+    plt.plot(residuals, label='Residuals')
+    plt.axhline(y=0, color='r', linestyle='--')
+    plt.title(title)
+    plt.xlabel('Observations')
+    plt.ylabel('Residuals')
+    plt.legend()
+    plt.show()
+
+
+# Tracer les résidus
+train_predict = model.predict(x_train)
+test_predict = model.predict(x_test)
+
+train_predict = train_predict.reshape(-1, 1)
+test_predict = test_predict.reshape(-1, 1)
+
+scaler = prepare_dataset.get_fitted_scaler(train_predict)
+train_predict = scaler.inverse_transform(train_predict)
+test_predict = scaler.inverse_transform(test_predict)
+
+original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
+original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
+
+plot_residuals(original_ytrain, train_predict, 'Training Residuals')
+plot_residuals(original_ytest, test_predict, 'Test Residuals')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" Faire des prédictions sur un dataset indépendant """
+
+def predict_on_new_data(new_data_path, model, scaler, time_step=15):
+    # Fait des prédictions sur un nouveau dataset.
+    # Charger et préparer le nouveau dataset
+    new_dataset = pd.read_csv(new_data_path)
+    new_dataset = format_dataset(new_dataset)
+    new_dataset = delete_columns(new_dataset)
+    new_dataset = add_technicals_indicators(new_dataset)
+    # new_dataset['Historical_Volatility'] = calculate_historical_volatility(new_dataset)
+    # new_dataset = add_lag_features(new_dataset, lags)
+    new_dataset = new_dataset.dropna()
+
+    # Normaliser les données
+    columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100', 'Historical_Volatility'] + [f'Lag_{lag}' for lag in lags]
+    normalized_datas = scaler.transform(new_dataset[columns_to_normalize])
+    new_dataset[columns_to_normalize] = normalized_datas
+
+    # Créer le dataset pour la prédiction
+    x_new, _ = create_dataset(new_dataset, time_step)
+    x_new = x_new.reshape(x_new.shape[0], x_new.shape[1], 1)
+
+    # Faire des prédictions
+    new_predictions = model.predict(x_new)
+    new_predictions = scaler.inverse_transform(new_predictions)
+
+    return new_predictions
+
+
+
+# Exemple d'utilisation de la fonction pour faire des prédictions sur un nouveau dataset
+dataset_for_test_predictions = parameters.DATASET_FILE_FOR_TEST_PREDICTIONS
+new_predictions = predict_on_new_data(dataset_for_test_predictions, model, scaler)
+print("New Predictions:", new_predictions)
+
+
+
+
+
