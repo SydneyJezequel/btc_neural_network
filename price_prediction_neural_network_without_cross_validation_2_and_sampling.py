@@ -12,6 +12,8 @@ from tensorflow.keras.layers import Dense, Dropout, LSTM
 import parameters
 from tensorflow.keras.callbacks import Callback
 import joblib
+from tensorflow.keras.callbacks import EarlyStopping
+
 
 
 
@@ -149,8 +151,9 @@ initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
 print(" ************ Etape 2 : Preparation of the Dataset ************ ")
 tmp_dataset = format_dataset(initial_dataset)
 tmp_dataset = delete_columns(tmp_dataset)
+""" MIS DE COTE :
 tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
-
+"""
 
 # Définir une date de coupure pour séparer les anciennes et récentes données :
 cutoff_date = '2020-01-01'
@@ -162,7 +165,11 @@ tmp_dataset = subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
 
 # Normalisation :
 tmp_dataset_copy = tmp_dataset.copy()
+""" MIS DE COTE :
 columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100']
+"""
+columns_to_normalize = ['Dernier']
+
 scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
 joblib.dump(scaler, 'scaler.save')
 model_dataset = tmp_dataset
@@ -203,7 +210,18 @@ model = Sequential()
 model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
-
+"""
+# Création du modèle amélioré
+model = Sequential()
+model.add(LSTM(20, input_shape=(None, 1), activation="tanh", return_sequences=True))
+model.add(Dropout(0.2))
+model.add(LSTM(20, activation="tanh"))
+model.add(Dropout(0.2))
+model.add(Dense(1))
+# Compilation du modèle
+optimizer = Adam(learning_rate=0.001)
+model.compile(loss="mean_squared_error", optimizer=optimizer)
+"""
 
 # Initialisation des tableaux pour stocker les métriques :
 metrics_history = {
@@ -279,6 +297,8 @@ class MetricsCallback(Callback):
                 metrics_history["test_mpd"].append(np.nan)
 
 
+#early_stopping = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True)
+
 
 # Entraînement du modèle :
 history = model.fit(
@@ -287,7 +307,7 @@ history = model.fit(
     epochs=200,
     batch_size=32,
     verbose=1,
-    callbacks=[MetricsCallback()]
+    callbacks=[MetricsCallback()] # [MetricsCallback(), early_stopping]
 )
 
 
@@ -427,6 +447,50 @@ def predict_on_new_data(new_data_path, model, scaler, time_step=15):
 
     return new_predictions
 
+
+
+"""
+def predict_on_new_data(new_data_path, model, scaler, time_step=15):
+    # Faire des prédictions sur un dataset indépendant
+
+    # Charger et préparer le nouveau dataset
+    new_dataset = pd.read_csv(new_data_path)
+    new_dataset = format_dataset(new_dataset)
+    new_dataset = delete_columns(new_dataset)
+
+    # Ajouter les indicateurs techniques
+    prepare_dataset = PrepareDataset()
+    new_dataset = prepare_dataset.add_technicals_indicators(new_dataset)
+
+    # Supprimer les lignes avec des valeurs manquantes
+    new_dataset = new_dataset.dropna()
+
+    # Vérifiez que le dataset n'est pas vide après le traitement
+    if new_dataset.empty:
+        raise ValueError("The dataset is empty after processing.")
+
+    # Normaliser les données
+    columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100', 'Historical_Volatility'] + [f'Lag_{lag}' for lag in lags]
+
+    # Vérifiez que toutes les colonnes à normaliser existent et ne sont pas vides
+    for col in columns_to_normalize:
+        if col not in new_dataset.columns or new_dataset[col].isnull().all():
+            raise ValueError(f"Column {col} is missing or empty in the new dataset.")
+
+    # Utiliser la méthode normalize_datas pour normaliser les données
+    normalized_datas = prepare_dataset.normalize_datas(new_dataset[columns_to_normalize], scaler)
+    new_dataset[columns_to_normalize] = normalized_datas
+
+    # Créer le dataset pour la prédiction
+    x_new, _ = create_dataset(new_dataset, time_step)
+    x_new = x_new.reshape(x_new.shape[0], x_new.shape[1], 1)
+
+    # Faire des prédictions
+    new_predictions = model.predict(x_new)
+    new_predictions = scaler.inverse_transform(new_predictions)
+
+    return new_predictions
+"""
 
 
 

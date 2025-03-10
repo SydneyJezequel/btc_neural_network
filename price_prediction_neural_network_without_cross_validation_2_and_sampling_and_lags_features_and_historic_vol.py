@@ -139,7 +139,7 @@ prepare_dataset = PrepareDataset()
 
 
 print(" ************ Etape 1 : Loading dataset ************ ")
-initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + DATASET_FILE)
+initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
 
 
 print(" ************ Etape 2 : Preparation of the Dataset ************ ")
@@ -152,7 +152,9 @@ tmp_dataset = delete_columns(tmp_dataset)
 
 
 # Ajout des indicateurs techniques et signaux :
+""" MIS DE COTE :
 tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
+"""
 
 
 # Ajout de la volatilité historique :
@@ -160,10 +162,12 @@ tmp_dataset['Historical_Volatility'] = calculate_historical_volatility(tmp_datas
 
 
 # Ajout des caractéristiques de lag :
-lags = [1, 7, 30, 60, 90, 180, 365]
+""" MIS DE COTE :
+# lags = [1, 7, 30, 60, 90, 180, 365]
+lags = [1, 7]
 tmp_dataset = add_lag_features(tmp_dataset, lags)
 tmp_dataset = tmp_dataset.dropna()  # Supprimer les lignes avec des valeurs NaN introduites par les lags
-
+"""
 
 # Définir une date de coupure pour séparer les anciennes et récentes données :
 cutoff_date = '2020-01-01'
@@ -175,7 +179,11 @@ tmp_dataset = subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
 
 # Normalisation :
 tmp_dataset_copy = tmp_dataset.copy()
+""" MIS DE COTE :
 columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100', 'Historical_Volatility'] + [f'Lag_{lag}' for lag in lags]
+"""
+columns_to_normalize = ['Dernier']
+
 scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
 joblib.dump(scaler, 'scaler.save')
 model_dataset = tmp_dataset
@@ -216,7 +224,18 @@ model = Sequential()
 model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
-
+"""
+# Création du modèle amélioré
+model = Sequential()
+model.add(LSTM(20, input_shape=(None, 1), activation="tanh", return_sequences=True))
+model.add(Dropout(0.2))
+model.add(LSTM(20, activation="tanh"))
+model.add(Dropout(0.2))
+model.add(Dense(1))
+# Compilation du modèle
+optimizer = Adam(learning_rate=0.001)
+model.compile(loss="mean_squared_error", optimizer=optimizer)
+"""
 
 # Initialisation des tableaux pour stocker les métriques :
 metrics_history = {
