@@ -23,10 +23,18 @@ import joblib
 """ ****************************** Paramètres ****************************** """
 DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
-DATASET_FILE = parameters.DATASET_FILE
+TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 SAVE_MODEL_PATH = parameters.SAVE_MODEL_PATH
 MODEL_FOR_PREDICTIONS_PATH = parameters.MODEL_FOR_PREDICTIONS_PATH
+
+"""
+DATASET_PATH = parameters.DATASET_PATH
+PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
+TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
+DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
+
+"""
 
 
 
@@ -174,7 +182,7 @@ def create_data_matrix(model_dataset, time_step=15):
 """ **************************** Exécution du script principal **************************** """
 
 print(" ************ Etape 1 : Loading dataset ************ ")
-initial_dataset = pd.read_csv(DATASET_PATH+DATASET_FILE)
+initial_dataset = pd.read_csv(PATH_TRAINING_DATASET+TRAINING_DATASET_FILE)
 
 
 print(" ************ Etape 2 : Preparation of the Dataset ************ ")
