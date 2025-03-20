@@ -81,12 +81,13 @@ print(" ************ Étape 2 : Préparation of the Dataset ************ ")
 dataset = prepare_dataset.format_dataset(initial_dataset)
 
 
-# Suppression des colonnes
+# Suppression des colonnes :
 dataset = prepare_dataset.delete_columns(dataset)
 
 
 # dataset = dataset.apply(pd.to_numeric, errors='coerce')
 # dataset = dataset.fillna(dataset.mean())
+
 dataset = prepare_dataset.add_technicals_indicators(dataset)
 print(" forme dataset 0 : ", dataset.shape)
 
@@ -95,6 +96,8 @@ print(" forme dataset 0 : ", dataset.shape)
 print("forme du dataset 1 : ", dataset.shape)
 # scaler = prepare_dataset.get_fitted_scaler(dataset)
 scaler = joblib.load('scaler.save')
+print("Valeurs minimales (min_) :", scaler.min_)
+print("Échelle (scale_) :", scaler.scale_)
 print("forme du dataset 2 : ", dataset.shape)
 print("dataset 2 : ", dataset)
 
