@@ -13,8 +13,6 @@ import parameters
 from tensorflow.keras.callbacks import Callback
 import joblib
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.layers import Attention, Concatenate
-
 
 
 
@@ -207,45 +205,13 @@ print("x_test shape:", x_test.shape)
 print("y_test shape:", y_test.shape)
 
 
-
-# Définition d'une fonction pour ajouter un mécanisme d'attention
-def attention_layer(inputs):
-    """
-    Implémente un mécanisme d'attention simple.
-    - `query` et `value` sont définis comme étant la même entrée.
-    - L'attention apprend à pondérer les parties importantes de la séquence.
-    - La sortie de l'attention est concaténée avec l'entrée originale.
-    Arguments :
-    inputs -- La sortie de la couche précédente (ex: une couche LSTM).
-    Retourne :
-    - Une nouvelle représentation combinée avec l'attention appliquée.
-    """
-    query, value = inputs, inputs  # Définition des requêtes et valeurs pour l'attention
-    attention = Attention()([query, value])  # Application du mécanisme d'attention
-    return Concatenate()([inputs, attention])  # Concaténation de la sortie avec l'entrée d'origine
-
-
-
-# Création du modèle séquentiel
+# Création du modèle :
 model = Sequential()
-# Ajout d'une première couche LSTM
 model.add(LSTM(100, return_sequences=True, input_shape=(None, 1), activation="relu"))
-# `return_sequences=True` permet de conserver toute la séquence pour les couches suivantes.
-# Ajout du mécanisme d'attention après la première couche LSTM
-model.add(attention_layer)  # Erreur ici : attention_layer doit être appelé comme une fonction
-# AUTRE VERSION :
-# model.add(Lambda(lambda x: attention_layer(x)))
-# Deuxième couche LSTM, toujours avec return_sequences=True pour transmettre toute la séquence
 model.add(LSTM(50, return_sequences=True, activation="relu"))
-# Troisième couche LSTM, dernière couche donc return_sequences=False (elle ne retourne plus de séquence)
 model.add(LSTM(25, activation="relu"))
-# Couche Dense de sortie avec un seul neurone (prédiction d'une seule valeur)
 model.add(Dense(1))
-# Compilation du modèle avec la fonction de perte MSE et l'optimiseur Adam
 model.compile(loss="mean_squared_error", optimizer="adam")
-# # Affichage du résumé du modèle (optionnel)
-# model.summary()
-
 
 
 # Initialisation des tableaux pour stocker les métriques :

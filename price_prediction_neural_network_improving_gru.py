@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from keras.src.layers import GRU
 from keras.src.utils.audio_dataset_utils import prepare_dataset
-from tensorflow.python.keras.layers import GRU
 from tensorflow.python.keras.losses import Huber
 from tensorflow.python.keras.optimizer_v1 import Adam
 

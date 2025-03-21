@@ -2,9 +2,8 @@ import pandas as pd
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from keras.src.optimizers import Adam
 from keras.src.utils.audio_dataset_utils import prepare_dataset
-from tensorflow.python.keras.optimizer_v1 import Adam
-
 from BO.prepare_dataset import PrepareDataset
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
 from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance
@@ -215,7 +214,8 @@ model.add(LSTM(20, activation="relu"))
 model.add(Dropout(0.2))
 model.add(Dense(1))
 # Compilation du modèle
-optimizer = Adam(learning_rate=0.001)
+# optimizer = Adam(learning_rate=0.001)
+optimizer = Adam(learning_rate=0.0001)
 model.compile(loss="mean_squared_error", optimizer=optimizer)
 
 """
