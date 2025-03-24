@@ -7,6 +7,7 @@ from keras.src.utils.audio_dataset_utils import prepare_dataset
 from tensorflow.python.keras.losses import Huber
 from tensorflow.python.keras.optimizer_v1 import Adam
 
+from BO.display_results import DisplayResults
 from BO.prepare_dataset import PrepareDataset
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
 from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance
@@ -119,16 +120,6 @@ def create_dataset(dataset, time_step=1):
     return np.array(dataX), np.array(dataY)
 
 
-def create_data_matrix(train_data, test_data, create_dataset):
-    """ Création des matrices pour les datasets d'entrainement et test """
-    time_step = 15
-    x_train, y_train = create_dataset(train_data, time_step)
-    x_test, y_test = create_dataset(test_data, time_step)
-    x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
-    x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
-    return x_train, y_train, x_test, y_test
-
-
 def subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1):
     """ Sous-échantillonnage des anciennes données """
     old_data = tmp_dataset[tmp_dataset['Date'] < cutoff_date]
@@ -142,38 +133,40 @@ def subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1):
 
 
 
-""" ************************* Exécution du script principal ************************* """
+
+
+
+
+
+
+
+
+
+""" ************************* Préparation du dataset ************************* """
 
 prepare_dataset = PrepareDataset()
 
 
 print(" ************ Etape 1 : Loading dataset ************ ")
-# initial_dataset = pd.read_csv(DATASET_PATH + DATASET_FILE)
 initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
 
 
 print(" ************ Etape 2 : Preparation of the Dataset ************ ")
-tmp_dataset = format_dataset(initial_dataset)
-tmp_dataset = delete_columns(tmp_dataset)
-""" MIS DE COTE :
-tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
-"""
+tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
+tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
+
 
 # Définir une date de coupure pour séparer les anciennes et récentes données :
 cutoff_date = '2020-01-01'
 
 
 # Appliquer le sous-échantillonnage :
-tmp_dataset = subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
+tmp_dataset = prepare_dataset.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
 
 
 # Normalisation :
 tmp_dataset_copy = tmp_dataset.copy()
-""" MIS DE COTE :
-columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100']
-"""
 columns_to_normalize = ['Dernier']
-
 scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
 joblib.dump(scaler, 'scaler.save')
 model_dataset = tmp_dataset
@@ -193,14 +186,14 @@ del model_dataset['Date']
 
 
 # Création des datasets d'entrainement et test :
-train_data, test_data = create_train_and_test_dataset(model_dataset)
+train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
 print("train_data type  : ", type(train_data))
 print("test_data type  : ", type(test_data))
 print("COLONNES DE train_data:", train_data.columns.tolist())
 print("COLONNES DE test_data:", test_data.columns.tolist())
 time_step = 15
-x_train, y_train = create_dataset(train_data, time_step)
-x_test, y_test = create_dataset(test_data, time_step)
+x_train, y_train = prepare_dataset.create_dataset(train_data, time_step)
+x_test, y_test = prepare_dataset.create_dataset(test_data, time_step)
 x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
 x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
 print("x_train shape:", x_train.shape)
@@ -209,9 +202,23 @@ print("x_test shape:", x_test.shape)
 print("y_test shape:", y_test.shape)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Définition du modèle ************************* """
+
 # Création du modèle :
 model = Sequential()
-model.add(GRU(50, activation="relu"))
+model.add(GRU(10, activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
 
@@ -290,6 +297,21 @@ class MetricsCallback(Callback):
                 metrics_history["test_mpd"].append(np.nan)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Entrainement du modèle ************************* """
+
 #early_stopping = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True)
 
 
@@ -308,45 +330,41 @@ history = model.fit(
 model.save_weights(parameters.SAVE_MODEL_PATH + f'model.weights.h5')
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Affichage des résultats ************************* """
+
 # Affichage des métriques stockées :
 print("Metrics History:")
 for metric, values in metrics_history.items():
     print(f"{metric}: {values}")
 
 
-# Évaluation du sur-apprentissage :
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-epochs = range(len(loss))
-plt.plot(epochs, loss, 'r', label='Training loss')
-plt.plot(epochs, val_loss, 'b', label='Validation loss')
-plt.title('Training and validation loss')
-plt.legend(loc=0)
-plt.figure()
-plt.show()
+display_results = DisplayResults()
 
 
-# Évaluation du sur-apprentissage avec agrandissement des zones ou se trouvent les courbes :
-def plot_loss(history):
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-    loss_array = np.array(loss)
-    val_loss_array = np.array(val_loss)
-    plt.figure(figsize=(12, 6))
-    plt.plot(loss_array, label='Training Loss', color='red')
-    plt.plot(val_loss_array, label='Validation Loss', color='blue')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.title('Training and Validation Loss (Zoomed)')
-    plt.legend()
-    plt.ylim(0, 0.003)  # Zoom sur la zone des pertes basses
-    plt.grid(True)
-    plt.show()
-plot_loss(history)
+# Affichage des courbes de pertes :
+display_results.plot_loss(history)
+
+
+# Affichage des courbes de pertes zoomées :
+display_results.zoom_plot_loss(history)
 
 
 # Affichage des sur et sous apprentissage :
-# Conversion en tableaux NumPy :
+loss = history.history['loss']
+val_loss = history.history['val_loss']
 loss_array = np.array(loss)
 val_loss_array = np.array(val_loss)
 # Affichage des tableaux :
@@ -358,25 +376,17 @@ print("Validation Loss Array:", val_loss_array)
 
 
 
+
+
+
+
+
+
+
+
 """ ************************* Controle du surapprentissage ************************* """
 
-
-""" Affichage des résidus """
-# Visualiser les résidus de tests et d'entrainements (différence valeur prédite et réelle) :
-def plot_residuals(y_true, y_pred, title):
-    # Trace les résidus
-    residuals = y_true - y_pred
-    plt.figure(figsize=(10, 6))
-    plt.plot(residuals, label='Residuals')
-    plt.axhline(y=0, color='r', linestyle='--')
-    plt.title(title)
-    plt.xlabel('Observations')
-    plt.ylabel('Residuals')
-    plt.legend()
-    plt.show()
-
-
-# Tracer les résidus
+# Calcul des prédictions :
 train_predict = model.predict(x_train)
 test_predict = model.predict(x_test)
 
@@ -390,13 +400,37 @@ test_predict = scaler.inverse_transform(test_predict)
 original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
 original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
 
-plot_residuals(original_ytrain, train_predict, 'Training Residuals')
-plot_residuals(original_ytest, test_predict, 'Test Residuals')
+# Affichage des résidus :
+display_results.plot_residuals(original_ytrain, train_predict, 'Training Residuals')
+display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ******************************** Autres ******************************** """
 
 """ Faire des prédictions sur un dataset indépendant """
 

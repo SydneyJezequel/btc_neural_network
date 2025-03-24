@@ -10,6 +10,17 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_v
 from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance
 from sklearn.model_selection import GridSearchCV
 
+
+
+
+
+
+
+
+
+
+
+
 """ ****************************** Paramètres ****************************** """
 DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
@@ -18,10 +29,20 @@ TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 SAVE_MODEL_PATH = parameters.SAVE_MODEL_PATH
 
+
+
+
+
+
+
+
+
 """ ************************* Méthodes ************************* """
+
 def ma(df, n):
     """ Calcul des moyennes mobiles """
     return pd.Series(df['Dernier'].rolling(n, min_periods=n).mean(), name='MA_' + str(n))
+
 
 def rsi(df, period):
     """ Calcul du RSI """
@@ -37,6 +58,7 @@ def rsi(df, period):
     rs = u.ewm(com=period-1, adjust=False).mean() / d.ewm(com=period-1, adjust=False).mean()
     return 100 - 100 / (1 + rs)
 
+
 def calculate_signal(dataset, taille_sma1, taille_sma2):
     """ Calcul des signaux de croisement des moyennes mobiles """
     sma1_col = 'MA_' + str(taille_sma1)
@@ -46,6 +68,7 @@ def calculate_signal(dataset, taille_sma1, taille_sma2):
     dataset[sma2_col] = ma(dataset, taille_sma2)
     dataset[signal_col] = np.where(dataset[sma1_col] > dataset[sma2_col], 1.0, 0.0)
     return dataset
+
 
 def format_dataset(initial_dataset):
     """ Préparation des données """
@@ -59,10 +82,12 @@ def format_dataset(initial_dataset):
         tmp_dataset[col] = pd.to_numeric(tmp_dataset[col], errors='coerce')
     return tmp_dataset
 
+
 def delete_columns(tmp_dataset):
     """ Suppression des colonnes du dataset d'origine """
     tmp_dataset = tmp_dataset.drop(columns=['Vol.', 'Variation %', 'Ouv.', ' Plus Haut', 'Plus Bas'])
     return tmp_dataset
+
 
 def add_technicals_indicators(tmp_dataset):
     """ Ajout des indicateurs techniques dans le dataset """
@@ -81,11 +106,13 @@ def add_technicals_indicators(tmp_dataset):
     tmp_dataset['Date'] = date_column
     return tmp_dataset
 
+
 def add_lag_features(dataset, lags):
     """ Ajout des caractéristiques de lag """
     for lag in lags:
         dataset[f'Lag_{lag}'] = dataset['Dernier'].shift(lag)
     return dataset
+
 
 def create_train_and_test_dataset(model_dataset):
     """ Création des datasets d'entrainement et tests """
@@ -93,28 +120,45 @@ def create_train_and_test_dataset(model_dataset):
     train_data, test_data = model_dataset.iloc[0:training_size, :], model_dataset.iloc[training_size:len(model_dataset), :]
     return train_data, test_data
 
-""" **************************** Exécution du script principal **************************** """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Préparation du dataset ************************* """
+
 prepare_dataset = PrepareDataset()
 
-print(" ************ Etape 1 : Loading dataset ************ ")
-# initial_dataset = pd.read_csv(DATASET_PATH + DATASET_FILE)
+
 initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
 
 
-print(" ************ Etape 2 : Preparation of the Dataset ************ ")
 # Formatage du dataset :
-tmp_dataset = format_dataset(initial_dataset)
+tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
+
 
 # Suppression des colonnes du dataset initial :
-tmp_dataset = delete_columns(tmp_dataset)
+tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
+
 
 # Ajout des indicateurs techniques et signaux :
 tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
 
+
 # Ajout des caractéristiques de lag :
 lags = [1, 7, 30]  # Lag pour 1 jour, 1 semaine, 1 mois
-tmp_dataset = add_lag_features(tmp_dataset, lags)
+tmp_dataset = prepare_dataset.add_lag_features(tmp_dataset, lags)
 tmp_dataset = tmp_dataset.dropna()  # Supprimer les lignes avec des valeurs NaN introduites par les caractéristiques de lag
+
 
 # Normalisation du dataset :
 tmp_dataset_copy = tmp_dataset.copy()
@@ -128,12 +172,13 @@ model_dataset[columns_to_normalize] = normalized_datas
 print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
 
+
 # Contrôle : Sauvegarde du dataset :
 model_dataset.to_csv(PATH_TRAINING_DATASET + 'dataset_modified_with_date.csv', index=False)
 
 
 # Création des datasets d'entrainement et de test pour le modèle :
-train_data, test_data = create_train_and_test_dataset(model_dataset)
+train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
 print("train_data type  : ", type(train_data))
 print("test_data type  : ", type(test_data))
 print("COLONNES DE train_data:", train_data.columns.tolist())
@@ -142,6 +187,21 @@ X_train = train_data.drop(columns=['Date']).values
 y_train = train_data['Dernier'].values
 X_test = test_data.drop(columns=['Date']).values
 y_test = test_data['Dernier'].values
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Définition du modèle ************************* """
 
 # Définir les paramètres pour la recherche de grille
 param_grid = {
@@ -152,6 +212,7 @@ param_grid = {
     'min_samples_split': [2, 5, 10]
 }
 
+
 # Utiliser GridSearchCV pour trouver les meilleurs hyperparamètres
 grid_search = GridSearchCV(estimator=GradientBoostingRegressor(random_state=42),
                           param_grid=param_grid,
@@ -160,18 +221,59 @@ grid_search = GridSearchCV(estimator=GradientBoostingRegressor(random_state=42),
                           verbose=1,
                           n_jobs=-1)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Entrainement du modèle ************************* """
+
 grid_search.fit(X_train, y_train)
 
-# Meilleurs paramètres trouvés
+
+# Meilleurs paramètres trouvés :
 best_params = grid_search.best_params_
 print("Meilleurs paramètres trouvés :", best_params)
 
-# Entraîner le modèle avec les meilleurs paramètres
+
+# Entraîner le modèle avec les meilleurs paramètres :
 model = grid_search.best_estimator_
+
+
+# Sauvegarde du modèle
+joblib.dump(model, SAVE_MODEL_PATH+'gradient_boosting_model.pkl')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Affichage des résultats ************************* """
 
 # Génération des prédictions  :
 train_predict = model.predict(X_train)
 test_predict = model.predict(X_test)
+
 
 # Mise en forme des prédictions :
 train_predict = train_predict.reshape(-1, 1)
@@ -181,6 +283,7 @@ train_predict = scaler.inverse_transform(train_predict)
 test_predict = scaler.inverse_transform(test_predict)
 original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
 original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
+
 
 # Calcul des métriques :
 train_rmse = np.sqrt(mean_squared_error(original_ytrain, train_predict))
@@ -198,6 +301,7 @@ test_mgd = mean_gamma_deviance(original_ytest, test_predict)
 train_mpd = mean_poisson_deviance(original_ytrain, train_predict)
 test_mpd = mean_poisson_deviance(original_ytest, test_predict)
 
+
 # Affichage des métriques :
 print("train_rmse : ", train_rmse)
 print("test_rmse : ", test_rmse)
@@ -214,8 +318,6 @@ print("test_mgd : ", test_mgd)
 print("train_mpd : ", train_mpd)
 print("test_mpd : ", test_mpd)
 
-# Sauvegarde du modèle
-joblib.dump(model, SAVE_MODEL_PATH+'gradient_boosting_model.pkl')
 
 # Visualisation des résultats
 plt.figure(figsize=(14, 7))

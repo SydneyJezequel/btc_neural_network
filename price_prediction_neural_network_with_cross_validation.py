@@ -75,18 +75,11 @@ def calculate_signal(dataset, taille_sma1, taille_sma2):
 def format_dataset(initial_dataset):
     """ Préparation des données """
     tmp_dataset = initial_dataset.copy()
-    # Convertir la colonne "Date" au format datetime :
     tmp_dataset['Date'] = pd.to_datetime(initial_dataset['Date'], format='%d/%m/%Y', errors='coerce')
-    # Trier le dataset par date en ordre chronologique :
     tmp_dataset = tmp_dataset.sort_values(by='Date')
-    print("tmp_dataset trié : ", tmp_dataset)
-    # errors='coerce' --> Les valeurs non converties sont remplacées par NaN.
-    # Remplacer les points par un espace, puis suppression de l'espace, enfin remplacement de la virgule par un point :
     numeric_columns = ["Dernier", "Ouv.", " Plus Haut", "Plus Bas", "Variation %"]
     for col in numeric_columns:
         tmp_dataset.loc[:, col] = tmp_dataset[col].str.replace('.', ' ').str.replace(' ', '').str.replace(',', '.')
-        # .loc[:, col] est utilisé pour sélectionner toutes les lignes (:) de la colonne spécifiée par col.
-    # Conversion des colonnes numériques en float :
     for col in numeric_columns:
         tmp_dataset[col] = pd.to_numeric(tmp_dataset[col], errors='coerce')
     return tmp_dataset
@@ -179,14 +172,23 @@ def create_data_matrix(model_dataset, time_step=15):
 
 
 
-""" **************************** Exécution du script principal **************************** """
+
+
+
+
+
+
+
+
+
+
+""" ************************* Préparation du dataset ************************* """
 
 print(" ************ Etape 1 : Loading dataset ************ ")
 initial_dataset = pd.read_csv(PATH_TRAINING_DATASET+TRAINING_DATASET_FILE)
 
 
 print(" ************ Etape 2 : Preparation of the Dataset ************ ")
-
 # Formatage des colonnes :
 tmp_dataset = format_dataset(initial_dataset)
 
@@ -275,6 +277,20 @@ validation_loss_results = []
 # Initialisation du compteur :
 cpt = 1
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Définition du modèle ************************* """
 
 for train_index, val_index in tscv.split(x_train):
 
@@ -368,6 +384,23 @@ for train_index, val_index in tscv.split(x_train):
     cpt += 1
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Affichage des résultats ************************* """
+
 # Conversion des listes en arrays numpy
 rmse_results = np.array(rmse_results)
 mse_results = np.array(mse_results)
@@ -392,37 +425,6 @@ print("Validation Loss for each fold: ", validation_loss_results)
 print("Mean Validation Loss: ", np.mean(validation_loss_results))
 print("Training Loss for each fold: ", training_loss_results)
 print("Mean Training Loss: ", np.mean(training_loss_results))
-
-
-
-
-" ******************** Evaluation de la fonction de perte / du sur-entrainement ******************** "
-print(" ************** Etape 5 : Evaluation de la fonction de perte / du sur-entrainement ************* ")
-"""
-print("Training loss 1 : ")
-# Exemple de pertes d'entraînement (à remplir avec vos valeurs réelles)
-training_loss = [0.001, 0.0005, 0.0003, 0.0002, 0.0001]
-
-# Pertes de validation
-validation_loss = [0.0020137971732765436, 0.0030710133723914623, 0.0003042859607376158, 0.0002075933152809739, 0.00011482657282613218]
-
-# Tracer les pertes
-plt.plot(training_loss_results, label='Training Loss')
-plt.plot(validation_loss_results, label='Validation Loss')
-plt.xlabel('Fold')
-plt.ylabel('Loss')
-plt.title('Training and Validation Loss Comparison')
-plt.legend()
-plt.show()
-"""
-
-
-
-
-
-" ******************** Evaluation Globale du modèle / Métriques ******************** "
-
-print(" ******************** Evaluation Globale du modèle / Métriques ******************** ")
 
 
 # Vérification de l'existence du fichier :
@@ -464,12 +466,14 @@ mae_test = mean_absolute_error(original_ytest, test_predict_inversed)
 evs_test = explained_variance_score(original_ytest, test_predict_inversed)
 r2_test = r2_score(original_ytest, test_predict_inversed)
 
+
 # Vérifier si les valeurs sont strictement positives avant de calculer la déviance gamma et la déviance de Poisson
 if np.all(original_ytest > 0) and np.all(test_predict_inversed > 0):
     mgd_test = mean_gamma_deviance(original_ytest, test_predict_inversed)
     mpd_test = mean_poisson_deviance(original_ytest, test_predict_inversed)
 else:
     mgd_test, mpd_test = np.nan, np.nan
+
 
 # Affichage des résultats
 print("Test RMSE: ", rmse_test)
@@ -479,4 +483,85 @@ print("Test Explained Variance Score: ", evs_test)
 print("Test R2 Score: ", r2_test)
 print("Test MGD: ", mgd_test)
 print("Test MPD: ", mpd_test)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+" ******************** Evaluation de la fonction de perte / du sur-entrainement ******************** "
+print(" ************** Etape 5 : Evaluation de la fonction de perte / du sur-entrainement ************* ")
+"""
+print("Training loss 1 : ")
+# Exemple de pertes d'entraînement (à remplir avec vos valeurs réelles)
+training_loss = [0.001, 0.0005, 0.0003, 0.0002, 0.0001]
+
+# Pertes de validation
+validation_loss = [0.0020137971732765436, 0.0030710133723914623, 0.0003042859607376158, 0.0002075933152809739, 0.00011482657282613218]
+
+# Tracer les pertes
+plt.plot(training_loss_results, label='Training Loss')
+plt.plot(validation_loss_results, label='Validation Loss')
+plt.xlabel('Fold')
+plt.ylabel('Loss')
+plt.title('Training and Validation Loss Comparison')
+plt.legend()
+plt.show()
+"""
+
+
+
+
+
+" ******************** Evaluation Globale du modèle / Métriques ******************** "
+
+print(" ******************** Evaluation Globale du modèle / Métriques ******************** ")
+
+
+
+
+
 
