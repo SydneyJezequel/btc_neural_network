@@ -3,18 +3,23 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.impute import SimpleImputer
-# For model building :
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.regularizers import l2
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score, mean_gamma_deviance, mean_poisson_deviance
-# For Plotting :
 import plotly.express as px
 import parameters
 from sklearn.model_selection import TimeSeriesSplit
-from BO.prepare_dataset import PrepareDataset
+from service.prepare_dataset_service import PrepareDataset
 import joblib
+
+
+
+
+
+
+
 
 
 
@@ -28,13 +33,13 @@ DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 SAVE_MODEL_PATH = parameters.SAVE_MODEL_PATH
 MODEL_FOR_PREDICTIONS_PATH = parameters.MODEL_FOR_PREDICTIONS_PATH
 
-"""
-DATASET_PATH = parameters.DATASET_PATH
-PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
-TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
-DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 
-"""
+
+
+
+
+
+
 
 
 
@@ -89,7 +94,6 @@ def delete_columns(tmp_dataset):
     """ Suppression des colones du dataset d'origine """
     # Suppression des colonnes de départ :
     tmp_dataset = tmp_dataset.drop(columns=['Vol.', 'Variation %', 'Ouv.', ' Plus Haut', 'Plus Bas'])
-    print('Dataset transformé :', tmp_dataset)
     return tmp_dataset
 
 
@@ -135,8 +139,6 @@ def create_train_and_test_dataset(model_dataset):
     training_size = int(len(model_dataset) * 0.60)
     test_size = len(model_dataset) - training_size
     train_data, test_data = model_dataset[0:training_size, :], model_dataset[training_size:len(model_dataset), :1]
-    print("dataset d'entrainement :", train_data.shape)
-    print("dataset de test :", test_data.shape)
     return train_data, test_data
 
 
@@ -163,9 +165,6 @@ def create_data_matrix(model_dataset, time_step=15):
     # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
     x = x.reshape(x.shape[0], x.shape[1], 1)
     # Affichage des dimensions des ensembles de données après remodelage :
-    print("dataset x: ", x.shape)
-    # On ne modifie pas la forme du dataset y car elle sert de valeur cible à comparer avec le dataset x :
-    print("dataset y: ", y.shape)
     return x, y
 
 
@@ -184,17 +183,19 @@ def create_data_matrix(model_dataset, time_step=15):
 
 """ ************************* Préparation du dataset ************************* """
 
-print(" ************ Etape 1 : Loading dataset ************ ")
+prepare_dataset = PrepareDataset()
+
+
+# Loading dataset :
 initial_dataset = pd.read_csv(PATH_TRAINING_DATASET+TRAINING_DATASET_FILE)
 
 
-print(" ************ Etape 2 : Preparation of the Dataset ************ ")
 # Formatage des colonnes :
-tmp_dataset = format_dataset(initial_dataset)
+tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
 
 
 # Suppression des colonnes :
-tmp_dataset = delete_columns(tmp_dataset)
+tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
 
 
 # Affichage des données :
@@ -213,7 +214,6 @@ print("dataset d'entrainement modifié (dernières lignes) pour vérifier si mes
 
 
 # Ajout des indicateurs techniques :
-prepare_dataset = PrepareDataset()
 tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
 print(" forme tmp_dataset shape : ", tmp_dataset.shape)
 print(" forme tmp_dataset : ", tmp_dataset)
@@ -226,11 +226,9 @@ tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
 # Normalisation des colonnes :
 tmp_dataset_copy = tmp_dataset.copy()
 columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100']
-prepare_dataset = PrepareDataset()
 scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
 joblib.dump(scaler, 'scaler.save')
 model_dataset = tmp_dataset
-print("dataset")
 normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
 model_dataset[columns_to_normalize] = normalized_datas
 print("dataset d'entrainement normalisé :", model_dataset)
@@ -239,29 +237,41 @@ print("model_dataset shape : ", model_dataset.shape)
 
 # Contrôle : Sauvegarde du dataset retraité pour traitement par le modèle :
 model_dataset.to_csv(PATH_TRAINING_DATASET+'dataset_modified_with_date.csv', index=False)
-print("MODEL DATASET  : ", type(model_dataset))
-print("COLONNES DE MODEL DATASET :", tmp_dataset.columns.tolist())
 
 
 # Suppression de la colonne 'Date' du dataset :
 date_column = model_dataset['Date']
 del tmp_dataset['Date']
 model_dataset.to_csv(PATH_TRAINING_DATASET+'dataset_modified_for_model.csv', index=False)
-print("model_dataset shape juste avant traitement : ", model_dataset.shape)
-print("COLONNES DE MODEL DATASET :", tmp_dataset.columns.tolist())
 
 
 # Création des matrices de données pour l'entraînement et le test :
-x_train, y_train = create_data_matrix(model_dataset)
-x_test, y_test = create_data_matrix(model_dataset)
+x_train, y_train = prepare_dataset.create_data_matrix(model_dataset)
+x_test, y_test = prepare_dataset.create_data_matrix(model_dataset)
 
 
-print(" ************ Etape 3 : Create and train model ************ ")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Définition et entrainement du modèle ************************* """
+
 # Initialisation du TimeSeriesSplit avec le nombre de splits souhaité :
 tscv = TimeSeriesSplit(n_splits=5)
 
 
-# Initialiser des listes pour stocker les résultats et les métriques
+# Initialiser des listes pour stocker les résultats et les métriques :
 results = []
 rmse_results = []
 mse_results = []
@@ -278,20 +288,6 @@ validation_loss_results = []
 cpt = 1
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-""" ************************* Définition du modèle ************************* """
-
 for train_index, val_index in tscv.split(x_train):
 
     """ Entrainement du modèle """
@@ -299,12 +295,6 @@ for train_index, val_index in tscv.split(x_train):
 
     x_train_fold, x_val_fold = x_train[train_index], x_train[val_index]
     y_train_fold, y_val_fold = y_train[train_index], y_train[val_index]
-
-    print("shape of datasets : ")
-    print("x_train_fold : ", x_train_fold.shape)
-    print("y_train_fold : ", y_train_fold.shape)
-    print("x_val_fold : ", x_val_fold.shape)
-    print("y_val_fold : ", y_val_fold.shape)
 
     model = Sequential()
     model.add(LSTM(50, input_shape=(x_train_fold.shape[1], 1), activation="relu"))
@@ -325,7 +315,6 @@ for train_index, val_index in tscv.split(x_train):
 
 
     # Enregistrement des poids du modèle :
-    print("Enregistrement du modèle.")
     model.save_weights(SAVE_MODEL_PATH+f'best_model_weights{cpt}.weights.h5')
 
 
@@ -340,9 +329,7 @@ for train_index, val_index in tscv.split(x_train):
 
     # Redimensionner les données pour qu'elles aient deux dimensions :
     y_val_fold_reshaped = y_val_fold.reshape(-1, 1)
-    print("y_val_fold_reshaped : ", y_val_fold_reshaped.shape)
     val_predict_reshaped = val_predict.reshape(-1, 1)
-    print("val_predict_reshaped : ", val_predict_reshaped.shape)
 
 
     # Ajustement du scaler sur les données redimensionnées :
@@ -401,7 +388,7 @@ for train_index, val_index in tscv.split(x_train):
 
 """ ************************* Affichage des résultats ************************* """
 
-# Conversion des listes en arrays numpy
+# Conversion des listes en arrays numpy :
 rmse_results = np.array(rmse_results)
 mse_results = np.array(mse_results)
 mae_results = np.array(mae_results)
@@ -437,11 +424,11 @@ if not os.path.exists(weights_path):
 model.load_weights(weights_path)
 
 
-# Évaluer le modèle sur l'ensemble de test
+# Évaluer le modèle sur l'ensemble de test :
 test_loss = model.evaluate(x_test, y_test, verbose=0)
 
 
-# Prédire et évaluer les métriques de performance sur l'ensemble de test
+# Prédire et évaluer les métriques de performance sur l'ensemble de test :
 test_predict = model.predict(x_test)
 
 
@@ -467,7 +454,7 @@ evs_test = explained_variance_score(original_ytest, test_predict_inversed)
 r2_test = r2_score(original_ytest, test_predict_inversed)
 
 
-# Vérifier si les valeurs sont strictement positives avant de calculer la déviance gamma et la déviance de Poisson
+# Vérifier si les valeurs sont strictement positives avant de calculer la déviance gamma et la déviance de Poisson :
 if np.all(original_ytest > 0) and np.all(test_predict_inversed > 0):
     mgd_test = mean_gamma_deviance(original_ytest, test_predict_inversed)
     mpd_test = mean_poisson_deviance(original_ytest, test_predict_inversed)
@@ -475,7 +462,7 @@ else:
     mgd_test, mpd_test = np.nan, np.nan
 
 
-# Affichage des résultats
+# Affichage des résultats :
 print("Test RMSE: ", rmse_test)
 print("Test MSE: ", mse_test)
 print("Test MAE: ", mae_test)
@@ -533,7 +520,7 @@ print("Test MPD: ", mpd_test)
 
 
 " ******************** Evaluation de la fonction de perte / du sur-entrainement ******************** "
-print(" ************** Etape 5 : Evaluation de la fonction de perte / du sur-entrainement ************* ")
+
 """
 print("Training loss 1 : ")
 # Exemple de pertes d'entraînement (à remplir avec vos valeurs réelles)
@@ -551,17 +538,4 @@ plt.title('Training and Validation Loss Comparison')
 plt.legend()
 plt.show()
 """
-
-
-
-
-
-" ******************** Evaluation Globale du modèle / Métriques ******************** "
-
-print(" ******************** Evaluation Globale du modèle / Métriques ******************** ")
-
-
-
-
-
 

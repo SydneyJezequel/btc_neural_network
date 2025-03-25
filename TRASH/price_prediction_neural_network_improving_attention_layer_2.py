@@ -9,7 +9,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_v
 import math
 import pandas as pd
 from sklearn.impute import SimpleImputer
-from BO.prepare_dataset import PrepareDataset
+from service.prepare_dataset_service import PrepareDataset
 import joblib
 
 

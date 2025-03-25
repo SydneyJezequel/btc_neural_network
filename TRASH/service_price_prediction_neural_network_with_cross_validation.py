@@ -27,9 +27,9 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import parameters
 from sklearn.model_selection import TimeSeriesSplit
-from BO.technical_indicators import technical_indicators
-from BO.prepare_dataset import PrepareDataset
-from BO.neural_network import NeuralNetwork
+from service.technical_indicators import technical_indicators
+from service.prepare_dataset_service import PrepareDataset
+from service.neural_network import NeuralNetwork
 
 
 

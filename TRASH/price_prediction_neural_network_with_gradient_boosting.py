@@ -5,7 +5,7 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.impute import SimpleImputer
 import joblib
 import parameters
-from BO.prepare_dataset import PrepareDataset
+from service.prepare_dataset_service import PrepareDataset
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
 from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance
 

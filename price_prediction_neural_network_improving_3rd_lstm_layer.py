@@ -1,20 +1,18 @@
 import pandas as pd
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 from keras.src.utils.audio_dataset_utils import prepare_dataset
-
-from BO.display_results import DisplayResults
-from BO.prepare_dataset import PrepareDataset
+from service.display_results_service import DisplayResults
+from service.prepare_dataset_service import PrepareDataset
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
 from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance
-from sklearn.impute import SimpleImputer
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
 import parameters
 from tensorflow.keras.callbacks import Callback
 import joblib
-from tensorflow.keras.callbacks import EarlyStopping
+
+
 
 
 
@@ -26,108 +24,6 @@ DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
-
-
-
-
-""" ************************* Méthodes ************************* """
-
-def ma(df, n):
-    """ Calcul des moyennes mobiles """
-    return pd.Series(df['Dernier'].rolling(n, min_periods=n).mean(), name='MA_' + str(n))
-
-
-def rsi(df, period):
-    """ Calcul du RSI """
-    delta = df['Dernier'].diff().dropna()
-    u = delta * 0
-    d = u.copy()
-    u[delta > 0] = delta[delta > 0]
-    d[delta < 0] = -delta[delta < 0]
-    u[u.index[period-1]] = np.mean(u[:period])
-    u = u.drop(u.index[:(period-1)])
-    d[d.index[period-1]] = np.mean(d[:period])
-    d = d.drop(d.index[:(period-1)])
-    rs = u.ewm(com=period-1, adjust=False).mean() / d.ewm(com=period-1, adjust=False).mean()
-    return 100 - 100 / (1 + rs)
-
-
-def calculate_signal(dataset, taille_sma1, taille_sma2):
-    """ Calcul des signaux de croisement des moyennes mobiles """
-    sma1_col = 'MA_' + str(taille_sma1)
-    sma2_col = 'MA_' + str(taille_sma2)
-    signal_col = sma1_col + '_supérieure_' + sma2_col
-    dataset[sma1_col] = ma(dataset, taille_sma1)
-    dataset[sma2_col] = ma(dataset, taille_sma2)
-    dataset[signal_col] = np.where(dataset[sma1_col] > dataset[sma2_col], 1.0, 0.0)
-    return dataset
-
-
-def format_dataset(initial_dataset):
-    """ Préparation des données """
-    tmp_dataset = initial_dataset.copy()
-    tmp_dataset['Date'] = pd.to_datetime(initial_dataset['Date'], format='%d/%m/%Y', errors='coerce')
-    tmp_dataset = tmp_dataset.sort_values(by='Date')
-    numeric_columns = ["Dernier", "Ouv.", " Plus Haut", "Plus Bas", "Variation %"]
-    for col in numeric_columns:
-        tmp_dataset.loc[:, col] = tmp_dataset[col].str.replace('.', ' ').str.replace(' ', '').str.replace(',', '.')
-    for col in numeric_columns:
-        tmp_dataset[col] = pd.to_numeric(tmp_dataset[col], errors='coerce')
-    return tmp_dataset
-
-
-def delete_columns(tmp_dataset):
-    """ Suppression des colones du dataset d'origine """
-    tmp_dataset = tmp_dataset.drop(columns=['Vol.', 'Variation %', 'Ouv.', ' Plus Haut', 'Plus Bas'])
-    return tmp_dataset
-
-
-def add_technicals_indicators(tmp_dataset):
-    """ Ajout des indicateurs techniques dans le dataset """
-    tmp_dataset['MA_150'] = ma(tmp_dataset, 150)
-    tmp_dataset['MA_100'] = ma(tmp_dataset, 100)
-    tmp_dataset['MA_50'] = ma(tmp_dataset, 50)
-    tmp_dataset['RSI'] = rsi(tmp_dataset, 14)
-    calculate_signal(tmp_dataset, 50, 150)
-    calculate_signal(tmp_dataset, 100, 150)
-    calculate_signal(tmp_dataset, 50, 100)
-    date_column = tmp_dataset['Date']
-    tmp_dataset = tmp_dataset.drop(columns=['Date'])
-    imputer = SimpleImputer(strategy='mean')
-    tmp_dataset_imputed = imputer.fit_transform(tmp_dataset)
-    tmp_dataset = pd.DataFrame(tmp_dataset_imputed, columns=tmp_dataset.columns)
-    tmp_dataset['Date'] = date_column
-    return tmp_dataset
-
-
-def create_train_and_test_dataset(model_dataset):
-    """ Création des datasets d'entrainement et tests """
-    training_size = int(len(model_dataset) * 0.60)
-    train_data, test_data = model_dataset.iloc[0:training_size, :], model_dataset.iloc[training_size:len(model_dataset), :]
-    return train_data, test_data
-
-
-def create_dataset(dataset, time_step=1):
-    """ Méthode qui génère les datasets d'entrainement et de test """
-    dataX, dataY = [], []
-    for i in range(len(dataset) - time_step - 1):
-        a = dataset.iloc[i:(i + time_step), 0]
-        dataX.append(a)
-        dataY.append(dataset.iloc[i + time_step, 0])
-    return np.array(dataX), np.array(dataY)
-
-
-def subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1):
-    """ Sous-échantillonnage des anciennes données """
-    old_data = tmp_dataset[tmp_dataset['Date'] < cutoff_date]
-    recent_data = tmp_dataset[tmp_dataset['Date'] >= cutoff_date]
-    old_data_sampled = old_data.sample(frac=fraction, random_state=42)
-    combined_data = pd.concat([old_data_sampled, recent_data])
-    combined_data = combined_data.sort_values(by='Date').reset_index(drop=True)
-    return combined_data
-
-
-
 
 
 
@@ -144,12 +40,11 @@ def subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1):
 prepare_dataset = PrepareDataset()
 
 
-print(" ************ Etape 1 : Loading dataset ************ ")
-# initial_dataset = pd.read_csv(DATASET_PATH + DATASET_FILE)
+# Loading dataset :
 initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
 
 
-print(" ************ Etape 2 : Preparation of the Dataset ************ ")
+# Preparation of the Dataset :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
 tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
 
@@ -168,7 +63,6 @@ columns_to_normalize = ['Dernier']
 scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
 joblib.dump(scaler, 'scaler.save')
 model_dataset = tmp_dataset
-print("dataset")
 normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
 model_dataset[columns_to_normalize] = normalized_datas
 print("dataset d'entrainement normalisé :", model_dataset)
@@ -185,10 +79,6 @@ del model_dataset['Date']
 
 # Création des datasets d'entrainement et test :
 train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
-print("train_data type  : ", type(train_data))
-print("test_data type  : ", type(test_data))
-print("COLONNES DE train_data:", train_data.columns.tolist())
-print("COLONNES DE test_data:", test_data.columns.tolist())
 time_step = 15
 x_train, y_train = prepare_dataset.create_dataset(train_data, time_step)
 x_test, y_test = prepare_dataset.create_dataset(test_data, time_step)

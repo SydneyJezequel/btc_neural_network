@@ -1,34 +1,17 @@
-""" First we will import the necessary Library """
-import os
 import pandas as pd
 import numpy as np
 import math
-import datetime as dt
-import matplotlib.pyplot as plt
-from keras.src.utils.audio_dataset_utils import prepare_dataset
-
-from BO.prepare_dataset import PrepareDataset
-
-""" Evalution library """
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
-from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance, accuracy_score
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance
 from sklearn.impute import SimpleImputer
-""" For model building we will use these library """
-import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.layers import LSTM
-""" For Plotting we will use these library """
-import matplotlib.pyplot as plt
-from itertools import cycle
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
 import parameters
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.regularizers import l2
-from BO.prepare_dataset import PrepareDataset
+from service.display_results_service import DisplayResults
+from service.prepare_dataset_service import PrepareDataset
+
+
 
 
 
@@ -38,10 +21,12 @@ from BO.prepare_dataset import PrepareDataset
 
 
 """ ****************************** Paramètres ****************************** """
+
 DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
-DATASET_FILE = parameters.DATASET_FILE
+TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
+
 
 
 
@@ -141,24 +126,13 @@ def add_technicals_indicators(tmp_dataset):
     tmp_dataset = pd.DataFrame(tmp_dataset_imputed, columns=tmp_dataset.columns)
     # Réintégration de la colonne 'Date' :
     tmp_dataset['Date'] = date_column
+    # Convertir les colonnes DateTime64 en timestamp
+    tmp_dataset['Date'] = tmp_dataset['Date'].astype('int64') // 10**9
+    # Convertir les colonnes booléennes en entiers
+    bool_columns = tmp_dataset.select_dtypes(include='bool').columns
+    tmp_dataset[bool_columns] = tmp_dataset[bool_columns].astype(int)
     return tmp_dataset
 
-
-
-"""
-def normalize_datas(tmp_dataset):
-    #  Méthode normalize_data()
-    # Suppression de la colonne 'Date' avant la normalisation
-    tmp_dataset = tmp_dataset.drop(columns=['Date'])
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    return scaler.fit_transform(tmp_dataset)
-"""
-"""
-La méthode MinMaxScaler de la bibliothèque scikit-learn est utilisée pour normaliser
-les caractéristiques (features) d'un jeu de données.
-Elle met à l'échelle chaque caractéristique dans une plage spécifiée, généralement entre 0 et 1.
-On peut faire la même chose avec un StandardScaler().
-"""
 
 
 
@@ -228,28 +202,14 @@ def create_data_matrix(train_data, test_data, create_dataset):
 
 
 
-
-
-
-
-
-
-
-
-
-
-""" **************************** Exécution du script principal **************************** """
-
-
+""" ************************* Préparation du dataset ************************* """
 
 # Initialisation de la classe qui prépare le dataset :
 prepare_dataset = PrepareDataset()
 
 
-
-print(" ************ Etape 1 : Loading dataset ************ ")
-initial_dataset = pd.read_csv(DATASET_PATH+DATASET_FILE)
-
+# Loading dataset :
+initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
 print('Total number of days present in the dataset: ', initial_dataset.shape[0])
 print('Total number of fields present in the dataset: ', initial_dataset.shape[1])
 print('Nombre de lignes et colonnes: ', initial_dataset.shape)
@@ -266,40 +226,13 @@ print('Starting Date : ',sd)
 print('Ending Date : ',ed)
 
 
-
-
-
-print(" ************ Etape 2 : Preparation of the Dataset ************ ")
-# formatage des colonnes :
-tmp_dataset = format_dataset(initial_dataset)
-
-
-# Suppression des colonnes :
-tmp_dataset = delete_columns(tmp_dataset)
-
-
-
-"""
-# Affichage des données :
-fig = px.line(tmp_dataset, x=tmp_dataset.Date, y=tmp_dataset.Dernier,labels={'Date':'date','Dernier':'Close Stock'})
-fig.update_traces(marker_line_width=2, opacity=0.8, marker_line_color='orange')
-fig.update_layout(title_text='Whole period of timeframe of Bitcoin close price 2014-2025', plot_bgcolor='white',
-                  font_size=15, font_color='black')
-fig.update_xaxes(showgrid=False)
-fig.update_yaxes(showgrid=False)
-fig.show()
-"""
-
-
-
-# Ajout des indicateurs techniques :
-# tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
-
+# Préparation du dataset :
+tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
+tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
 
 
 # Enregistrement du dataset au format csv :
 tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
-
 
 
 # Contrôle des modifications :
@@ -309,36 +242,21 @@ print('Null Values dataset final : ', tmp_dataset.isnull().values.sum())
 print('NA values dataset final :', tmp_dataset.isnull().values.any())
 
 
-
-tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
-
+tmp_dataset = add_technicals_indicators(tmp_dataset)
 print(" forme tmp_dataset : ", tmp_dataset.shape)
 
+
 # Normalise dataset :
-# model_dataset = normalize_datas(tmp_dataset)
 # Obtenir le scaler ajusté :
 scaler = prepare_dataset.get_fitted_scaler(tmp_dataset)
-# Normalise dataset :
 model_dataset = prepare_dataset.normalize_datas(tmp_dataset, scaler)
 print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
-
-
 print("dataset d'entrainement normalisé :", model_dataset)
 
 
 # Méthode create_dataset :
 train_data, test_data = create_train_and_test_dataset(model_dataset)
-"""
-print("train_data.head() : ", train_data.head())
-print("train_data.isnull() : ", train_data.tail())
-print('Null Values train_data : ', train_data.isnull().values.sum())
-print('NA values train_data :', train_data.isnull().values.any())
-print("test_data.head() : ", test_data.head())
-print("test_data.tail() : ", test_data.tail())
-print('Null Values test_data : ', test_data.isnull().values.sum())
-print('NA values test_data :', test_data.isnull().values.any())
-"""
 
 
 # Conversion des arrays en matrice :
@@ -351,21 +269,13 @@ print("X_test: ", x_test.shape)
 print("y_test", y_test.shape)
 
 
-# reshape input to be [samples, time steps, features] which is required for LSTM
+# Mise en forme :
 x_train = x_train.reshape(x_train.shape[0],x_train.shape[1] , 1)
 x_test = x_test.reshape(x_test.shape[0],x_test.shape[1] , 1)
 print("X_train: ", x_train.shape)
 print("X_test: ", x_test.shape)
 
 
-# NOTION DE VALEUR CIBLE :
-"""
-Une valeur cible, également appelée étiquette ou label, est la valeur que l'on souhaite prédire ou prévoir
-dans un problème de machine learning. Elle représente l'output ou la sortie attendue pour une entrée donnée.
-Les valeurs cibles sont utilisées
-pour entraîner les modèles de machine learning en leur fournissant des exemples de ce qu'ils doivent
-apprendre à prédire.
-"""
 
 
 
@@ -378,48 +288,31 @@ apprendre à prédire.
 
 
 
-
-
-
-
-""" ************************************ Créer une classe qui encapsule le modèle (Réseau de neurones) ************************************ """
-""" NOM DE LA CLASSE : neural_network """
-
-print(" ******************** Création et entrainement du modèle ******************** ")
-
-""" 
-----------------------------------------------------------------
-# Ajout d'une couche LSTM (Long Short-Term Memory) au modèle :
-# - 10 unités LSTM
-# - input_shape=(None, 1) : La couche LSTM a une sortie de forme (None, 10), ce qui signifie qu'elle produit 10 valeurs pour chaque séquence d'entrée.
-# - activation="relu" : Fonction d'activation ReLU (Rectified Linear Unit)
-# :  La couche dense a une sortie de forme (None, 1), ce qui signifie qu'elle produit une seule valeur de sortie pour chaque séquence d'entrée.
-----------------------------------------------------------------
-"""
-
-
+""" ************************* Définition du modèle ************************* """
 
 # Création du modèle :
-# Initialisation d'un modèle séquentiel :
 model=Sequential()
 model.add(LSTM(10,input_shape=(None, 1), activation="relu"))
-# model.add(Dropout(0.2))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
-# Exécution du modèle :
-# Compilation du modèle :
-# - loss="mean_squared_error" : Utilisation de la moyenne des erreurs quadratiques comme fonction de perte (écart prévision/résultat).
-# - optimizer="adam" : Utilisation de l'optimiseur Adam pour gérer la descente de gradient (algorithme d'optimisation utilisé pour minimiser la fonction de perte. Elle ajuste les paramètres du modèle (comme les poids et les biais dans un réseau de neurones) de manière itérative pour réduire la valeur de la fonction de perte.).
-# model.compile(loss="mean_squared_error",optimizer="adam")
 
 
 
-# Entrainement du modèle :
-# - X_train, y_train : données et cibles d'entraînement.
-# - validation_data=(X_test, y_test) : données et cibles de validation.
-# - epochs=200 : nombre d'époques (passages complets sur l'ensemble des données d'entraînement).
-# - batch_size=32 : taille des lots (batch size) pour l'entraînement.
-# - verbose=1 : mode verbeux pour afficher les informations de progression pendant l'entraînement.
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Entrainement du modèle ************************* """
+
 history = model.fit(
     x_train,y_train,
     validation_data=(x_test,y_test),
@@ -427,6 +320,7 @@ history = model.fit(
     batch_size=32,
     verbose=1
 )
+
 
 # Sauvegarde du modèle :
 model.save_weights(parameters.SAVE_MODEL_PATH + f'best_model_weights_without_cross_validation.weights.h5')
@@ -438,64 +332,21 @@ model.save_weights(parameters.SAVE_MODEL_PATH + f'best_model_weights_without_cro
 
 
 
-"""
-----------------------------------------------------------------
-==> COMMENT EVALUER LES METRIQUES :
-----------------------------------------------------------------
-
-Plus je vais avancer dans mon entrainement, au fur et à mesure des folds,
-plus les performances doivent évoluer comme suit.
-Néanmoins, il faut l'amélioration des métriques n'est pas toujours linéaire et peut varier 
-en fonction de plusieurs facteurs, notamment la complexité du modèle, 
-la qualité des données, et la configuration de l'entraînement.
-
-- Validation RMSE (Root Mean Squared Error) / Mesure l'écart moyen entre les prédictions et les valeurs réelles :
-Plus l'entrainement va progresser au fur et à mesure des folds, plus la valeur sera basse.
-Mais il est possible que la RMSE atteigne un plateau ou même augmente légèrement 
-si le modèle commence à surapprendre.
-
-- Validation MSE (Mean Squared Error) / Mesure la moyenne des carrés des erreurs :
-Plus l'entrainement va progresser au fur et à mesure des folds, plus la valeur sera basse.
-Mais il peut aussi atteindre un plateau ou augmenter en cas de surapprentissage.
-
-- Validation MAE (Mean Absolute Error) / Mesure l'erreur absolue moyenne entre les prédictions et les valeurs réelles : 
-Plus l'entrainement va progresser au fur et à mesure des folds, plus la valeur sera basse.
-Mais il peut aussi atteindre un plateau ou augmenter en cas de surapprentissage.
-
-- Validation Explained Variance Score / Mesure la proportion de la variance dans les valeurs réelles qui est expliquée par le modèle : 
-Plus l'entrainement va progresser au fur et à mesure des folds, plus la valeur sera proche de 1.
-Mais il peut aussi atteindre un plateau puis diminuer en cas de surraprentissage.
-
-- Validation R2 Score / Mesure la proportion de la variance dans les valeurs réelles qui est prédite par le modèle : 
-Plus l'entrainement va progresser au fur et à mesure des folds, plus la valeur sera proche de 1.
-Mais il peut aussi atteindre un plateau puis diminuer en cas de surraprentissage.
-
-- Validation MGD (Mean Gamma Deviance) : Mesure la déviance moyenne pour une distribution gamma : 
-Plus l'entrainement va progresser au fur et à mesure des folds, plus la valeur sera basse.
-Mais il peut aussi atteindre un plateau ou augmenter en cas de surapprentissage.
-
-- Validation MPD (Mean Poisson Deviance) / Mesure la déviance moyenne pour une distribution de Poisson : 
-Plus l'entrainement va progresser au fur et à mesure des folds, plus la valeur sera basse.
 
 
 
-----------------------------------------------------------------
-==> POINTS A CONSIDERER :
-----------------------------------------------------------------
-Points à Considerer
-- SURAPPRENTISSAGE : Si le modèle commence à surapprendre, les métriques de performance 
-sur les données de validation  peuvent se dégrader (augmenter pour les erreurs, 
-diminuer pour les scores de variance et R²). C'est pourquoi il est important de surveiller 
-ces métriques et d'utiliser des techniques comme l'arrêt précoce (early stopping) 
-pour éviter le surapprentissage.
 
-- PLATEAU : Les métriques peuvent atteindre un plateau, où elles cessent de s'améliorer même 
-avec un entraînement supplémentaire. Cela peut indiquer que le modèle a atteint ses limites 
-de performance avec les données et la configuration actuelles.
 
-- VARIABILITE : Les métriques peuvent varier d'un fold à l'autre en raison de la variabilité des données. 
-C'est pourquoi la validation croisée est utile pour obtenir une estimation plus robuste de la performance du modèle.
-"""
+
+
+
+""" ************************* Affichage des résultats ************************* """
+
+display_results = DisplayResults()
+
+
+# Affichage des courbes de pertes :
+display_results.plot_loss(history)
 
 
 
@@ -506,268 +357,55 @@ C'est pourquoi la validation croisée est utile pour obtenir une estimation plus
 
 
 
-print(" ******************** Evaluation du sur-apprentissage ******************** ")
-
-"""
-==> COMMENT ANALYSER CE GRAPHE ?
-Plus les 2 courbes se suivent : Moins il y a d'overfitting.
-Si la perte d'entrainement continue à diminuer alors que la perte de validation augmente, cela 
-signifie que le modèle commence à surajuster les données d'entrainement).
-Si les 2 courbes suivent une tendance similaires, cela signifie que le modèle est moins susceptible de
-surajuster.
-"""
-
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-print("*************** DEBUG ****************")
-print("history : ", history)
-print("loss : ", loss)
-print("val_loss : ", val_loss)
-print("*************** DEBUG ****************")
-epochs = range(len(loss))
-plt.plot(epochs, loss, 'r', label='Training loss')
-plt.plot(epochs, val_loss, 'b', label='Validation loss')
-plt.title('Training and validation loss')
-plt.legend(loc=0)
-plt.figure()
-plt.show()
 
 
 
 
 
 
-print(" ******************** Génération de prédiction par le modèle ******************** ")
+
+
+
+
+""" ************************* Controle du surapprentissage ************************* """
 
 train_predict=model.predict(x_train)
 test_predict=model.predict(x_test)
-train_predict.shape, test_predict.shape
-
-
-
-""" ************************************ Créer une classe qui encapsule le modèle (Réseau de neurones) ************************************ """
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-print("Forme de train_predict :", train_predict.shape)
-print("Forme de test_predict : ", test_predict.shape)
-print("Forme de original_ytrain :", y_train.shape)
-print("Forme de original_ytest:", y_test.shape)
 
 
 test = y_train.reshape(-1, 1)
-print("Forme de original_ytrain reshape :", test.shape)
 test2 = y_test.reshape(-1, 1)
-print("Forme de original_ytest reshape :", test2)
 
 
-
-
-
-
-
-
-
-""" ************************************ Créer une classe qui évalue le modèle (Réseau de neurones) ************************************ """
-""" NOM DE LA CLASSE : evaluate_neural_network_training """
-print(" ******************** Evaluation du modèle ******************** ")
-
-
-# train_predict et test_predict ont la même forme que y_train et y_test :
 train_predict = train_predict.reshape(-1, 1)
 test_predict = test_predict.reshape(-1, 1)
 
 
-
-# Conversion du scaler :
 scaler = prepare_dataset.get_fitted_scaler(train_predict)
-# Les datasets d'entrainements et de tests sont ramenées à leur échelle d'origine :
 train_predict = scaler.inverse_transform(train_predict)
 test_predict = scaler.inverse_transform(test_predict)
 
 
-
-# Inverse la transformation des valeurs cibles d'entraînement pour les ramener à leur échelle d'origine
-# Note : y_train et t_train sont remodelées en matrices colonnes pour correspondre à la forme attendue par inverse_transform :
 original_ytrain = scaler.inverse_transform(y_train.reshape(-1,1)) 
 original_ytest = scaler.inverse_transform(y_test.reshape(-1,1)) 
 
 
-
-
-
-
-
-""" ******************** Evaluation des metrics RMSE and MAE******************** """
-print(" ******************** Evaluation des metrics RMSE and MAE ******************** ")
-
-"""
--------------------------------------------------------------------------------
-==> COMMENT INTERPRETER LES RESULTATS ?
-
-Plus les résultats des la RMSE, MSE et MAE seront proches entre les données de test et d'entrainement :
-Moins il y aura de surajustement. Une grande disparité (RMSE, MSE et MAE fortes pour les données 
-d'entrainement et faible pour les données de test) indique que le modèle réagit bien aux données 
-d'entrainement et moins aux données de test.
--------------------------------------------------------------------------------
-"""
-
-
-
-
-# Calcule et affiche la RMSE (Root Mean Squared Error) pour les données d'entraînement.
-# La RMSE ou racine carrée de la moyenne des carrés des erreurs.
-# Elle donne une idée de la magnitude des erreurs.
-# Une RMSE plus faible indique un meilleur ajustement du modèle aux données :
 print("Train data RMSE: ", math.sqrt(mean_squared_error(original_ytrain, train_predict)))
-
-# Calcule et affiche la MSE (Mean Squared Error) pour les données d'entraînement.
-# La MSE est la moyenne des carrés des erreurs.
-# Elle pénalise plus les grandes erreurs que les petites.
-# Une MSE plus faible indique un meilleur ajustement du modèle aux données :
 print("Train data MSE: ", mean_squared_error(original_ytrain, train_predict))
-
-# Calcule et affiche la MAE (Mean Absolute Error) pour les données d'entraînement.
-# La MAE est la moyenne des valeurs absolues des erreurs.
-# Elle est moins sensible aux grandes erreurs que la MSE.
-# Une MAE plus faible indique un meilleur ajustement du modèle aux données :
 print("Train data MAE: ", mean_absolute_error(original_ytrain, train_predict))
-
-print("-------------------------------------------------------------------------------------")
-
-# Calcule et affiche la RMSE (Root Mean Squared Error) pour les données de test
-# La RMSE est la racine carrée de la moyenne des carrés des erreurs.
-# Elle donne une idée de la magnitude des erreurs.
-# Une RMSE plus faible indique un meilleur ajustement du modèle aux données.
 print("Test data RMSE: ", math.sqrt(mean_squared_error(original_ytest, test_predict)))
-
-# Calcule et affiche la MSE (Mean Squared Error) pour les données de test
-# La MSE est la moyenne des carrés des erreurs.
-# Elle pénalise plus les grandes erreurs que les petites.
-# Une MSE plus faible indique un meilleur ajustement du modèle aux données.
 print("Test data MSE: ", mean_squared_error(original_ytest, test_predict))
-
-# Calcule et affiche la MAE (Mean Absolute Error) pour les données de test
-# La MAE est la moyenne des valeurs absolues des erreurs.
-# Elle est moins sensible aux grandes erreurs que la MSE.
-# Une MAE plus faible indique un meilleur ajustement du modèle aux données.
 print("Test data MAE: ", mean_absolute_error(original_ytest, test_predict))
-
-
-
-
-
-
-
-""" ******************** Variance Regression Score ******************** """
-print(" ******************** Variance Regression Score ******************** ")
-
-# Calcule et affiche le score de régression de la variance expliquée pour les données d'entraînement
-# Le score de variance expliquée (explained variance score) mesure la proportion
-# de la variance dans les valeurs cibles qui est expliquée par le modèle :
-# - Un score proche de 1 indique que le modèle explique bien la variance des données.
-# - Un score proche de 0 indique que le modèle n'explique pas bien la variance des données.
-print("Train data explained variance regression score:",
-explained_variance_score(original_ytrain, train_predict))
-
-
-# Calcule et affiche le score de régression de la variance expliquée pour les données de test
-# Le score de variance expliquée (explained variance score) mesure la proportion
-# de la variance dans les valeurs cibles qui est expliquée par le modèle :
-# - Un score proche de 1 indique que le modèle explique bien la variance des données.
-# - Un score proche de 0 indique que le modèle n'explique pas bien la variance des données.
-print("Test data explained variance regression score:",
-explained_variance_score(original_ytest, test_predict))
-
-
-
-
-
-
-
-""" ******************** R square score for regression ******************** """
-print(" ******************** R square score for regression ******************** ")
-
-# Calcule et affiche le score R² pour les données d'entraînement
-# Le score R² (coefficient de détermination) mesure la proportion de la variance 
-# dans les valeurs cibles qui est expliquée par le modèle :
-# - Un score R² proche de 1 indique que le modèle explique bien la variance des données.
-# - Un score R² proche de 0 indique que le modèle n'explique pas bien la variance des données.
-# - Un score R² négatif indique que le modèle est pire que la moyenne des valeurs cibles.
+print("Train data explained variance regression score:", explained_variance_score(original_ytrain, train_predict))
+print("Test data explained variance regression score:", explained_variance_score(original_ytest, test_predict))
 print("Train data R2 score:", r2_score(original_ytrain, train_predict))
-
-
-# Calcule et affiche le score R² pour les données de test
-# Le score R² (coefficient de détermination) mesure la proportion de la variance 
-# dans les valeurs cibles qui est expliquée par le modèle :
-# - Un score R² proche de 1 indique que le modèle explique bien la variance des données.
-# - Un score R² proche de 0 indique que le modèle n'explique pas bien la variance des données.
-# - Un score R² négatif indique que le modèle est pire que la moyenne des valeurs cibles.
 print("Test data R2 score:", r2_score(original_ytest, test_predict))
-
-"""
--------------------------------------------------------------------------------
-COMMENT INTERPRETER LES RESULTATS ?
-
-Plus les résultats du R2 seront proches entre les données de test et d'entrainement :
-Moins il y aura de surajustement. Une grande disparité (R2 fort pour les données 
-d'entrainement et faible pour les données de test) indique que le modèle réagit bien aux données 
-d'entrainement et moins aux données de test.
--------------------------------------------------------------------------------
-"""
-
-
-
-
-
-
-
-""" ********** Perte de Régression Moyenne Gamma déviance de perte de régression (MGD) et Moyenne Poisson déviance de perte de régression (MPD)  ************** """
-print(" ******** Perte de Régression Moyenne Gamma déviance de perte de régression (MGD) et Moyenne Poisson déviance de perte de régression (MPD) ************ ")
-
-
-# Afficher la perte de régression moyenne Gamma déviance pour les données d'entraînement et de test
 print("Données d'entraînement MGD :", mean_gamma_deviance(original_ytrain, train_predict))
 print("Données de test MGD :", mean_gamma_deviance(original_ytest, test_predict))
-print("----------------------------------------------------------------------")
-
-
-# Afficher la perte de régression moyenne Poisson déviance pour les données d'entraînement et de test
 print("Données d'entraînement MPD :", mean_poisson_deviance(original_ytrain, train_predict))
 print("Données de test MPD :", mean_poisson_deviance(original_ytest, test_predict))
 
 
-# Perte de déviance Gamma :
-# La perte de déviance Gamma évalue à quel point votre modèle prédit bien les temps de défaillance observés.
-# La perte de déviance Gamma mesure la différence entre la déviance du modèle ajusté et la déviance d'un modèle nul :
-# - Modèle ajusté : C'est le modèle que vous avez entraîné sur vos données. Il utilise les variables indépendantes pour prédire la variable dépendante.
-# - Déviance du modèle ajusté : C'est la déviance calculée pour ce modèle ajusté, qui mesure à quel point les prédictions du modèle diffèrent des valeurs observées.(un modèle qui prédit simplement la moyenne de la variable dépendante).
-# - Modèle nul : C'est un modèle de référence très simple qui ne prend en compte aucune variable indépendante. Il prédit simplement la moyenne de la variable dépendante pour toutes les observations.
-# - Déviance d'un modèle nul : C'est la déviance calculée pour ce modèle nul, qui mesure à quel point la moyenne des observations diffère des valeurs observées.
 
 
 
@@ -785,8 +423,12 @@ print("Données de test MPD :", mean_poisson_deviance(original_ytest, test_predi
 
 
 
-""" ******************** Comparaison entre le prix original et les prédictions ******************** """
-print(" ******************** Comparaison entre le prix original et les prédictions ******************** ")
+
+
+
+""" ******************************** Autres ******************************** """
+
+""" Comparaison entre le prix original et les prédictions """
 
 """
 I- PREDICTION D'ENTRAINEMENT :
@@ -883,6 +525,12 @@ fig.update_yaxes(showgrid=False)
 
 
 
+
+
+
+
+
+
 """ ******************** Prédictions des 30 prochains jours ******************** """
 print(" ******************** Prédictions des 30 prochains jours ******************** ")
 
@@ -934,6 +582,12 @@ while i < pred_days:
 # Afficher le nombre de prédictions générées :
 print("Nombre de prédictions pour les prochains jours :", len(lst_output))
 """
+
+
+
+
+
+
 
 
 
@@ -1023,6 +677,12 @@ fig.show()
 
 
 
+
+
+
+
+
+
 """ ******************** Ensemble des prix de clôture avec la période de prédiction des 30 prochains jours ******************** """
 print(" ******************** Ensemble des prix de clôture avec la période de prédiction des 30 prochains jours ******************** ")
 
@@ -1063,191 +723,6 @@ fig.update_yaxes(showgrid=False)
 # Afficher le graphique :
 fig.show()
 """
-
-""" ************************************ Créer une classe qui évalue le modèle (Réseau de neurones) ************************************ """
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-print(" ************ Fin du test !!! ************ ")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1296,16 +771,5 @@ print(y_2014)
 y_2014.to_csv(PATH+FILE_CLEAN_DATASET, index=False)
 
 """
-
-
-
-
-
-
-
-
-
-
-
 
 

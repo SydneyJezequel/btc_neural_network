@@ -13,7 +13,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_v
 import plotly.express as px
 import parameters
 from sklearn.model_selection import TimeSeriesSplit
-from BO.prepare_dataset import PrepareDataset
+from service.prepare_dataset_service import PrepareDataset
 import joblib
 
 

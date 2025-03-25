@@ -1,7 +1,7 @@
 import os
 import parameters
-from BO.predictions_generator import PredictionsGenerator
-from BO.prepare_dataset import PrepareDataset
+from service.predictions_generator import PredictionsGenerator
+from service.prepare_dataset_service import PrepareDataset
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
@@ -95,7 +95,7 @@ print(" forme dataset 0 : ", dataset.shape)
 # Initialisation du scaler :
 print("forme du dataset 1 : ", dataset.shape)
 # scaler = prepare_dataset.get_fitted_scaler(dataset)
-scaler = joblib.load('scaler.save')
+scaler = joblib.load('../scaler.save')
 print("Valeurs minimales (min_) :", scaler.min_)
 print("Échelle (scale_) :", scaler.scale_)
 print("forme du dataset 2 : ", dataset.shape)

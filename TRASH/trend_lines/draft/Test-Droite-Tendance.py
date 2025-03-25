@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from mplfinance.original_flavor import candlestick_ohlc
 import parameters
-from BO.prepare_dataset import PrepareDataset
+from service.prepare_dataset_service import PrepareDataset
 
 
 

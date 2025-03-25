@@ -7,7 +7,7 @@ import datetime as dt
 import matplotlib.pyplot as plt
 from keras.src.utils.audio_dataset_utils import prepare_dataset
 
-from BO.prepare_dataset import PrepareDataset
+from service.prepare_dataset_service import PrepareDataset
 
 """ Evalution library """
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
@@ -28,7 +28,7 @@ from plotly.subplots import make_subplots
 import parameters
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.regularizers import l2
-from BO.prepare_dataset import PrepareDataset
+from service.prepare_dataset_service import PrepareDataset
 
 
 

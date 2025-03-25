@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.impute import SimpleImputer
-from BO.technical_indicators import technical_indicators
+from service.technical_indicators import technical_indicators
 
 
 
@@ -17,30 +17,22 @@ class PrepareDataset:
 
 
     def format_dataset(self, initial_dataset):
-        """ Méthode format_dataset() """
+        """ Préparation des données """
         tmp_dataset = initial_dataset.copy()
-        # Convertir la colonne "Date" au format datetime :
         tmp_dataset['Date'] = pd.to_datetime(initial_dataset['Date'], format='%d/%m/%Y', errors='coerce')
-        # errors='coerce' --> Les valeurs non converties sont remplacées par NaN.
-        # Remplacer les points par un espace, puis suppression de l'espace, enfin remplacement de la virgule par un point :
+        tmp_dataset = tmp_dataset.sort_values(by='Date')
         numeric_columns = ["Dernier", "Ouv.", " Plus Haut", "Plus Bas", "Variation %"]
         for col in numeric_columns:
             tmp_dataset.loc[:, col] = tmp_dataset[col].str.replace('.', ' ').str.replace(' ', '').str.replace(',', '.')
-            # .loc[:, col] est utilisé pour sélectionner toutes les lignes (:) de la colonne spécifiée par col.
-        # Conversion des colonnes numériques en float :
         for col in numeric_columns:
             tmp_dataset[col] = pd.to_numeric(tmp_dataset[col], errors='coerce')
         return tmp_dataset
 
 
-
     def delete_columns(self, tmp_dataset):
-        """ Méthode delete_columns() """
-        # Suppression des colonnes de départ :
+        """ Suppression des colones du dataset d'origine """
         tmp_dataset = tmp_dataset.drop(columns=['Vol.', 'Variation %', 'Ouv.', ' Plus Haut', 'Plus Bas'])
-        print('Dataset transformé :', tmp_dataset)
         return tmp_dataset
-
 
 
     def add_technicals_indicators(self, tmp_dataset):
@@ -54,18 +46,10 @@ class PrepareDataset:
         technical_indicators.calculate_signal(tmp_dataset, 50, 150)
         technical_indicators.calculate_signal(tmp_dataset, 100, 150)
         technical_indicators.calculate_signal(tmp_dataset, 50, 100)
-        # Ignorer les valeurs NAN (Remplir les valeurs NaN avec la moyenne des colonnes) :
-        """ ************************ CONTROLE ************************ """
         # Supprimer les lignes où MA_150 est NaN
         tmp_dataset = tmp_dataset.dropna(subset=['MA_150'])
         tmp_dataset.to_csv('../btc_neural_network/dataset/training_dataset/dataset_for_model.csv', index=False)
-        """ ************************ CONTROLE ************************ """
-        """
-        imputer = SimpleImputer(strategy='mean')
-        tmp_dataset = imputer.fit_transform(tmp_dataset)
-        """
         return tmp_dataset
-
 
 
     def get_fitted_scaler(self, tmp_dataset):
@@ -73,20 +57,11 @@ class PrepareDataset:
         scaler = MinMaxScaler(feature_range=(0, 1))
         scaler.fit(tmp_dataset)
         return scaler
-    """
-    La méthode MinMaxScaler de la bibliothèque scikit-learn est utilisée pour normaliser
-    les caractéristiques (features) d'un jeu de données.
-    Elle met à l'échelle chaque caractéristique dans une plage spécifiée, généralement entre 0 et 1.
-    On peut faire la même chose avec un StandardScaler().
-    """
-
 
 
     def normalize_datas(self, tmp_dataset, scaler):
         """ Méthode normalize_data() """
         return scaler.transform(tmp_dataset)
-
-
     """
     def normalize_datas2(self, tmp_dataset, scaler, columns_to_normalize):
         #  Méthode normalize_datas() 
@@ -95,23 +70,30 @@ class PrepareDataset:
         return tmp_dataset_copy
     """
 
-
     def create_train_and_test_dataset(self, model_dataset):
-        """ Méthode create_train_and_test_dataset() """
-        # Création des datasets d'entrainement et de test
+        """ Création des datasets d'entrainement et tests """
         training_size = int(len(model_dataset) * 0.60)
-        test_size = len(model_dataset) - training_size
-        train_data, test_data = model_dataset[0:training_size, :], model_dataset[training_size:len(model_dataset), :1]
-        # datas_for_model[0:training_size,:] : Sélectionne les training_size premières lignes de l'array.
-        # datas_for_model[training_size:len(datas_for_model),:1] : Sélectionne toutes les lignes à partir de training_size jusqu'à la fin de l'array.
-        print("dataset d'entrainement :", train_data.shape)
-        print("dataset de test :", test_data.shape)
+        train_data, test_data = model_dataset.iloc[0:training_size, :], model_dataset.iloc[training_size:len(model_dataset), :]
         return train_data, test_data
-
-
+    """
+        def create_train_and_test_dataset(self, model_dataset):
+        # Création des datasets d'entrainement et tests
+        training_size = int(len(model_dataset) * 0.60)
+        train_data, test_data = model_dataset[0:training_size, :], model_dataset[training_size:len(model_dataset), :1]
+        return train_data, test_data
+    """
 
     def create_dataset(self, dataset, time_step=1):
-        """ Méthode create_dataset() """
+        """ Méthode qui génère les datasets d'entrainement et de test """
+        dataX, dataY = [], []
+        for i in range(len(dataset) - time_step - 1):
+            a = dataset.iloc[i:(i + time_step), 0]
+            dataX.append(a)
+            dataY.append(dataset.iloc[i + time_step, 0])
+        return np.array(dataX), np.array(dataY)
+    """
+    def create_dataset(self, dataset, time_step=1):
+        # Méthode create_dataset()
         dataX, dataY = [], []
         # Boucle sur le dataset pour créer des séquences de longueur time_step :
         for i in range(len(dataset) - time_step - 1):
@@ -123,7 +105,7 @@ class PrepareDataset:
             dataY.append(dataset[i + time_step, 0])
         # Convertit les listes dataX et dataY en arrays numpy pour faciliter leur utilisation dans les modèles de machine learning :
         return np.array(dataX), np.array(dataY)
-
+    """
 
 
     def create_data_matrix(self, dataset, time_step=15):
@@ -141,36 +123,27 @@ class PrepareDataset:
 
 
 
-
-
-"""
-def create_dataset2(dataset, time_step=1):
-    # NOUVELLE VERSION - Méthode create_dataset() - Ne gère qu'un dataset
-    dataX = []
-    # Boucle sur le dataset pour créer des séquences de longueur time_step :
-    for i in range(len(dataset) - time_step - 1):
-        # Extrait une séquence de longueur time_step à partir de l'index i
-        a = dataset[i:(i + time_step), 0]
-        # Ajoute la séquence à dataX :
-        dataX.append(a)
-        # Ajoute la valeur cible correspondante à dataY :
-    # Convertit la liste dataX en array numpy pour faciliter son utilisation dans les modèles de machine learning :
-    return np.array(dataX)
-"""
+    def subsample_old_data(self, tmp_dataset, cutoff_date, fraction=0.1):
+        """ Sous-échantillonnage des anciennes données """
+        old_data = tmp_dataset[tmp_dataset['Date'] < cutoff_date]
+        recent_data = tmp_dataset[tmp_dataset['Date'] >= cutoff_date]
+        old_data_sampled = old_data.sample(frac=fraction, random_state=42)
+        combined_data = pd.concat([old_data_sampled, recent_data])
+        combined_data = combined_data.sort_values(by='Date').reset_index(drop=True)
+        return combined_data
 
 
 
-"""
-def create_data_matrix2(model_dataset, time_step=15):
-    # NOUVELLE VERSION Méthode create_data_matrix()
-    # Création des ensembles de données en utilisant la fonction create_dataset :
-    x = create_dataset2(model_dataset, time_step)
-    # Remodelage de X pour obtenir la forme [échantillons, time steps, caractéristiques]
-    # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
-    x = x.reshape(x.shape[0], x.shape[1], 1)
-    # Affichage des dimensions des ensembles de données après remodelage :
-    print("dataset x: ", x.shape)
-    return x
-"""
+    def add_lag_features(self, dataset, lags):
+        """ Ajout des caractéristiques de lag """
+        for lag in lags:
+            dataset[f'Lag_{lag}'] = dataset['Dernier'].shift(lag)
+        return dataset
 
 
+
+    def calculate_historical_volatility(self, dataset, window=252):
+        """ Calcul de la volatilité historique """
+        dataset['Returns'] = np.log(dataset['Dernier'] / dataset['Dernier'].shift(1))
+        volatility = dataset['Returns'].rolling(window=window).std() * np.sqrt(252)
+        return volatility
