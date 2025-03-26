@@ -255,6 +255,7 @@ print("Validation Loss Array:", val_loss_array)
 
 
 
+
 """ ************************* Controle du surapprentissage ************************* """
 
 # Calcul des prédictions :
@@ -301,45 +302,86 @@ display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
 
 
 
+
+
+
+
+
+
+
+
+
+
 """ ******************************** Autres ******************************** """
 
-""" Faire des prédictions sur un dataset indépendant """
-
+"""
 def predict_on_new_data(new_data_path, model, scaler, time_step=15):
-    """Faire des prédictions sur un dataset indépendant"""
-
+    # Fait des prédictions sur un nouveau dataset.
     # Charger et préparer le nouveau dataset
     new_dataset = pd.read_csv(new_data_path)
     new_dataset = format_dataset(new_dataset)
     new_dataset = delete_columns(new_dataset)
-
-    # Ajouter les indicateurs techniques
-    prepare_dataset = PrepareDataset()
-    new_dataset = prepare_dataset.add_technicals_indicators(new_dataset)
-
-    # Supprimer les lignes avec des valeurs manquantes
+    new_dataset = add_technicals_indicators(new_dataset)
+    # new_dataset['Historical_Volatility'] = calculate_historical_volatility(new_dataset)
+    # new_dataset = add_lag_features(new_dataset, lags)
     new_dataset = new_dataset.dropna()
 
     # Normaliser les données
-    columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100']
+    columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100', 'Historical_Volatility'] + [f'Lag_{lag}' for lag in lags]
+    normalized_datas = scaler.transform(new_dataset[columns_to_normalize])
+    new_dataset[columns_to_normalize] = normalized_datas
 
-    # Vérifiez que toutes les colonnes à normaliser existent
-    missing_columns = [col for col in columns_to_normalize if col not in new_dataset.columns]
-    if missing_columns:
-        raise ValueError(f"Missing columns in new dataset: {missing_columns}")
+    # Créer le dataset pour la prédiction
+    x_new, _ = create_dataset(new_dataset, time_step)
+    x_new = x_new.reshape(x_new.shape[0], x_new.shape[1], 1)
 
-    # Utiliser la méthode normalize_datas pour normaliser les données
+    # Faire des prédictions
+    new_predictions = model.predict(x_new)
+    new_predictions = scaler.inverse_transform(new_predictions)
+
+    return new_predictions
+
+
+
+# Exemple d'utilisation de la fonction pour faire des prédictions sur un nouveau dataset
+dataset_for_test_predictions = parameters.DATASET_FILE_FOR_TEST_PREDICTIONS
+new_predictions = predict_on_new_data(dataset_for_test_predictions, model, scaler)
+print("New Predictions:", new_predictions)
+
+"""
+
+
+
+
+
+
+""" Faire des prédictions sur un dataset indépendant """
+
+# model.load_weights('path/to/model.weights.h5')
+
+# scaler = joblib.load('path/to/scaler.save')
+
+def predict_on_new_data(new_data_path, model, scaler, time_step=15):
+    """Faire des prédictions sur un dataset indépendant"""
+
+    # Charger et préparer le nouveau dataset :
+    new_dataset = pd.read_csv(new_data_path)
+    new_dataset = prepare_dataset.format_dataset(new_dataset)
+    new_dataset = prepare_dataset.delete_columns(new_dataset)
+
+    # Normaliser les données :
+    columns_to_normalize = ['Dernier']
     normalized_datas = prepare_dataset.normalize_datas(new_dataset[columns_to_normalize], scaler)
     new_dataset[columns_to_normalize] = normalized_datas
 
     # Suppression de la colonne date :
     del new_dataset['Date']
 
-    # Créer le dataset pour la prédiction
-    x_new, _ = create_dataset(new_dataset, time_step)
+    # Créer le dataset pour la prédiction :
+    x_new, _ = prepare_dataset.create_dataset(new_dataset, time_step)
     x_new = x_new.reshape(x_new.shape[0], x_new.shape[1], 1)
 
-    # Faire des prédictions
+    # Faire des prédictions :
     new_predictions = model.predict(x_new)
     new_predictions = scaler.inverse_transform(new_predictions)
 
@@ -347,56 +389,176 @@ def predict_on_new_data(new_data_path, model, scaler, time_step=15):
 
 
 
-"""
-def predict_on_new_data(new_data_path, model, scaler, time_step=15):
-    # Faire des prédictions sur un dataset indépendant
-
-    # Charger et préparer le nouveau dataset
-    new_dataset = pd.read_csv(new_data_path)
-    new_dataset = format_dataset(new_dataset)
-    new_dataset = delete_columns(new_dataset)
-
-    # Ajouter les indicateurs techniques
-    prepare_dataset = PrepareDataset()
-    new_dataset = prepare_dataset.add_technicals_indicators(new_dataset)
-
-    # Supprimer les lignes avec des valeurs manquantes
-    new_dataset = new_dataset.dropna()
-
-    # Vérifiez que le dataset n'est pas vide après le traitement
-    if new_dataset.empty:
-        raise ValueError("The dataset is empty after processing.")
-
-    # Normaliser les données
-    columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100', 'Historical_Volatility'] + [f'Lag_{lag}' for lag in lags]
-
-    # Vérifiez que toutes les colonnes à normaliser existent et ne sont pas vides
-    for col in columns_to_normalize:
-        if col not in new_dataset.columns or new_dataset[col].isnull().all():
-            raise ValueError(f"Column {col} is missing or empty in the new dataset.")
-
-    # Utiliser la méthode normalize_datas pour normaliser les données
-    normalized_datas = prepare_dataset.normalize_datas(new_dataset[columns_to_normalize], scaler)
-    new_dataset[columns_to_normalize] = normalized_datas
-
-    # Créer le dataset pour la prédiction
-    x_new, _ = create_dataset(new_dataset, time_step)
-    x_new = x_new.reshape(x_new.shape[0], x_new.shape[1], 1)
-
-    # Faire des prédictions
-    new_predictions = model.predict(x_new)
-    new_predictions = scaler.inverse_transform(new_predictions)
-
-    return new_predictions
-"""
 
 
-
-# Exemple d'utilisation de la fonction pour faire des prédictions sur un nouveau dataset
+# Lien vers le projet Kaggle : https://www.kaggle.com/code/meetnagadia/bitcoin-price-prediction-using-lstm
+# Lien vers le dataset : https://fr.investing.com/crypto/bitcoin/historical-data
+PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
 DATASET_FILE_FOR_TEST_PREDICTIONS = parameters.DATASET_FILE_FOR_TEST_PREDICTIONS
-dataset_for_test_predictions = PATH_TRAINING_DATASET + DATASET_FILE_FOR_TEST_PREDICTIONS
-new_predictions = predict_on_new_data(dataset_for_test_predictions, model, scaler)
-print("New Predictions:", new_predictions)
+print("CHEMIN : ", PATH_TRAINING_DATASET + DATASET_FILE_FOR_TEST_PREDICTIONS)
+new_dataset = PATH_TRAINING_DATASET + DATASET_FILE_FOR_TEST_PREDICTIONS
+
+
+# scaler = MinMaxScaler()
+# scaler.fit(data_with_feature_names)
+print("new dataset : ", new_dataset)
+scaler = prepare_dataset.get_fitted_scaler(x_train)
+# scaler = prepare_dataset.get_fitted_scaler(train_predict)
+news_predictions = predict_on_new_data(new_dataset, model, scaler, time_step=15)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" Affichage des prédictions """
+""" shift train predictions for plotting """
+# shift train predictions for plotting
+
+
+look_back=time_step
+trainPredictPlot = np.empty_like(closedf)
+trainPredictPlot[:, :] = np.nan
+trainPredictPlot[look_back:len(train_predict)+look_back, :] = train_predict
+print("Train predicted data: ", trainPredictPlot.shape)
+
+# shift test predictions for plotting
+testPredictPlot = np.empty_like(closedf)
+testPredictPlot[:, :] = np.nan
+testPredictPlot[len(train_predict)+(look_back*2)+1:len(closedf)-1, :] = test_predict
+print("Test predicted data: ", testPredictPlot.shape)
+
+names = cycle(['Original close price','Train predicted close price','Test predicted close price'])
+
+
+plotdf = pd.DataFrame({'date': close_stock['Date'],
+                       'original_close': close_stock['Close'],
+                      'train_predicted_close': trainPredictPlot.reshape(1,-1)[0].tolist(),
+                      'test_predicted_close': testPredictPlot.reshape(1,-1)[0].tolist()})
+
+fig = px.line(plotdf,x=plotdf['date'], y=[plotdf['original_close'],plotdf['train_predicted_close'],
+                                          plotdf['test_predicted_close']],
+              labels={'value':'Stock price','date': 'Date'})
+fig.update_layout(title_text='Comparision between original close price vs predicted close price',
+                  plot_bgcolor='white', font_size=15, font_color='black', legend_title_text='Close Price')
+fig.for_each_trace(lambda t:  t.update(name = next(names)))
+
+fig.update_xaxes(showgrid=False)
+fig.update_yaxes(showgrid=False)
+fig.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" Plotting last 15 days of dataset and next predicted 30 days """
+
+# Plotting last 15 days of dataset and next predicted 30 days
+
+last_days=np.arange(1,time_step+1)
+day_pred=np.arange(time_step+1,time_step+pred_days+1)
+print(last_days)
+print(day_pred)
+
+temp_mat = np.empty((len(last_days)+pred_days+1,1))
+temp_mat[:] = np.nan
+temp_mat = temp_mat.reshape(1,-1).tolist()[0]
+
+last_original_days_value = temp_mat
+next_predicted_days_value = temp_mat
+
+last_original_days_value[0:time_step+1] = scaler.inverse_transform(closedf[len(closedf)-time_step:]).reshape(1,-1).tolist()[0]
+next_predicted_days_value[time_step+1:] = scaler.inverse_transform(np.array(lst_output).reshape(-1,1)).reshape(1,-1).tolist()[0]
+
+new_pred_plot = pd.DataFrame({
+    'last_original_days_value':last_original_days_value,
+    'next_predicted_days_value':next_predicted_days_value
+})
+
+names = cycle(['Last 15 days close price','Predicted next 30 days close price'])
+
+fig = px.line(new_pred_plot,x=new_pred_plot.index, y=[new_pred_plot['last_original_days_value'],
+                                                      new_pred_plot['next_predicted_days_value']],
+              labels={'value': 'Stock price','index': 'Timestamp'})
+fig.update_layout(title_text='Compare last 15 days vs next 30 days',
+                  plot_bgcolor='white', font_size=15, font_color='black',legend_title_text='Close Price')
+
+fig.for_each_trace(lambda t:  t.update(name = next(names)))
+fig.update_xaxes(showgrid=False)
+fig.update_yaxes(showgrid=False)
+fig.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" Plotting entire Closing Stock Price with next 30 days period of prediction """
+# Plotting entire Closing Stock Price with next 30 days period of prediction
+
+
+lstmdf=closedf.tolist()
+lstmdf.extend((np.array(lst_output).reshape(-1,1)).tolist())
+lstmdf=scaler.inverse_transform(lstmdf).reshape(1,-1).tolist()[0]
+
+names = cycle(['Close price'])
+
+fig = px.line(lstmdf,labels={'value': 'Stock price','index': 'Timestamp'})
+fig.update_layout(title_text='Plotting whole closing stock price with prediction',
+                  plot_bgcolor='white', font_size=15, font_color='black',legend_title_text='Stock')
+
+fig.for_each_trace(lambda t:  t.update(name = next(names)))
+
+fig.update_xaxes(showgrid=False)
+fig.update_yaxes(showgrid=False)
+fig.show()
+
+
+
+
+
+
+
+
+
 
 
 

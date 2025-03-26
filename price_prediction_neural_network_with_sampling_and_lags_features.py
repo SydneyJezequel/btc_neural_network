@@ -344,8 +344,7 @@ display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
 
 """ ******************************** Autres ******************************** """
 
-""" Faire des prédictions sur un dataset indépendant """
-
+"""
 def predict_on_new_data(new_data_path, model, scaler, time_step=15):
     # Fait des prédictions sur un nouveau dataset.
     # Charger et préparer le nouveau dataset
@@ -378,6 +377,14 @@ def predict_on_new_data(new_data_path, model, scaler, time_step=15):
 dataset_for_test_predictions = parameters.DATASET_FILE_FOR_TEST_PREDICTIONS
 new_predictions = predict_on_new_data(dataset_for_test_predictions, model, scaler)
 print("New Predictions:", new_predictions)
+
+"""
+
+
+
+
+
+
 
 
 
