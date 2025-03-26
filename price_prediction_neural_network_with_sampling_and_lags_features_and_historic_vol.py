@@ -2,15 +2,14 @@ import pandas as pd
 import numpy as np
 import math
 from keras.src.utils.audio_dataset_utils import prepare_dataset
-from service.display_results_service import DisplayResults
-from service.prepare_dataset_service import PrepareDataset
+from service.display_results_service import DisplayResultsService
+from service.prepare_dataset_service import PrepareDatasetService
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
 from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
 import parameters
 from tensorflow.keras.callbacks import Callback
-import joblib
 
 
 
@@ -46,7 +45,7 @@ DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 
 """ ************************* Préparation du dataset ************************* """
 
-prepare_dataset = PrepareDataset()
+prepare_dataset = PrepareDatasetService()
 
 
 # Loading dataset :
@@ -63,12 +62,11 @@ tmp_dataset['Historical_Volatility'] = prepare_dataset.calculate_historical_vola
 
 
 # Ajout des caractéristiques de lag :
-""" MIS DE COTE :
-# lags = [1, 7, 30, 60, 90, 180, 365]
 lags = [1, 7]
-tmp_dataset = add_lag_features(tmp_dataset, lags)
+# lags = [1, 7, 30, 60, 90, 180, 365]
+tmp_dataset = prepare_dataset.add_lag_features(tmp_dataset, lags)
 tmp_dataset = tmp_dataset.dropna()  # Supprimer les lignes avec des valeurs NaN introduites par les lags
-"""
+
 
 
 # Définir une date de coupure pour séparer les anciennes et récentes données :
@@ -83,7 +81,6 @@ tmp_dataset = prepare_dataset.subsample_old_data(tmp_dataset, cutoff_date, fract
 tmp_dataset_copy = tmp_dataset.copy()
 columns_to_normalize = ['Dernier']
 scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
-joblib.dump(scaler, 'scaler.save')
 model_dataset = tmp_dataset
 normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
 model_dataset[columns_to_normalize] = normalized_datas
@@ -268,7 +265,7 @@ for metric, values in metrics_history.items():
     print(f"{metric}: {values}")
 
 
-display_results = DisplayResults()
+display_results = DisplayResultsService()
 
 
 # Affichage des courbes de pertes :

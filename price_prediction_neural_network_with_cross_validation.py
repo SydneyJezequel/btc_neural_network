@@ -77,62 +77,6 @@ def calculate_signal(dataset, taille_sma1, taille_sma2):
     return dataset
 
 
-def format_dataset(initial_dataset):
-    """ Préparation des données """
-    tmp_dataset = initial_dataset.copy()
-    tmp_dataset['Date'] = pd.to_datetime(initial_dataset['Date'], format='%d/%m/%Y', errors='coerce')
-    tmp_dataset = tmp_dataset.sort_values(by='Date')
-    numeric_columns = ["Dernier", "Ouv.", " Plus Haut", "Plus Bas", "Variation %"]
-    for col in numeric_columns:
-        tmp_dataset.loc[:, col] = tmp_dataset[col].str.replace('.', ' ').str.replace(' ', '').str.replace(',', '.')
-    for col in numeric_columns:
-        tmp_dataset[col] = pd.to_numeric(tmp_dataset[col], errors='coerce')
-    return tmp_dataset
-
-
-def delete_columns(tmp_dataset):
-    """ Suppression des colones du dataset d'origine """
-    # Suppression des colonnes de départ :
-    tmp_dataset = tmp_dataset.drop(columns=['Vol.', 'Variation %', 'Ouv.', ' Plus Haut', 'Plus Bas'])
-    return tmp_dataset
-
-
-def add_technicals_indicators(tmp_dataset):
-    """ Ajout des indicateurs techniques dans le dataset """
-    # Ajout des indicateurs dans les colonnes :
-    tmp_dataset['MA_150'] = ma(tmp_dataset, 150)
-    tmp_dataset['MA_100'] = ma(tmp_dataset, 100)
-    tmp_dataset['MA_50'] = ma(tmp_dataset, 50)
-    tmp_dataset['RSI'] = rsi(tmp_dataset, 14)
-    # Ajout des signaux générés par les indicateurs :
-    calculate_signal(tmp_dataset, 50, 150)
-    calculate_signal(tmp_dataset, 100, 150)
-    calculate_signal(tmp_dataset, 50, 100)
-    # Suppression de la colonne 'Date' :
-    date_column = tmp_dataset['Date']
-    tmp_dataset = tmp_dataset.drop(columns=['Date'])
-    # Remplir les valeurs NaN avec la moyenne des colonnes :
-    imputer = SimpleImputer(strategy='mean')
-    tmp_dataset_imputed = imputer.fit_transform(tmp_dataset)
-    # Reconversion en DataFrame avec les noms de colonnes d'origine :
-    tmp_dataset = pd.DataFrame(tmp_dataset_imputed, columns=tmp_dataset.columns)
-    # Réintégration de la colonne 'Date' :
-    tmp_dataset['Date'] = date_column
-    return tmp_dataset
-
-
-def get_fitted_scaler(tmp_dataset):
-    """ Méthode pour obtenir le scaler ajusté """
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaler.fit(tmp_dataset)
-    return scaler
-
-
-def normalize_datas(tmp_dataset, scaler):
-    """ Méthode normalize_data() """
-    return scaler.transform(tmp_dataset)
-
-
 def create_train_and_test_dataset(model_dataset):
     """ Création des datasets d'entrainement et tests """
     # Création des datasets d'entrainement et de test
@@ -157,15 +101,6 @@ def create_dataset(dataset, time_step=1):
     return np.array(dataX), np.array(dataY)
 
 
-def create_data_matrix(model_dataset, time_step=15):
-    """ Création des matrices pour les datasets d'entrainement et test """
-    # Création des ensembles de données en utilisant la fonction create_dataset :
-    x, y = create_dataset(model_dataset, time_step)
-    # Remodelage de X pour obtenir la forme [échantillons, time steps, caractéristiques]
-    # Cela est nécessaire pour que les données soient compatibles avec les couches LSTM :
-    x = x.reshape(x.shape[0], x.shape[1], 1)
-    # Affichage des dimensions des ensembles de données après remodelage :
-    return x, y
 
 
 

@@ -4,8 +4,8 @@ import numpy as np
 
 
 
-class technical_indicators:
-    """ Classe qui calcule les indicateurs techniques """
+class TechnicalIndicatorsService:
+    """ Calcule les indicateurs techniques """
 
 
     @staticmethod

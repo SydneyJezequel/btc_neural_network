@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 
 
-class DisplayResults:
-    """ Classe qui affiche les résultats du modèle """
+class DisplayResultsService:
+    """ Affiche les résultats du modèle """
 
 
     def __init__(self):

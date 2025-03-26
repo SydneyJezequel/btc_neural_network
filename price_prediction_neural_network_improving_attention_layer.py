@@ -3,15 +3,14 @@ import numpy as np
 import math
 from keras.src.layers import Lambda
 from keras.src.utils.audio_dataset_utils import prepare_dataset
-from service.display_results_service import DisplayResults
-from service.prepare_dataset_service import PrepareDataset
+from service.display_results_service import DisplayResultsService
+from service.prepare_dataset_service import PrepareDatasetService
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
 from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
 import parameters
 from tensorflow.keras.callbacks import Callback
-import joblib
 from tensorflow.keras.layers import Attention, Concatenate
 
 
@@ -39,53 +38,19 @@ DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 
 """ ************************* Préparation du dataset ************************* """
 
-prepare_dataset = PrepareDataset()
+prepare_dataset = PrepareDatasetService()
 
 
 # Loading dataset :
 initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
 
 
-# Preparation of the Dataset :
-tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
-tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
-
-
-# Définir une date de coupure pour séparer les anciennes et récentes données :
+# Préparation du dataset pré-entrainement :
 cutoff_date = '2020-01-01'
+x_train, y_train, x_test, y_test = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
 
 
-# Appliquer le sous-échantillonnage :
-tmp_dataset = prepare_dataset.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
-
-
-# Normalisation :
-tmp_dataset_copy = tmp_dataset.copy()
-columns_to_normalize = ['Dernier']
-scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
-joblib.dump(scaler, 'scaler.save')
-model_dataset = tmp_dataset
-normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
-model_dataset[columns_to_normalize] = normalized_datas
-print("dataset d'entrainement normalisé :", model_dataset)
-print("model_dataset shape : ", model_dataset.shape)
-
-
-# Sauvegarde du dataset pour contrôle :
-model_dataset.to_csv(PATH_TRAINING_DATASET + 'dataset_modified_with_date.csv', index=False)
-
-
-# Suppression de la colonne date :
-del model_dataset['Date']
-
-
-# Création des datasets d'entrainement et test :
-train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
-time_step = 15
-x_train, y_train = prepare_dataset.create_dataset(train_data, time_step)
-x_test, y_test = prepare_dataset.create_dataset(test_data, time_step)
-x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
-x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
+# Affichage du dataset :
 print("x_train shape:", x_train.shape)
 print("y_train shape:", y_train.shape)
 print("x_test shape:", x_test.shape)
@@ -104,22 +69,14 @@ print("y_test shape:", y_test.shape)
 
 
 
+
 """ ************************* Définition du modèle ************************* """
 
 def attention_layer(inputs):
-    """
-    Implémente un mécanisme d'attention simple.
-    - `query` et `value` sont définis comme étant la même entrée.
-    - L'attention apprend à pondérer les parties importantes de la séquence.
-    - La sortie de l'attention est concaténée avec l'entrée originale.
-    Arguments :
-    inputs -- La sortie de la couche précédente (ex: une couche LSTM).
-    Retourne :
-    - Une nouvelle représentation combinée avec l'attention appliquée.
-    """
-    query, value = inputs, inputs  # Définition des requêtes et valeurs pour l'attention
-    attention = Attention()([query, value])  # Application du mécanisme d'attention
-    return Concatenate()([inputs, attention])  # Concaténation de la sortie avec l'entrée d'origine
+    """ Mécanisme d'attention simple """
+    query, value = inputs, inputs # inputs : Sortie de la couche précédente.
+    attention = Attention()([query, value])
+    return Concatenate()([inputs, attention])
 
 
 # Création du modèle séquentiel
@@ -281,7 +238,7 @@ for metric, values in metrics_history.items():
     print(f"{metric}: {values}")
 
 
-display_results = DisplayResults()
+display_results = DisplayResultsService()
 
 
 # Affichage des courbes de pertes :
