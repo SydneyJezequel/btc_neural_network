@@ -27,6 +27,7 @@ DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
+DATASET_FOR_PREDICTIONS = parameters.DATASET_FOR_PREDICTIONS
 
 
 
@@ -291,99 +292,21 @@ display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
 
 
 
+""" ***************** Faire des prédictions sur un dataset indépendant ***************** """
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-""" ******************************** Autres ******************************** """
-
-"""
-def predict_on_new_data(new_data_path, model, scaler, time_step=15):
-    # Fait des prédictions sur un nouveau dataset.
-    # Charger et préparer le nouveau dataset
-    new_dataset = pd.read_csv(new_data_path)
-    new_dataset = format_dataset(new_dataset)
-    new_dataset = delete_columns(new_dataset)
-    new_dataset = add_technicals_indicators(new_dataset)
-    # new_dataset['Historical_Volatility'] = calculate_historical_volatility(new_dataset)
-    # new_dataset = add_lag_features(new_dataset, lags)
-    new_dataset = new_dataset.dropna()
-
-    # Normaliser les données
-    columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100', 'Historical_Volatility'] + [f'Lag_{lag}' for lag in lags]
-    normalized_datas = scaler.transform(new_dataset[columns_to_normalize])
-    new_dataset[columns_to_normalize] = normalized_datas
-
-    # Créer le dataset pour la prédiction
-    x_new, _ = create_dataset(new_dataset, time_step)
-    x_new = x_new.reshape(x_new.shape[0], x_new.shape[1], 1)
-
-    # Faire des prédictions
-    new_predictions = model.predict(x_new)
-    new_predictions = scaler.inverse_transform(new_predictions)
-
-    return new_predictions
-
-
-
-# Exemple d'utilisation de la fonction pour faire des prédictions sur un nouveau dataset
-dataset_for_test_predictions = parameters.DATASET_FILE_FOR_TEST_PREDICTIONS
-new_predictions = predict_on_new_data(dataset_for_test_predictions, model, scaler)
-print("New Predictions:", new_predictions)
-
-"""
-
-
-
-
-
-
-""" Faire des prédictions sur un dataset indépendant """
-
-# model.load_weights('path/to/model.weights.h5')
-
-# scaler = joblib.load('path/to/scaler.save')
-
-def predict_on_new_data(new_data_path, model, scaler, time_step=15):
+def predict_on_new_data(dataset_for_predictions, model, time_step=15):
     """Faire des prédictions sur un dataset indépendant"""
 
-    # Charger et préparer le nouveau dataset :
-    new_dataset = pd.read_csv(new_data_path)
-    new_dataset = prepare_dataset.format_dataset(new_dataset)
-    new_dataset = prepare_dataset.delete_columns(new_dataset)
+    # Préparation du dataset :
+    dataset_for_predictions, scaler = prepare_dataset.prepare_dataset_to_predict(dataset_for_predictions, time_step)
 
-    # Normaliser les données :
-    columns_to_normalize = ['Dernier']
-    normalized_datas = prepare_dataset.normalize_datas(new_dataset[columns_to_normalize], scaler)
-    new_dataset[columns_to_normalize] = normalized_datas
-
-    # Suppression de la colonne date :
-    del new_dataset['Date']
-
-    # Créer le dataset pour la prédiction :
-    x_new, _ = prepare_dataset.create_dataset(new_dataset, time_step)
-    x_new = x_new.reshape(x_new.shape[0], x_new.shape[1], 1)
+    print("dataset for predictions : ", dataset_for_predictions)
 
     # Faire des prédictions :
-    new_predictions = model.predict(x_new)
+    new_predictions = model.predict(dataset_for_predictions)
+    print("new_predictions normalisées : ", new_predictions)
     new_predictions = scaler.inverse_transform(new_predictions)
+    print("new_predictions finales : ", new_predictions)
 
     return new_predictions
 
@@ -391,28 +314,32 @@ def predict_on_new_data(new_data_path, model, scaler, time_step=15):
 
 
 
+
+
+
+
+
+
+""" Prédictions """
 # Lien vers le projet Kaggle : https://www.kaggle.com/code/meetnagadia/bitcoin-price-prediction-using-lstm
 # Lien vers le dataset : https://fr.investing.com/crypto/bitcoin/historical-data
-PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
-DATASET_FILE_FOR_TEST_PREDICTIONS = parameters.DATASET_FILE_FOR_TEST_PREDICTIONS
-print("CHEMIN : ", PATH_TRAINING_DATASET + DATASET_FILE_FOR_TEST_PREDICTIONS)
-new_dataset = PATH_TRAINING_DATASET + DATASET_FILE_FOR_TEST_PREDICTIONS
 
 
-# scaler = MinMaxScaler()
-# scaler.fit(data_with_feature_names)
-print("new dataset : ", new_dataset)
-scaler = prepare_dataset.get_fitted_scaler(x_train)
-# scaler = prepare_dataset.get_fitted_scaler(train_predict)
-news_predictions = predict_on_new_data(new_dataset, model, scaler, time_step=15)
+# Chargement du dataset :
+dataset_for_predictions = DATASET_FOR_PREDICTIONS
+print("CHEMIN : ", dataset_for_predictions)
+dataset_for_predictions = pd.read_csv(dataset_for_predictions)
+print("DATASET : ", dataset_for_predictions)
 
 
+# Conserver les dates avant de les supprimer
+dates = dataset_for_predictions['Date'].values
 
 
-
-
-
-
+# Prédictions :
+time_step=15
+predictions = predict_on_new_data(dataset_for_predictions, model, time_step)
+print("predictions datas : ", predictions)
 
 
 
@@ -423,9 +350,57 @@ news_predictions = predict_on_new_data(new_dataset, model, scaler, time_step=15)
 
 
 
+""" Tracer des prédictions """
 
-""" Affichage des prédictions """
-""" shift train predictions for plotting """
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Aligner les prédictions avec les dates
+predictions_with_dates = pd.DataFrame({
+    'Date': dates[time_step:],  # Assurez-vous que les dates correspondent aux prédictions
+    'Prediction': predictions.flatten()
+})
+
+# Mise en place de l'index :
+predictions_with_dates.set_index('Date', inplace=True)
+
+# Tracer le schéma :
+plt.figure(figsize=(12, 6))
+sns.lineplot(data=predictions_with_dates, x=predictions_with_dates.index, y='Prediction', marker='o')
+
+plt.title('Prédictions')
+plt.xlabel('Date')
+plt.ylabel('Valeur')
+plt.grid()
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" 
 # shift train predictions for plotting
 
 
@@ -477,7 +452,6 @@ fig.show()
 
 
 
-""" Plotting last 15 days of dataset and next predicted 30 days """
 
 # Plotting last 15 days of dataset and next predicted 30 days
 
@@ -531,7 +505,6 @@ fig.show()
 
 
 
-""" Plotting entire Closing Stock Price with next 30 days period of prediction """
 # Plotting entire Closing Stock Price with next 30 days period of prediction
 
 
@@ -550,8 +523,7 @@ fig.for_each_trace(lambda t:  t.update(name = next(names)))
 fig.update_xaxes(showgrid=False)
 fig.update_yaxes(showgrid=False)
 fig.show()
-
-
+"""
 
 
 

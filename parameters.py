@@ -3,12 +3,13 @@ DATASET_PATH = '../btc_neural_network/dataset/'
 # PATH_TRAINING_DATASET = DATASET_PATH + 'training_dataset/'
 PATH_TRAINING_DATASET = DATASET_PATH + 'dataset_for_predictions/'
 TRAINING_DATASET_FILE = 'btc_cotations_for_training.csv'
-# TRAINING_DATASET_FILE ='cac_40_historic_cotations.csv'
-# DATASET_FILE = 'btc_historic_cotations.csv'
 DATASET_FILE_FOR_TEST_PREDICTIONS = 'btc_cotations_for_test_predictions.csv'
 DATASET_FOR_MODEL = 'dataset_for_model.csv'
 SAVE_MODEL_PATH = '../btc_neural_network/model/trained_model/'
 MODEL_FOR_PREDICTIONS_PATH = '../btc_neural_network/model/model_for_predictions/'
+
+
+
 
 
 
@@ -27,8 +28,9 @@ BATCH_SIZE = 32
 
 """ ************ Paramètres pour faire des prédictions ************ """
 LOAD_MODEL_PATH = SAVE_MODEL_PATH
-PATH_PREDICTIONS_DATASET = DATASET_PATH + 'dataset_for_predictions/'
-DATASET_FOR_PREDICTIONS = PATH_PREDICTIONS_DATASET + 'btc_cotations_for_training.csv'
+DATASET_FOR_PREDICTIONS_PATH= '../btc_neural_network/dataset/dataset_for_predictions/'
+DATASET_FOR_PREDICTIONS = DATASET_FOR_PREDICTIONS_PATH + 'btc_cotations_for_test_predictions.csv'
+
 
 
 
