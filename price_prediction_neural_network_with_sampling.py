@@ -14,6 +14,14 @@ from tensorflow.keras.callbacks import Callback
 
 
 
+# ******************* TEST ***************** #
+import plotly.express as px
+from itertools import cycle
+# ******************* TEST ***************** #
+
+
+
+
 
 
 
@@ -49,7 +57,7 @@ initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
 
 # Préparation du dataset pré-entrainement :
 cutoff_date = '2020-01-01'
-x_train, y_train, x_test, y_test = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
+x_train, y_train, x_test, y_test, scaler = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
 
 
 # Affichage du dataset :
@@ -266,7 +274,7 @@ test_predict = model.predict(x_test)
 train_predict = train_predict.reshape(-1, 1)
 test_predict = test_predict.reshape(-1, 1)
 
-scaler = prepare_dataset.get_fitted_scaler(train_predict)
+# scaler = prepare_dataset.get_fitted_scaler(train_predict)
 train_predict = scaler.inverse_transform(train_predict)
 test_predict = scaler.inverse_transform(test_predict)
 
@@ -276,6 +284,39 @@ original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
 # Affichage des résidus :
 display_results.plot_residuals(original_ytrain, train_predict, 'Training Residuals')
 display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
+
+
+
+
+# Données brutes :
+print(" **************** Contrôle résultat ****************** ")
+print(" train_predict : ", train_predict)
+print(" test_predict : ", test_predict)
+print(" original_ytrain  : ", original_ytrain)
+print(" original_ytest : ", original_ytest)
+print(" **************** Contrôle résultat ****************** ")
+
+
+
+
+# Données avec le scaler :
+print(" **************** Contrôle résultat 2 ****************** ")
+"""
+# Appliquer inverse_transform pour obtenir les prix réels
+train_predict_real = scaler.inverse_transform(train_predict)
+test_predict_real = scaler.inverse_transform(test_predict)
+original_ytrain_real = scaler.inverse_transform(original_ytrain)
+original_ytest_real = scaler.inverse_transform(original_ytest)
+# Affichage des résultats
+print("Train Predictions (real prices):", train_predict_real)
+print("Test Predictions (real prices):", test_predict_real)
+print("Original Train Prices (real prices):", original_ytrain_real)
+print("Original Test Prices (real prices):", original_ytest_real)
+"""
+print(" **************** Contrôle résultat 2 ****************** ")
+
+
+
 
 
 
@@ -332,7 +373,7 @@ dataset_for_predictions = pd.read_csv(dataset_for_predictions)
 print("DATASET : ", dataset_for_predictions)
 
 
-# Conserver les dates avant de les supprimer
+# Conserver les dates avant de les supprimer :
 dates = dataset_for_predictions['Date'].values
 
 
@@ -342,37 +383,8 @@ predictions = predict_on_new_data(dataset_for_predictions, model, time_step)
 print("predictions datas : ", predictions)
 
 
-
-
-
-
-
-
-
-
-""" Tracer des prédictions """
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# Aligner les prédictions avec les dates
-predictions_with_dates = pd.DataFrame({
-    'Date': dates[time_step:],  # Assurez-vous que les dates correspondent aux prédictions
-    'Prediction': predictions.flatten()
-})
-
-# Mise en place de l'index :
-predictions_with_dates.set_index('Date', inplace=True)
-
-# Tracer le schéma :
-plt.figure(figsize=(12, 6))
-sns.lineplot(data=predictions_with_dates, x=predictions_with_dates.index, y='Prediction', marker='o')
-
-plt.title('Prédictions')
-plt.xlabel('Date')
-plt.ylabel('Valeur')
-plt.grid()
-plt.show()
+# Affichage des prédictions :
+display_results.plot_predictions(dates, predictions, time_step)
 
 
 
@@ -398,34 +410,56 @@ plt.show()
 
 
 
+""" Comparaison du prix de clôture original VS les prix prédits """
+print(" **************** Comparaison du prix de clôture original VS les prix prédits ****************** ")
+
+initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
+
+# Prix initiaux :
+compare_prices = initial_dataset[['Date', 'Dernier']]
+print("compare_prices : ", compare_prices)
+
+# Prix prédits lors de l'entrainement :
+# train_predict = scaler.inverse_transform(train_predict)
+print("train_predict : ", train_predict)
+
+# Prix prédits lors des tests :
+#  test_predict = scaler.inverse_transform(test_predict)
+print("test_predict : ", test_predict)
+
+print("original_ytrain : ", original_ytrain)
+print("original_ytest : ", original_ytest )
 
 
-""" 
-# shift train predictions for plotting
+""" Tenter d'implémenter le schéma (1) """
 
 
-look_back=time_step
-trainPredictPlot = np.empty_like(closedf)
-trainPredictPlot[:, :] = np.nan
-trainPredictPlot[look_back:len(train_predict)+look_back, :] = train_predict
-print("Train predicted data: ", trainPredictPlot.shape)
-
-# shift test predictions for plotting
-testPredictPlot = np.empty_like(closedf)
-testPredictPlot[:, :] = np.nan
-testPredictPlot[len(train_predict)+(look_back*2)+1:len(closedf)-1, :] = test_predict
-print("Test predicted data: ", testPredictPlot.shape)
-
-names = cycle(['Original close price','Train predicted close price','Test predicted close price'])
 
 
-plotdf = pd.DataFrame({'date': close_stock['Date'],
-                       'original_close': close_stock['Close'],
-                      'train_predicted_close': trainPredictPlot.reshape(1,-1)[0].tolist(),
-                      'test_predicted_close': testPredictPlot.reshape(1,-1)[0].tolist()})
 
-fig = px.line(plotdf,x=plotdf['date'], y=[plotdf['original_close'],plotdf['train_predicted_close'],
-                                          plotdf['test_predicted_close']],
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" Comparaison du prix de clôture original VS les prix prédits (tentative 2) """
+
+names = cycle(['Original close price'])
+
+plotdf = pd.DataFrame({'date': compare_prices['Date'],
+                       'original_close': compare_prices['Dernier']})
+
+fig = px.line(plotdf,x=plotdf['date'], y=[plotdf['original_close']],
               labels={'value':'Stock price','date': 'Date'})
 fig.update_layout(title_text='Comparision between original close price vs predicted close price',
                   plot_bgcolor='white', font_size=15, font_color='black', legend_title_text='Close Price')
@@ -444,6 +478,33 @@ fig.show()
 
 
 
+""" Comparaison du prix de clôture original VS les prix prédits (2024) """
+
+# Supposons que compare_prices soit déjà défini et contienne les colonnes 'Date' et 'Dernier'
+# Convertir la colonne 'Date' en type datetime
+compare_prices['Date'] = pd.to_datetime(compare_prices['Date'], format='%d/%m/%Y')
+
+# Filtrer les données pour l'année 2024
+compare_prices_2024 = compare_prices[compare_prices['Date'].dt.year == 2024][['Date', 'Dernier']]
+
+# Préparer les données pour le traçage
+plotdf = pd.DataFrame({
+    'date': compare_prices_2024['Date'],
+    'original_close': compare_prices_2024['Dernier']
+})
+
+# Tracer les prix de clôture originaux pour 2024
+names = cycle(['Original close price'])
+
+fig = px.line(plotdf, x=plotdf['date'], y=[plotdf['original_close']],
+              labels={'value': 'Stock price', 'date': 'Date'})
+fig.update_layout(title_text='Comparaison entre le prix de clôture original et le prix de clôture prédit en 2024',
+                  plot_bgcolor='white', font_size=15, font_color='black', legend_title_text='Close Price')
+fig.for_each_trace(lambda t: t.update(name=next(names)))
+
+fig.update_xaxes(showgrid=False)
+fig.update_yaxes(showgrid=False)
+fig.show()
 
 
 
@@ -453,6 +514,72 @@ fig.show()
 
 
 
+""" Comparaison du prix de clôture original VS les prix prédits (original) """
+
+# shift train predictions for plotting
+look_back=time_step
+trainPredictPlot = np.empty_like(compare_prices)
+trainPredictPlot[:, :] = np.nan
+trainPredictPlot[look_back:len(train_predict)+look_back, :] = train_predict
+print("Train predicted data: ", trainPredictPlot.shape)
+
+# Correction mise en forme :
+test_predict = test_predict.reshape(-1, 2)
+print("test_predict shape: ", test_predict.shape)
+
+# shift test predictions for plotting
+testPredictPlot = np.empty_like(compare_prices)
+testPredictPlot[:, :] = np.nan
+# testPredictPlot[len(train_predict)+(look_back*2)+1:len(compare_prices)-1, :] = test_predict
+testPredictPlot[len(train_predict)+(look_back*2)+1:len(train_predict)+(look_back*2)+1+len(test_predict), :] = test_predict
+
+print("Test predicted data: ", testPredictPlot.shape)
+
+names = cycle(['Original close price','Train predicted close price','Test predicted close price'])
+
+
+"""
+plotdf = pd.DataFrame({'date': compare_prices['Date'],
+                       'original_close': compare_prices['Dernier'],
+                      'train_predicted_close': trainPredictPlot.reshape(1,-1)[0].tolist(),
+                      'test_predicted_close': testPredictPlot.reshape(1,-1)[0].tolist()})
+"""
+
+plotdf = pd.DataFrame({'date': compare_prices['Date'],
+                       'original_close': compare_prices['Dernier'],
+                      'train_predicted_close': trainPredictPlot[:, 0],
+                      'test_predicted_close': testPredictPlot[:, 0] })
+
+
+fig = px.line(plotdf,x=plotdf['date'], y=[plotdf['original_close'],plotdf['train_predicted_close'],
+                                          plotdf['test_predicted_close']],
+              labels={'value':'Stock price','date': 'Date'})
+fig.update_layout(title_text='Comparision between original close price vs predicted close price',
+                  plot_bgcolor='white', font_size=15, font_color='black', legend_title_text='Close Price')
+fig.for_each_trace(lambda t:  t.update(name = next(names)))
+
+fig.update_xaxes(showgrid=False)
+fig.update_yaxes(showgrid=False)
+fig.show()
+
+
+""" Tenter d'implémenter le schéma (2) """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
 # Plotting last 15 days of dataset and next predicted 30 days
 
 last_days=np.arange(1,time_step+1)
@@ -487,6 +614,7 @@ fig.for_each_trace(lambda t:  t.update(name = next(names)))
 fig.update_xaxes(showgrid=False)
 fig.update_yaxes(showgrid=False)
 fig.show()
+"""
 
 
 
@@ -503,8 +631,7 @@ fig.show()
 
 
 
-
-
+"""
 # Plotting entire Closing Stock Price with next 30 days period of prediction
 
 

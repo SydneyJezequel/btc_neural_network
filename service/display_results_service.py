@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+import seaborn as sns
+import pandas as pd
 
 
 
@@ -57,3 +58,25 @@ class DisplayResultsService:
         plt.legend()
         plt.show()
 
+
+
+    def plot_predictions(self, dates, predictions, time_step):
+        """ Affichage des prédictions """
+
+        # Aligner les prédictions et les dates :
+        predictions_with_dates = pd.DataFrame({
+            'Date': dates[time_step:],
+            'Prediction': predictions.flatten()
+        })
+
+        # Index :
+        predictions_with_dates.set_index('Date', inplace=True)
+
+        # Schéma :
+        plt.figure(figsize=(12, 6))
+        sns.lineplot(data=predictions_with_dates, x=predictions_with_dates.index, y='Prediction', marker='o')
+        plt.title('Prédictions')
+        plt.xlabel('Date')
+        plt.ylabel('Valeur')
+        plt.grid()
+        plt.show()
