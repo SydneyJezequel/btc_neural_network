@@ -452,6 +452,81 @@ print("original_ytest : ", original_ytest )
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 """ Comparaison du prix de clôture original VS les prix prédits (tentative 2) """
 
 names = cycle(['Original close price'])
@@ -461,13 +536,205 @@ plotdf = pd.DataFrame({'date': compare_prices['Date'],
 
 fig = px.line(plotdf,x=plotdf['date'], y=[plotdf['original_close']],
               labels={'value':'Stock price','date': 'Date'})
-fig.update_layout(title_text='Comparision between original close price vs predicted close price',
+fig.update_layout(title_text='Compare price',
                   plot_bgcolor='white', font_size=15, font_color='black', legend_title_text='Close Price')
 fig.for_each_trace(lambda t:  t.update(name = next(names)))
 
 fig.update_xaxes(showgrid=False)
 fig.update_yaxes(showgrid=False)
 fig.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" Test projet Kaggle dans : Dataset initial """
+
+pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
+cours = initial_dataset[['Date', 'Dernier']]
+print("Shape of course : ", cours.shape)
+
+fig = px.line(cours, x=cours.Date, y=cours.Dernier, labels={'date': 'Date', 'close': 'Close Stock'})
+
+fig.update_traces(marker_line_width=2, opacity=0.8, marker_line_color='orange')
+fig.update_layout(title_text='Whole period of timeframe of BTC close price',
+                  plot_bgcolor='white', font_size=15, font_color='black')
+
+fig.update_xaxes(showgrid=False)
+fig.update_yaxes(showgrid=False)
+fig.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" dataset initial """
+# Supposons que compare_prices soit déjà défini et contienne les colonnes 'Date' et 'Dernier'
+# Convertir la colonne 'Date' en type datetime
+initial_dataset['Date'] = pd.to_datetime(initial_dataset['Date'], format='%d/%m/%Y')
+
+start_date = pd.to_datetime('2024-01-01')
+end_date = pd.to_datetime('2024-02-15')
+# Filtrer les données pour les mois de janvier / février 2024 :
+initial_dataset_filtered = initial_dataset[(initial_dataset['Date'] >= start_date) & (initial_dataset['Date'] <= end_date)] [['Date', 'Dernier']]
+
+# Préparer les données pour le traçage
+plotdf = pd.DataFrame({
+    'date': initial_dataset_filtered['Date'],
+    'original_close': initial_dataset_filtered['Dernier']
+})
+
+# Tracer les prix de clôture originaux pour 2024
+names = cycle(['Original close price'])
+
+fig = px.line(plotdf, x=plotdf['date'], y=[plotdf['original_close']],
+              labels={'value': 'Stock price', 'date': 'Date'})
+fig.update_layout(title_text='Dataset initial',
+                  plot_bgcolor='white', font_size=15, font_color='black', legend_title_text='Close Price')
+fig.for_each_trace(lambda t: t.update(name=next(names)))
+
+fig.update_xaxes(showgrid=False)
+fig.update_yaxes(showgrid=False)
+fig.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" Comparaison du prix de clôture original VS les prix prédits (janvier / février 2024) """
+
+# Supposons que compare_prices soit déjà défini et contienne les colonnes 'Date' et 'Dernier'
+# Convertir la colonne 'Date' en type datetime
+compare_prices['Date'] = pd.to_datetime(compare_prices['Date'], format='%d/%m/%Y')
+
+start_date = pd.to_datetime('2024-01-01')
+end_date = pd.to_datetime('2024-02-15')
+# Filtrer les données pour les mois de janvier / février 2024 :
+compare_prices_filtered = compare_prices[(compare_prices['Date'] >= start_date) & (compare_prices['Date'] <= end_date)] [['Date', 'Dernier']]
+
+# Préparer les données pour le traçage
+plotdf = pd.DataFrame({
+    'date': compare_prices_filtered['Date'],
+    'original_close': compare_prices_filtered['Dernier']
+})
+
+# Tracer les prix de clôture originaux pour 2024
+names = cycle(['Original close price'])
+
+fig = px.line(plotdf, x=plotdf['date'], y=[plotdf['original_close']],
+              labels={'value': 'Stock price', 'date': 'Date'})
+fig.update_layout(title_text='Janvier - Février 2024',
+                  plot_bgcolor='white', font_size=15, font_color='black', legend_title_text='Close Price')
+fig.for_each_trace(lambda t: t.update(name=next(names)))
+
+fig.update_xaxes(showgrid=False)
+fig.update_yaxes(showgrid=False)
+fig.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

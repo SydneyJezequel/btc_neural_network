@@ -58,25 +58,26 @@ class DisplayResultsService:
         plt.legend()
         plt.show()
 
-
-
     def plot_predictions(self, dates, predictions, time_step):
-        """ Affichage des prédictions """
-
+        """ Affichage des prédictions avec une date sur deux affichée """
         # Aligner les prédictions et les dates :
         predictions_with_dates = pd.DataFrame({
             'Date': dates[time_step:],
             'Prediction': predictions.flatten()
         })
-
         # Index :
         predictions_with_dates.set_index('Date', inplace=True)
-
         # Schéma :
         plt.figure(figsize=(12, 6))
-        sns.lineplot(data=predictions_with_dates, x=predictions_with_dates.index, y='Prediction', marker='o')
+        ax = sns.lineplot(data=predictions_with_dates, x=predictions_with_dates.index, y='Prediction', marker='o')
+        # Sélection d'une date sur deux pour l'affichage :
+        tick_indices = range(0, len(predictions_with_dates), 2)
+        ax.set_xticks(predictions_with_dates.index[tick_indices])
+        ax.set_xticklabels(predictions_with_dates.index[tick_indices], rotation=45)
+        # Titres et légendes :
         plt.title('Prédictions')
         plt.xlabel('Date')
         plt.ylabel('Valeur')
         plt.grid()
         plt.show()
+
