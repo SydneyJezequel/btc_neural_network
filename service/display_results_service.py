@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import plotly.express as px
 
 
 
@@ -13,6 +14,18 @@ class DisplayResultsService:
 
     def __init__(self):
         pass
+
+
+    def display_all_dataset(self, dataset):
+        """  Affichage de l'intégralité du dataset """
+        fig = px.line(dataset, x=dataset.Date, y=dataset.Dernier,
+                      labels={'Date': 'date', 'Dernier': 'Close Stock'})
+        fig.update_traces(marker_line_width=2, opacity=0.8, marker_line_color='orange')
+        fig.update_layout(title_text='Whole period of timeframe of Bitcoin close price 2014-2025', plot_bgcolor='white',
+                          font_size=15, font_color='black')
+        fig.update_xaxes(showgrid=False)
+        fig.update_yaxes(showgrid=False)
+        fig.show()
 
 
     def plot_loss(self, history):

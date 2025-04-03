@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from service.technical_indicators_service import TechnicalIndicatorsService
+from service.display_results_service import DisplayResultsService
 
 
 
@@ -135,6 +136,10 @@ class PrepareDatasetService:
         # Préparation du dataset :
         tmp_dataset = self.format_dataset(dataset)
         tmp_dataset = self.delete_columns(tmp_dataset)
+
+        # Affichage de l'intégralité du dataset avant la transformation des prix :
+        display_results = DisplayResultsService()
+        display_results.display_all_dataset(tmp_dataset)
 
         # Sous-échantillonnage :
         tmp_dataset = self.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
