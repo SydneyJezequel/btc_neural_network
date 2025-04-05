@@ -433,7 +433,7 @@ display_results.display_all_dataset(predictions_dataset)
 
 # Ajout des prédictions au dataset :
 
-display_results.display_dataset_and_predictions(formated_dataset, [predictions_dataset])
+display_results.display_dataset_and_predictions(formated_dataset, predictions_dataset)
 
 
 
