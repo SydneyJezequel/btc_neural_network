@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from service.technical_indicators_service import TechnicalIndicatorsService
 from service.display_results_service import DisplayResultsService
+import parameters
 
 
 
@@ -15,6 +16,7 @@ class PrepareDatasetService:
 
     def __init__(self):
         pass
+        parameters.FORMATED_BTC_COTATIONS
 
 
     def format_dataset(self, initial_dataset):
@@ -130,12 +132,21 @@ class PrepareDatasetService:
         return volatility
 
 
+    def save_tmp_dataset(self, dataset):
+        """ Sauvegarde du dataset dans un fichier .csv """
+        saved_dataset = pd.DataFrame(dataset)
+        saved_dataset.to_csv(parameters.FORMATED_BTC_COTATIONS, index=False, encoding='utf-8')
+
+
     def prepare_dataset(self, dataset, cutoff_date = '2020-01-01'):
         """ Préparation du dataset """
 
         # Préparation du dataset :
         tmp_dataset = self.format_dataset(dataset)
         tmp_dataset = self.delete_columns(tmp_dataset)
+
+        # Sauvegarde du dataset formaté :
+        self.save_tmp_dataset(tmp_dataset)
 
         # Affichage de l'intégralité du dataset avant la transformation des prix :
         display_results = DisplayResultsService()

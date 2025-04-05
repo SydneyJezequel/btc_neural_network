@@ -335,3 +335,19 @@ df_litecoin = pd.DataFrame(data_litecoin)
 
 # Appel de la méthode pour afficher les courbes
 display_all_dataset(df_bitcoin, additional_datasets=[df_ethereum, df_litecoin])
+
+
+
+
+
+
+# Test :
+display_all_dataset(tmp_dataset, additional_datasets=[df_ethereum, df_litecoin])
+
+
+
+
+
+
+
+

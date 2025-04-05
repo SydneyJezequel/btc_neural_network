@@ -7,7 +7,7 @@ DATASET_FILE_FOR_TEST_PREDICTIONS = 'btc_cotations_for_test_predictions.csv'
 DATASET_FOR_MODEL = 'dataset_for_model.csv'
 SAVE_MODEL_PATH = '../btc_neural_network/model/trained_model/'
 MODEL_FOR_PREDICTIONS_PATH = '../btc_neural_network/model/model_for_predictions/'
-
+FORMATED_BTC_COTATIONS = DATASET_PATH + 'formated_daily_btc_cotations.csv'
 
 
 

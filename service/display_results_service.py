@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+
 
 
 
@@ -71,6 +73,7 @@ class DisplayResultsService:
         plt.legend()
         plt.show()
 
+
     def plot_predictions(self, dates, predictions, time_step):
         """ Affichage des prédictions avec une date sur deux affichée """
         # Aligner les prédictions et les dates :
@@ -93,4 +96,66 @@ class DisplayResultsService:
         plt.ylabel('Valeur')
         plt.grid()
         plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+    """ **************************** TEST ***************************** """
+
+    def display_dataset_and_predictions(self, dataset, additional_datasets=None):
+        """
+        Affichage de l'intégralité du dataset principal avec la possibilité d'ajouter d'autres courbes de prix.
+
+        :param dataset: DataFrame principal contenant les données de prix.
+        :param additional_datasets: Liste de DataFrames supplémentaires à ajouter au graphique.
+        """
+        # Création de la figure avec la première courbe de prix
+        fig = go.Figure()
+
+        # Ajout de la première courbe de prix
+        fig.add_trace(go.Scatter(
+            x=dataset['Date'],
+            y=dataset['Dernier'],
+            mode='lines',
+            name='Bitcoin',
+            line=dict(color='orange', width=2)
+        ))
+
+        # Ajout des courbes supplémentaires si fournies
+        if additional_datasets:
+            for i, additional_dataset in enumerate(additional_datasets, start=2):
+                fig.add_trace(go.Scatter(
+                    x=additional_dataset['Date'],
+                    y=additional_dataset['Dernier'],
+                    mode='lines',
+                    name='prédictions',
+                    line=dict(width=2)
+                ))
+
+        # Mise à jour de la mise en page
+        fig.update_layout(
+            title_text='Whole period of timeframe of Bitcoin close price 2014-2025',
+            plot_bgcolor='white',
+            font_size=15,
+            font_color='black',
+            xaxis_title='Date',
+            yaxis_title='Close Price'
+        )
+
+        # Suppression des grilles
+        fig.update_xaxes(showgrid=False)
+        fig.update_yaxes(showgrid=False)
+
+        # Affichage du graphique
+        fig.show()
+
 
