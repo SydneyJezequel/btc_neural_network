@@ -265,8 +265,24 @@ print("Validation Loss Array:", val_loss_array)
 
 
 
-""" ************************* Controle du surapprentissage ************************* """
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Controle du surapprentissage ************************* """
+"""
 # Calcul des prédictions :
 train_predict = model.predict(x_train)
 test_predict = model.predict(x_test)
@@ -295,6 +311,11 @@ print(" test_predict : ", test_predict)
 print(" original_ytrain  : ", original_ytrain)
 print(" original_ytest : ", original_ytest)
 print(" **************** Contrôle résultat ****************** ")
+"""
+
+
+
+
 
 
 
@@ -314,6 +335,63 @@ print("Original Train Prices (real prices):", original_ytrain_real)
 print("Original Test Prices (real prices):", original_ytest_real)
 """
 print(" **************** Contrôle résultat 2 ****************** ")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ***************** Charger le modèle sauvegardé ***************** """
+"""
+model.save_weights(...)
+model = create_model()  # fonction qui redéfinit la même architecture
+model.load_weights('model.weights.h5')
+"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -353,18 +431,51 @@ def predict_on_new_data(dataset_for_predictions, model, time_step=15):
 
 
 
+""" Nouvelle version de predict """
+"""
+def predict_on_new_data(dataset_for_predictions, model, time_step=15):
+    # Faire des prédictions sur un dataset indépendant
 
+    # Préparation du dataset :
+    dataset_for_predictions, scaler = prepare_dataset.prepare_dataset_to_predict(dataset_for_predictions, time_step)
+    print("dataset for predictions : ", dataset_for_predictions)
 
+    # Vérification de la forme actuelle
+    print("Shape of dataset_for_predictions: ", dataset_for_predictions.shape)
 
+    # Si les données ont une forme (samples, time_steps, features), aplatissez-les pour avoir (samples, time_steps * features)
+    if len(dataset_for_predictions.shape) == 3:
+        dataset_for_predictions = dataset_for_predictions.reshape(dataset_for_predictions.shape[0],
+                                                                  -1)  # -1 permet de calculer automatiquement la bonne taille
+        print("Shape après aplatissement : ", dataset_for_predictions.shape)
+
+    # Convertir en DataFrame pour nettoyage, si nécessaire
+    dataset_for_predictions = pd.DataFrame(dataset_for_predictions)
+
+    # Nettoyage des données (remplacer les virgules par des points)
+    dataset_for_predictions = dataset_for_predictions.applymap(lambda x: str(x).replace(',', '.'))
+    print("dataset for predictions après nettoyage : ", dataset_for_predictions)
+
+    # Convertir les valeurs en float après nettoyage
+    dataset_for_predictions = dataset_for_predictions.astype(float)
+    print("dataset_for_predictions converti : ", dataset_for_predictions)
+
+    # Faire des prédictions :
+    new_predictions = model.predict(dataset_for_predictions)
+    print("new_predictions normalisées : ", new_predictions)
+
+    # Inverse transform des prédictions :
+    new_predictions = scaler.inverse_transform(new_predictions)
+    print("new_predictions finales : ", new_predictions)
+
+    return new_predictions
+"""
 
 
 
 
 
 """ Prédictions """
-# Lien vers le projet Kaggle : https://www.kaggle.com/code/meetnagadia/bitcoin-price-prediction-using-lstm
-# Lien vers le dataset : https://fr.investing.com/crypto/bitcoin/historical-data
-
 
 # Chargement du dataset :
 dataset_for_predictions = DATASET_FOR_PREDICTIONS
@@ -372,10 +483,8 @@ print("CHEMIN : ", dataset_for_predictions)
 dataset_for_predictions = pd.read_csv(dataset_for_predictions)
 print("DATASET : ", dataset_for_predictions)
 
-
 # Conserver les dates avant de les supprimer :
 dates = dataset_for_predictions['Date'].values
-
 
 # Prédictions :
 time_step=15
@@ -383,11 +492,23 @@ predictions = predict_on_new_data(dataset_for_predictions, model, time_step)
 print("predictions datas : ", predictions)
 
 
-# Affichage des prédictions :
+
+
+
+
+
+
+
+""" Affichage des prédictions """
 display_results.plot_predictions(dates, predictions, time_step)
 
 
-# Affichage des prédictions à la suite du dataset d'origine :
+
+
+
+
+
+""" Affichage des prédictions à la suite du dataset d'origine """
 formated_dataset = pd.read_csv(FORMATED_BTC_COTATIONS)
 display_results.display_all_dataset(formated_dataset)
 
@@ -406,16 +527,7 @@ print("nombre de predictions : ", len(predictions))
 
 # Créer de nouvelles dates :
 new_dates = [formatted_dataset_last_date + pd.Timedelta(days=i) for i in range(1, num_days + 1)]
-# new_dates = [formatted_dataset_last_date + pd.Timedelta(days=i) for i in range(1, num_new_dates + 1)]
 print("new_dates : ", new_dates)
-# Exemple de dernière date
-# last_date = pd.to_datetime("2025-01-08")
-
-# Générer les 14 dates suivantes
-"""
-num_days = 14
-new_dates = [last_date + pd.Timedelta(days=i) for i in range(1, num_days + 1)]
-"""
 
 # Affichage pour vérification
 for d in new_dates:
@@ -432,10 +544,108 @@ print("predictions_dataset : ", predictions_dataset)
 display_results.display_all_dataset(predictions_dataset)
 
 # Ajout des prédictions au dataset :
-
 display_results.display_dataset_and_predictions(formated_dataset, predictions_dataset)
 
 
+
+
+
+
+
+
+
+
+""" ********************** TEST DE PLUSIEURS DATASET ********************** """
+
+
+
+
+""" Calcul des prédictions """
+train_predict = model.predict(x_train)
+test_predict = model.predict(x_test)
+
+
+
+
+""" Dénormalisation """
+
+# Nouveau formatage du dataset :
+initial_dataset['Dernier'] = pd.to_numeric(
+    initial_dataset['Dernier']
+    .astype(str)
+    .str.replace('.', '', regex=False)
+    .str.replace(',', '.', regex=False),
+    errors='coerce'
+)
+
+# Taille du dataset complet
+real_values = scaler.inverse_transform(initial_dataset['Dernier'].values.reshape(-1, 1)).flatten()
+dataset_length = len(real_values)
+print("initial_dataset : ", real_values)
+time_step = 15
+
+# Dénormalisation des prédictions :
+train_predict = scaler.inverse_transform(train_predict)
+test_predict = scaler.inverse_transform(test_predict)
+y_train_true = scaler.inverse_transform(y_train.reshape(-1, 1))
+y_test_true = scaler.inverse_transform(y_test.reshape(-1, 1))
+
+# Affichage pour vérification
+print("train_predict length : ", len(train_predict))
+print("train_predict length : ", train_predict)
+print("test_predict length : ", len(test_predict))
+print("test_predict length : ", test_predict)
+
+
+
+
+""" Préparation des datasets à afficher """
+# Initialisation des tableaux vides alignés avec le dataset initial
+train_predict_plot = np.empty(dataset_length)
+train_predict_plot[:] = np.nan
+test_predict_plot = np.empty(dataset_length)
+test_predict_plot[:] = np.nan
+
+# Positionnement des prédictions
+training_size = int(dataset_length * 0.60)
+
+train_start = time_step
+train_end = train_start + len(train_predict)
+train_predict_plot[train_start:train_end] = train_predict.flatten()
+
+test_start = training_size + time_step
+test_end = test_start + len(test_predict)
+if test_end > dataset_length:
+    test_end = dataset_length
+    test_predict = test_predict[:(test_end - test_start)]
+
+test_predict_plot[test_start:test_end] = test_predict.flatten()
+
+
+
+""" Tracer la courbe """
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(15, 6))
+plt.plot(initial_dataset['Date'], real_values, label='Données réelles', color='black')
+plt.plot(initial_dataset['Date'], train_predict_plot, label='Prédictions entraînement', color='green')
+plt.plot(initial_dataset['Date'], test_predict_plot, label='Prédictions test', color='red')
+plt.title("Courbe réelle vs prédictions LSTM")
+plt.xlabel("Date")
+plt.ylabel("Prix (dénormalisé)")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+
+
+""" Tracer la courbe (V1) """
+"""
+datasets_list = [train_predict, test_predict]
+
+display_results.display_dataset_and_predictions(formated_dataset, datasets_list)
+"""
 
 
 

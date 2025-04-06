@@ -26,7 +26,7 @@ class PrepareDatasetService:
         tmp_dataset = tmp_dataset.sort_values(by='Date')
         numeric_columns = ["Dernier", "Ouv.", " Plus Haut", "Plus Bas", "Variation %"]
         for col in numeric_columns:
-            tmp_dataset.loc[:, col] = tmp_dataset[col].str.replace('.', ' ').str.replace(' ', '').str.replace(',', '.')
+            tmp_dataset[col] = tmp_dataset[col].str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
         for col in numeric_columns:
             tmp_dataset[col] = pd.to_numeric(tmp_dataset[col], errors='coerce')
         return tmp_dataset
