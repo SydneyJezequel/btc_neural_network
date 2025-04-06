@@ -281,94 +281,6 @@ print("Validation Loss Array:", val_loss_array)
 
 
 
-""" ************************* Controle du surapprentissage ************************* """
-"""
-# Calcul des prédictions :
-train_predict = model.predict(x_train)
-test_predict = model.predict(x_test)
-
-train_predict = train_predict.reshape(-1, 1)
-test_predict = test_predict.reshape(-1, 1)
-
-# scaler = prepare_dataset.get_fitted_scaler(train_predict)
-train_predict = scaler.inverse_transform(train_predict)
-test_predict = scaler.inverse_transform(test_predict)
-
-original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
-original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
-
-# Affichage des résidus :
-display_results.plot_residuals(original_ytrain, train_predict, 'Training Residuals')
-display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
-
-
-
-
-# Données brutes :
-print(" **************** Contrôle résultat ****************** ")
-print(" train_predict : ", train_predict)
-print(" test_predict : ", test_predict)
-print(" original_ytrain  : ", original_ytrain)
-print(" original_ytest : ", original_ytest)
-print(" **************** Contrôle résultat ****************** ")
-"""
-
-
-
-
-
-
-
-
-# Données avec le scaler :
-print(" **************** Contrôle résultat 2 ****************** ")
-"""
-# Appliquer inverse_transform pour obtenir les prix réels
-train_predict_real = scaler.inverse_transform(train_predict)
-test_predict_real = scaler.inverse_transform(test_predict)
-original_ytrain_real = scaler.inverse_transform(original_ytrain)
-original_ytest_real = scaler.inverse_transform(original_ytest)
-# Affichage des résultats
-print("Train Predictions (real prices):", train_predict_real)
-print("Test Predictions (real prices):", test_predict_real)
-print("Original Train Prices (real prices):", original_ytrain_real)
-print("Original Test Prices (real prices):", original_ytest_real)
-"""
-print(" **************** Contrôle résultat 2 ****************** ")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 """ ***************** Charger le modèle sauvegardé ***************** """
 """
@@ -412,9 +324,9 @@ model.load_weights('model.weights.h5')
 
 
 """ ***************** Faire des prédictions sur un dataset indépendant ***************** """
-
+"""
 def predict_on_new_data(dataset_for_predictions, model, time_step=15):
-    """Faire des prédictions sur un dataset indépendant"""
+    # Faire des prédictions sur un dataset indépendant
 
     # Préparation du dataset :
     dataset_for_predictions, scaler = prepare_dataset.prepare_dataset_to_predict(dataset_for_predictions, time_step)
@@ -428,11 +340,10 @@ def predict_on_new_data(dataset_for_predictions, model, time_step=15):
     print("new_predictions finales : ", new_predictions)
 
     return new_predictions
-
+"""
 
 
 """ Nouvelle version de predict """
-"""
 def predict_on_new_data(dataset_for_predictions, model, time_step=15):
     # Faire des prédictions sur un dataset indépendant
 
@@ -469,7 +380,7 @@ def predict_on_new_data(dataset_for_predictions, model, time_step=15):
     print("new_predictions finales : ", new_predictions)
 
     return new_predictions
-"""
+
 
 
 
@@ -569,6 +480,7 @@ test_predict = model.predict(x_test)
 
 """ Dénormalisation """
 
+"""
 # Nouveau formatage du dataset :
 initial_dataset['Dernier'] = pd.to_numeric(
     initial_dataset['Dernier']
@@ -577,6 +489,7 @@ initial_dataset['Dernier'] = pd.to_numeric(
     .str.replace(',', '.', regex=False),
     errors='coerce'
 )
+"""
 
 # Taille du dataset complet
 real_values = scaler.inverse_transform(initial_dataset['Dernier'].values.reshape(-1, 1)).flatten()
@@ -664,6 +577,7 @@ display_results.display_dataset_and_predictions(formated_dataset, datasets_list)
 
 
 """ Comparaison du prix de clôture original VS les prix prédits """
+"""
 print(" **************** Comparaison du prix de clôture original VS les prix prédits ****************** ")
 
 initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
@@ -682,7 +596,7 @@ print("test_predict : ", test_predict)
 
 print("original_ytrain : ", original_ytrain)
 print("original_ytest : ", original_ytest )
-
+"""
 
 """ Tenter d'implémenter le schéma (1) """
 
@@ -2297,6 +2211,280 @@ print("original_ytest : ", original_ytest )
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ************************* Controle du surapprentissage ************************* """
+"""
+# Calcul des prédictions :
+train_predict = model.predict(x_train)
+test_predict = model.predict(x_test)
+
+train_predict = train_predict.reshape(-1, 1)
+test_predict = test_predict.reshape(-1, 1)
+
+# scaler = prepare_dataset.get_fitted_scaler(train_predict)
+train_predict = scaler.inverse_transform(train_predict)
+test_predict = scaler.inverse_transform(test_predict)
+
+original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
+original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
+
+# Affichage des résidus :
+display_results.plot_residuals(original_ytrain, train_predict, 'Training Residuals')
+display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
+
+
+
+
+# Données brutes :
+print(" **************** Contrôle résultat ****************** ")
+print(" train_predict : ", train_predict)
+print(" test_predict : ", test_predict)
+print(" original_ytrain  : ", original_ytrain)
+print(" original_ytest : ", original_ytest)
+print(" **************** Contrôle résultat ****************** ")
+"""
+
+
+
+
+
+
+
+
+# Données avec le scaler :
+print(" **************** Contrôle résultat 2 ****************** ")
+"""
+# Appliquer inverse_transform pour obtenir les prix réels
+train_predict_real = scaler.inverse_transform(train_predict)
+test_predict_real = scaler.inverse_transform(test_predict)
+original_ytrain_real = scaler.inverse_transform(original_ytrain)
+original_ytest_real = scaler.inverse_transform(original_ytest)
+# Affichage des résultats
+print("Train Predictions (real prices):", train_predict_real)
+print("Test Predictions (real prices):", test_predict_real)
+print("Original Train Prices (real prices):", original_ytrain_real)
+print("Original Test Prices (real prices):", original_ytest_real)
+"""
+print(" **************** Contrôle résultat 2 ****************** ")
 
 
 
