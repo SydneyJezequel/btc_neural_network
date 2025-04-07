@@ -1,13 +1,10 @@
 import os
 import parameters
-from service.predictions_generator import PredictionsGenerator
+from TRASH.predictions_generator import PredictionsGenerator
 from service.prepare_dataset_service import PrepareDataset
 import pandas as pd
-import numpy as np
-from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, LSTM
-import matplotlib.pyplot as plt  # Correction de l'importation
+from tensorflow.keras.layers import Dense, LSTM
 import joblib
 
 

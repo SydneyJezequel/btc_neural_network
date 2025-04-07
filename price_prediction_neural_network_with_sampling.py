@@ -10,14 +10,13 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
 import parameters
 from tensorflow.keras.callbacks import Callback
-
-
-
+from service.generate_prediction_service import GeneratePredictionService
 
 # ******************* TEST ***************** #
 import plotly.express as px
 from itertools import cycle
 # ******************* TEST ***************** #
+
 
 
 
@@ -324,6 +323,10 @@ model.load_weights('model.weights.h5')
 
 
 """ ***************** Faire des prédictions sur un dataset indépendant ***************** """
+
+
+
+""" Nouvelle version de predict (V1) """
 """
 def predict_on_new_data(dataset_for_predictions, model, time_step=15):
     # Faire des prédictions sur un dataset indépendant
@@ -343,7 +346,9 @@ def predict_on_new_data(dataset_for_predictions, model, time_step=15):
 """
 
 
-""" Nouvelle version de predict """
+
+""" Nouvelle version de predict (V2) """
+"""
 def predict_on_new_data(dataset_for_predictions, model, time_step=15):
     # Faire des prédictions sur un dataset indépendant
 
@@ -380,7 +385,7 @@ def predict_on_new_data(dataset_for_predictions, model, time_step=15):
     print("new_predictions finales : ", new_predictions)
 
     return new_predictions
-
+"""
 
 
 
@@ -398,8 +403,9 @@ print("DATASET : ", dataset_for_predictions)
 dates = dataset_for_predictions['Date'].values
 
 # Prédictions :
+generate_prediction_service = GeneratePredictionService()
 time_step=15
-predictions = predict_on_new_data(dataset_for_predictions, model, time_step)
+predictions = generate_prediction_service.predict_on_new_data(dataset_for_predictions, model, time_step)
 print("predictions datas : ", predictions)
 
 
@@ -492,9 +498,9 @@ initial_dataset['Dernier'] = pd.to_numeric(
 """
 
 # Taille du dataset complet
-real_values = scaler.inverse_transform(initial_dataset['Dernier'].values.reshape(-1, 1)).flatten()
-dataset_length = len(real_values)
-print("initial_dataset : ", real_values)
+# real_values = scaler.inverse_transform(initial_dataset['Dernier'].values.reshape(-1, 1)).flatten()
+dataset_length = len(initial_dataset)
+print("initial_dataset : ", initial_dataset)
 time_step = 15
 
 # Dénormalisation des prédictions :
@@ -539,10 +545,39 @@ test_predict_plot[test_start:test_end] = test_predict.flatten()
 """ Tracer la courbe """
 import matplotlib.pyplot as plt
 
+# Vérification des indices et des dates
+print("Indices des prédictions d'entraînement :", train_start, train_end)
+print("Indices des prédictions de test :", test_start, test_end)
+print("Dates des prédictions d'entraînement :", initial_dataset['Date'][train_start:train_end].values)
+print("Dates des prédictions de test :", initial_dataset['Date'][test_start:test_end].values)
+
+# Ajustement des indices si nécessaire
+# Par exemple, si les prédictions sont décalées de 1 jour, vous pouvez ajuster les indices comme suit :
+"""
+train_start_adjusted = train_start + 1
+test_start_adjusted = test_start + 1
+"""
+
+# decalage :
+decalage = 720
+train_start_adjusted = train_start + decalage
+test_start_adjusted = test_start + decalage
+train_end = train_end + decalage
+test_end = test_end + decalage
+
+
+
+print("Indices des prédictions d'entraînement :", train_start, train_end)
+print("Indices des prédictions de test :", test_start, test_end)
+print("Indices adjusted :", train_start_adjusted , test_start_adjusted)
+
+
+
+# Tracer la courbe avec les indices ajustés
 plt.figure(figsize=(15, 6))
-plt.plot(initial_dataset['Date'], real_values, label='Données réelles', color='black')
-plt.plot(initial_dataset['Date'], train_predict_plot, label='Prédictions entraînement', color='green')
-plt.plot(initial_dataset['Date'], test_predict_plot, label='Prédictions test', color='red')
+plt.plot(initial_dataset['Date'], formated_dataset['Dernier'], label='Données réelles', color='black')
+plt.plot(initial_dataset['Date'][train_start_adjusted:train_end], train_predict_plot[train_start_adjusted:train_end], label='Prédictions entraînement', color='green')
+plt.plot(initial_dataset['Date'][test_start_adjusted:test_end], test_predict_plot[test_start_adjusted:test_end], label='Prédictions test', color='red')
 plt.title("Courbe réelle vs prédictions LSTM")
 plt.xlabel("Date")
 plt.ylabel("Prix (dénormalisé)")
@@ -550,7 +585,6 @@ plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
-
 
 
 """ Tracer la courbe (V1) """
@@ -562,6 +596,50 @@ display_results.display_dataset_and_predictions(formated_dataset, datasets_list)
 
 
 
+
+""" V2 """
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Définir le décalage
+decalage = 720  # Remplacez par le nombre de points de données nécessaires
+
+# Ajuster les indices de début et de fin
+train_start_adjusted = train_start + decalage
+test_start_adjusted = test_start + decalage
+train_end_adjusted = min(train_end + decalage, len(initial_dataset))
+test_end_adjusted = min(test_end + decalage, len(initial_dataset))
+
+# Vérification des indices ajustés
+print("Indices ajustés pour l'entraînement :", train_start_adjusted, train_end_adjusted)
+print("Indices ajustés pour le test :", test_start_adjusted, test_end_adjusted)
+
+# Tracer la courbe avec les indices ajustés
+plt.figure(figsize=(15, 6))
+plt.plot(initial_dataset['Date'], formated_dataset['Dernier'], label='Données réelles', color='black')
+
+# Assurez-vous que les indices ne dépassent pas les limites
+if train_end_adjusted > len(train_predict_plot):
+    train_end_adjusted = len(train_predict_plot)
+if test_end_adjusted > len(test_predict_plot):
+    test_end_adjusted = len(test_predict_plot)
+
+plt.plot(initial_dataset['Date'][train_start_adjusted:train_end_adjusted],
+         train_predict_plot[train_start:train_end], label='Prédictions entraînement', color='green')
+plt.plot(initial_dataset['Date'][test_start_adjusted:test_end_adjusted],
+         test_predict_plot[test_start:test_end], label='Prédictions test', color='red')
+
+plt.title("Courbe réelle vs prédictions LSTM")
+plt.xlabel("Date")
+plt.ylabel("Prix (dénormalisé)")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+
+"""
 
 
 

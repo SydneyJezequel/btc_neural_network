@@ -84,16 +84,6 @@ class PrepareDatasetService:
         return np.array(dataX), np.array(dataY)
 
 
-    def create_dataset_for_predictions(self, dataset, time_step=1):
-        """ Méthode qui génère le dataset utilisé pour les prédictions """
-        dataX = []
-        print("dataset before transforme : ", dataset)
-        for i in range(len(dataset) - time_step):
-            a = dataset.iloc[i:(i + time_step), 0].values
-            dataX.append(a)
-        return np.array(dataX)
-
-
     def create_data_matrix(self, dataset, time_step=15):
         """ Méthode create_data_matrix() """
         # Création des ensembles de données en utilisant la fonction create_dataset :
@@ -178,34 +168,4 @@ class PrepareDatasetService:
         x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
 
         return x_train, y_train, x_test, y_test, scaler
-
-
-    def prepare_dataset_to_predict(self, dataset, time_step):
-        """ Préparation du dataset """
-
-        # Préparation du dataset :
-        tmp_dataset = self.format_dataset(dataset)
-        tmp_dataset = self.delete_columns(tmp_dataset)
-
-        # Normalisation :
-        tmp_dataset_copy = tmp_dataset.copy()
-        columns_to_normalize = ['Dernier']
-        scaler = self.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
-        dataset = tmp_dataset
-        print("dataset avant normalisation : ", dataset)
-        normalized_datas = self.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
-        dataset[columns_to_normalize] = normalized_datas
-        print("dataset d'entrainement normalisé :", dataset)
-        print("dataset shape : ", dataset.shape)
-
-        # Suppression de la colonne date :
-        del dataset['Date']
-
-        # Création du dataset utilisé pour les prédictions :
-        dataset = self.create_dataset_for_predictions(dataset, time_step)
-        print("create_dataset_for_predictions : ", dataset)
-        dataset = dataset.reshape(dataset.shape[0], dataset.shape[1], 1)
-        print("after reshape : ", dataset)
-
-        return dataset, scaler
 
