@@ -225,6 +225,9 @@ model.load_weights('model.weights.h5')
 
 
 
+
+
+
 """ ***************** Prédictions sur un dataset indépendant ***************** """
 
 
@@ -245,13 +248,49 @@ predictions = generate_prediction_service.predict_on_new_data(dataset_for_predic
 display_results.plot_predictions(dates, predictions, time_step)
 
 
+
 """ Affichage des prédictions à la suite du dataset d'origine """
-# Récupération du dataset formaté :
 formated_dataset = pd.read_csv(FORMATED_BTC_COTATIONS)
+display_results.display_all_dataset(formated_dataset)
 
 # Conversion de la date :
 formated_dataset['Date'] = pd.to_datetime(formated_dataset['Date'])
 
+# Récupération de la dernière date :
+formatted_dataset_last_date = formated_dataset['Date'].max()
+print("last date : ", formatted_dataset_last_date)
+
+# Numéro de la nouvelle date :
+num_new_dates = len(formated_dataset)
+num_days = len(predictions)
+print("nombre de dates générées : ", num_new_dates)
+print("nombre de predictions : ", len(predictions))
+
+# Créer de nouvelles dates :
+new_dates = [formatted_dataset_last_date + pd.Timedelta(days=i) for i in range(1, num_days + 1)]
+print("new_dates : ", new_dates)
+
+# Affichage pour vérification
+for d in new_dates:
+    print(d.date())
+
+# Création du dataset de prédictions (Date + Dernier) :
+predictions_dataset = pd.DataFrame({
+    'Date': new_dates,
+    'Dernier': predictions.flatten()
+})
+print("predictions_dataset : ", predictions_dataset)
+
+# Affichage des prédictions :
+display_results.display_all_dataset(predictions_dataset)
+
+# Ajout des prédictions au dataset :
+display_results.display_dataset_and_predictions(formated_dataset, predictions_dataset)
+
+
+
+
+""" Affichage des prédictions d'entrainement et test VS le dataset d'origine """
 # Prédictions :
 train_predict = model.predict(x_train)
 test_predict = model.predict(x_test)
