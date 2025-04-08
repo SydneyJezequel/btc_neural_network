@@ -70,3 +70,16 @@ class GeneratePredictionService:
             dataX.append(a)
         return np.array(dataX)
 
+
+    def insert_with_padding(self, values, start_index, total_length):
+        """ Méthode pour insérer des prédictions avec padding """
+        # Création d'un array avec des nan :
+        arr = np.empty(total_length)
+        arr[:] = np.nan
+
+        end_index = start_index + len(values)
+        if end_index > total_length:
+            end_index = total_length
+            values = values[:(end_index - start_index)]
+        arr[start_index:end_index] = values.flatten()
+        return arr
