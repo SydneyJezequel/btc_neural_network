@@ -1,8 +1,6 @@
 import os
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.impute import SimpleImputer
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
 from tensorflow.keras.callbacks import EarlyStopping
@@ -11,7 +9,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_v
 import plotly.express as px
 import parameters
 from sklearn.model_selection import TimeSeriesSplit
-from service.prepare_dataset_service import PrepareDataset
+from service.prepare_dataset_service import PrepareDatasetService
 import joblib
 
 
@@ -26,7 +24,6 @@ import joblib
 
 
 """ ****************************** Paramètres ****************************** """
-DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
@@ -109,16 +106,9 @@ def create_dataset(dataset, time_step=1):
 
 
 
-
-
-
-
-
-
-
 """ ************************* Préparation du dataset ************************* """
 
-prepare_dataset = PrepareDataset()
+prepare_dataset = PrepareDatasetService()
 
 
 # Loading dataset :
@@ -154,7 +144,7 @@ print(" forme tmp_dataset shape : ", tmp_dataset.shape)
 print(" forme tmp_dataset : ", tmp_dataset)
 
 
-# # Contrôle : Enregistrement du dataset au format csv :
+# Contrôle : Enregistrement du dataset au format csv :
 tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
 
 
@@ -183,11 +173,6 @@ model_dataset.to_csv(PATH_TRAINING_DATASET+'dataset_modified_for_model.csv', ind
 # Création des matrices de données pour l'entraînement et le test :
 x_train, y_train = prepare_dataset.create_data_matrix(model_dataset)
 x_test, y_test = prepare_dataset.create_data_matrix(model_dataset)
-
-
-
-
-
 
 
 
@@ -315,12 +300,6 @@ for train_index, val_index in tscv.split(x_train):
 
 
 
-
-
-
-
-
-
 """ ************************* Affichage des résultats ************************* """
 
 # Conversion des listes en arrays numpy :
@@ -410,67 +389,4 @@ print("Test MPD: ", mpd_test)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-" ******************** Evaluation de la fonction de perte / du sur-entrainement ******************** "
-
-"""
-print("Training loss 1 : ")
-# Exemple de pertes d'entraînement (à remplir avec vos valeurs réelles)
-training_loss = [0.001, 0.0005, 0.0003, 0.0002, 0.0001]
-
-# Pertes de validation
-validation_loss = [0.0020137971732765436, 0.0030710133723914623, 0.0003042859607376158, 0.0002075933152809739, 0.00011482657282613218]
-
-# Tracer les pertes
-plt.plot(training_loss_results, label='Training Loss')
-plt.plot(validation_loss_results, label='Validation Loss')
-plt.xlabel('Fold')
-plt.ylabel('Loss')
-plt.title('Training and Validation Loss Comparison')
-plt.legend()
-plt.show()
-"""
 

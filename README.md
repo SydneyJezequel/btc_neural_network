@@ -12,13 +12,11 @@ INDICATEURS UTILISES POUR EVALUER LA QUALITE DE L'ENTRAINEMENT :
 
 
 COMMENT ANALYSERS LES INDICATEURS :
-* Validation RMSE (Root Mean Squared Error) : Mesure l'écart moyen entre les prédictions et les valeurs réelles. Elle devrait diminuer avec l'entraînement mais peut atteindre un plateau ou augmenter en cas de surapprentissage.
-* Validation MSE (Mean Squared Error) : Mesure la moyenne des carrés des erreurs. Elle devrait diminuer mais peut atteindre un plateau ou augmenter en cas de surapprentissage.
-* Validation MAE (Mean Absolute Error) : Mesure l'erreur absolue moyenne entre les prédictions et les valeurs réelles. Elle devrait diminuer mais peut atteindre un plateau ou augmenter en cas de surapprentissage.
-* Validation EVS (Explained Variance Score) : Mesure la proportion de la variance dans les valeurs réelles expliquée par le modèle. Elle devrait se rapprocher de 1 mais peut atteindre un plateau puis diminuer en cas de surapprentissage.
-* Validation R2 Score : Mesure la proportion de la variance dans les valeurs réelles prédite par le modèle. Elle devrait se rapprocher de 1 mais peut atteindre un plateau puis diminuer en cas de surapprentissage.
-* Validation MGD (Mean Gamma Deviance) : Mesure la déviance moyenne pour une distribution gamma. Elle devrait diminuer mais peut atteindre un plateau ou augmenter en cas de surapprentissage.
-* Validation MPD (Mean Poisson Deviance) : Mesure la déviance moyenne pour une distribution de Poisson. Elle devrait diminuer avec l'entraînement.
+* Validation RMSE (Root Mean Squared Error), MSE (Mean Squared Error), MAE (Mean Absolute Error) : Elles doivent diminuer pendant l'entrainement mais peuvent atteindre un plateau ou augmenter en cas de surapprentissage.
+* Validation EVS (Explained Variance Score) : Elle doit se rapprocher de 1 pendant l'entrainement mais peut atteindre un plateau puis diminuer en cas de surapprentissage.
+* Validation R2 Score : Elle doit se rapprocher de 1 pendant l'entrainement mais peut atteindre un plateau puis diminuer en cas de surapprentissage.
+* Validation MGD (Mean Gamma Deviance) : Des erreurs constantes et faibles indiquent un modèle stable.
+* Validation MPD (Mean Poisson Deviance) : Elle doit diminuer pendant l'entrainement.
 
 
 POINTS A CONSIDERER LORS DE L'ANALYSE DES INDICATEURS :
@@ -27,10 +25,10 @@ POINTS A CONSIDERER LORS DE L'ANALYSE DES INDICATEURS :
 * Variabilité : Les métriques peuvent varier d'un fold à l'autre en raison de la variabilité des données. La validation croisée est utile pour obtenir une estimation plus robuste de la performance du modèle. Plus les résultats des métriques RMSE, MSE et MAE seront proches entre les données de test et d'entraînement, moins il y aura de surajustement. Une grande disparité indique que le modèle réagit bien aux données d'entraînement mais moins aux données de test.
 
 
-A QUOI CORRESPONDENT LES DIFFERENTS INDICATEURS ?
-* Les métriques d'erreur (RMSE, MSE, MAE) : Ils mesurent la différence entre les valeurs prédites par le modèle et les valeurs réelles. Elles sont utilisées pour évaluer la précision du modèle.
-* L'Explained Variance Score : Il mesure la proportion de la variance des données réelles qui est expliquée par le modèle.
-* Le coefficients de détermination : Il mesure la proportion de la variance des données réelles qui est expliquée par le modèle, en tenant compte de la moyenne des données.
-* Les métriques de descente (MGD et MPD) : Ils mesurent la performance du modèle en termes de descente de gradient, c'est-à-dire la capacité du modèle à minimiser l'erreur au cours des itérations.
-
+A QUOI CORRESPONDENT LES INDICATEURS :
+* Les métriques d'erreur (RMSE, MSE, MAE) : Elles mesurent la différence entre les valeurs prédites par le modèle et les valeurs réelles. Elles sont utilisées pour évaluer la précision du modèle.
+* L'Explained Variance Score (EVS) : Elle mesure combien nos prédictions s’éloignent en moyenne des valeurs réelles. Un EVS proche de 1 signifie que le modèle explique bien la variance des données.
+* Le coefficients de détermination (R2) : Elle mesure la proportion de la variance des données réelles qui est expliquée par le modèle. Une valeur proche de 1 signifie que les relations entre le dataset fourni et les prédictions obtenues sont pertinentes.
+* Moyenne des Gradients des Erreurs (MGD) : Mesure comment les écarts entre les prédictions et les valeurs réelles varient en fonction des données d'entrée. Cette métrique est utile pour évaluer la stabilité du modèle en fonction des données entrées.
+* Moyenne des Écarts entre les Prévisions et les Valeurs Réelles (MPD) : Indique si le modèle a tendance à surestimer ou sous-estimer les valeurs réelles. Une MPD faible signifie que le modèle fait des prédictions précises.
 

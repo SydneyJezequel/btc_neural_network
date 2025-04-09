@@ -25,15 +25,8 @@ from tensorflow.keras.callbacks import EarlyStopping
 
 """ ************************* Paramètres ************************* """
 
-DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
-DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
-
-
-
-
-
 
 
 
@@ -55,17 +48,7 @@ initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
 
 # Préparation du dataset pré-entrainement :
 cutoff_date = '2020-01-01'
-x_train, y_train, x_test, y_test = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
-
-
-# Affichage du dataset :
-print("x_train shape:", x_train.shape)
-print("y_train shape:", y_train.shape)
-print("x_test shape:", x_test.shape)
-print("y_test shape:", y_test.shape)
-
-
-
+x_train, y_train, x_test, y_test, scaler = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
 
 
 

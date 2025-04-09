@@ -1,6 +1,5 @@
 """ ************ Paramètres du dataset et du fichier de poids ************ """
 DATASET_PATH = '../btc_neural_network/dataset/'
-# PATH_TRAINING_DATASET = DATASET_PATH + 'training_dataset/'
 PATH_TRAINING_DATASET = DATASET_PATH + 'dataset_for_predictions/'
 TRAINING_DATASET_FILE = 'btc_cotations_for_training.csv'
 DATASET_FILE_FOR_TEST_PREDICTIONS = 'btc_cotations_for_test_predictions.csv'

@@ -24,10 +24,10 @@ from tensorflow.keras.callbacks import Callback
 
 
 """ ************************* Paramètres ************************* """
-DATASET_PATH = parameters.DATASET_PATH
+
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
-DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
+
 
 
 
@@ -315,77 +315,6 @@ original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
 # Affichage des résidus :
 display_results.plot_residuals(original_ytrain, train_predict, 'Training Residuals')
 display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-""" ******************************** Autres ******************************** """
-
-"""
-def predict_on_new_data(new_data_path, model, scaler, time_step=15):
-    # Fait des prédictions sur un nouveau dataset.
-    # Charger et préparer le nouveau dataset
-    new_dataset = pd.read_csv(new_data_path)
-    new_dataset = format_dataset(new_dataset)
-    new_dataset = delete_columns(new_dataset)
-    new_dataset = add_technicals_indicators(new_dataset)
-    # new_dataset['Historical_Volatility'] = calculate_historical_volatility(new_dataset)
-    # new_dataset = add_lag_features(new_dataset, lags)
-    new_dataset = new_dataset.dropna()
-
-    # Normaliser les données
-    columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100', 'Historical_Volatility'] + [f'Lag_{lag}' for lag in lags]
-    normalized_datas = scaler.transform(new_dataset[columns_to_normalize])
-    new_dataset[columns_to_normalize] = normalized_datas
-
-    # Créer le dataset pour la prédiction
-    x_new, _ = create_dataset(new_dataset, time_step)
-    x_new = x_new.reshape(x_new.shape[0], x_new.shape[1], 1)
-
-    # Faire des prédictions
-    new_predictions = model.predict(x_new)
-    new_predictions = scaler.inverse_transform(new_predictions)
-
-    return new_predictions
-
-
-
-# Exemple d'utilisation de la fonction pour faire des prédictions sur un nouveau dataset
-dataset_for_test_predictions = parameters.DATASET_FILE_FOR_TEST_PREDICTIONS
-new_predictions = predict_on_new_data(dataset_for_test_predictions, model, scaler)
-print("New Predictions:", new_predictions)
-
-"""
-
-
-
-
-
-
-
 
 
 

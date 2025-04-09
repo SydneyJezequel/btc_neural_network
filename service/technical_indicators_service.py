@@ -4,8 +4,11 @@ import numpy as np
 
 
 
+
+
 class TechnicalIndicatorsService:
-    """ Calcule les indicateurs techniques """
+    """ Calcul des indicateurs techniques """
+
 
 
     @staticmethod
@@ -38,9 +41,8 @@ class TechnicalIndicatorsService:
         sma1_col = 'MA_' + str(taille_sma1)
         sma2_col = 'MA_' + str(taille_sma2)
         signal_col = sma1_col +  '_supérieure_'  + sma2_col
-        dataset[sma1_col] = technical_indicators.ma(dataset, taille_sma1)
-        dataset[sma2_col] = technical_indicators.ma(dataset, taille_sma2)
+        dataset[sma1_col] = TechnicalIndicatorsService.ma(dataset, taille_sma1)
+        dataset[sma2_col] = TechnicalIndicatorsService.ma(dataset, taille_sma2)
         dataset[signal_col] = dataset[sma1_col] > dataset[sma2_col]
         return dataset
-
 

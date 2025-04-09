@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.ensemble import GradientBoostingRegressor
 import joblib
 import parameters
-from service.prepare_dataset_service import PrepareDataset
+from service.prepare_dataset_service import PrepareDatasetService
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
 from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance
 from sklearn.model_selection import GridSearchCV
@@ -23,11 +23,8 @@ from sklearn.model_selection import GridSearchCV
 
 """ ****************************** Paramètres ****************************** """
 
-DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
-# DATASET_FILE = parameters.DATASET_FILE
-DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 SAVE_MODEL_PATH = parameters.SAVE_MODEL_PATH
 
 
@@ -44,7 +41,7 @@ SAVE_MODEL_PATH = parameters.SAVE_MODEL_PATH
 
 """ ************************* Préparation du dataset ************************* """
 
-prepare_dataset = PrepareDataset()
+prepare_dataset = PrepareDatasetService()
 
 
 initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)

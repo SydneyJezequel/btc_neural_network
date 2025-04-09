@@ -14,8 +14,10 @@ class DisplayResultsService:
     """ Affiche les résultats du modèle """
 
 
+
     def __init__(self):
         pass
+
 
 
     def display_all_dataset(self, dataset):
@@ -28,6 +30,7 @@ class DisplayResultsService:
         fig.update_xaxes(showgrid=False)
         fig.update_yaxes(showgrid=False)
         fig.show()
+
 
 
     def plot_loss(self, history):
@@ -43,8 +46,9 @@ class DisplayResultsService:
         plt.show()
 
 
+
     def zoom_plot_loss(self, history):
-        """ Affichage des courbes de pertes avec agrandissement des zones ou se trouvent les courbes """
+        """ Affichage des courbes de pertes avec zoom sur les zones ou se trouvent les courbes """
         loss = history.history['loss']
         val_loss = history.history['val_loss']
         loss_array = np.array(loss)
@@ -56,9 +60,11 @@ class DisplayResultsService:
         plt.ylabel('Loss')
         plt.title('Training and Validation Loss (Zoomed)')
         plt.legend()
-        plt.ylim(0, 0.003)  # Zoom sur la zone des pertes basses
+        # Zoom sur la zone des pertes (bas de page) :
+        plt.ylim(0, 0.003)
         plt.grid(True)
         plt.show()
+
 
 
     def plot_residuals(self, y_true, y_pred, title):
@@ -72,6 +78,7 @@ class DisplayResultsService:
         plt.ylabel('Residuals')
         plt.legend()
         plt.show()
+
 
 
     def plot_predictions(self, dates, predictions, time_step):
@@ -97,17 +104,12 @@ class DisplayResultsService:
         plt.grid()
         plt.show()
 
+
+
     def display_dataset_and_predictions(self, dataset, predictions_dataset):
-        """
-        Affichage de l'intégralité du dataset principal avec la possibilité d'ajouter d'autres courbes de prix.
-
-        :param dataset: DataFrame principal contenant les données de prix.
-        :param additional_datasets: Liste de DataFrames supplémentaires à ajouter au graphique.
-        """
-        # Création de la figure avec la première courbe de prix
+        """ Affichage du dataset principal avec la possibilité d'ajouter d'autres courbes de prix """
         fig = go.Figure()
-
-        # Ajout de la première courbe de prix
+        # Ajout de la première courbe de prix :
         fig.add_trace(go.Scatter(
             x=dataset['Date'],
             y=dataset['Dernier'],
@@ -115,8 +117,7 @@ class DisplayResultsService:
             name='Bitcoin',
             line=dict(color='orange', width=2)
         ))
-
-        # Ajout des courbes supplémentaires si fournies
+        # Ajout de courbes supplémentaires :
         fig.add_trace(go.Scatter(
             x=predictions_dataset['Date'],
             y=predictions_dataset['Dernier'],
@@ -124,8 +125,7 @@ class DisplayResultsService:
             name='prédictions',
             line=dict(width=2)
         ))
-
-        # Mise à jour de la mise en page
+        # Mise à jour de la mise en page :
         fig.update_layout(
             title_text='Whole period of timeframe of Bitcoin close price 2014-2025',
             plot_bgcolor='white',
@@ -134,17 +134,16 @@ class DisplayResultsService:
             xaxis_title='Date',
             yaxis_title='Close Price'
         )
-
-        # Suppression des grilles
+        # Suppression des grilles :
         fig.update_xaxes(showgrid=False)
         fig.update_yaxes(showgrid=False)
-
-        # Affichage du graphique
+        # Affichage du graphique :
         fig.show()
 
 
+
     def plot_initial_dataset_and_predictions(self, initial_dataset, formated_dataset, train_predict_plot, test_predict_plot):
-        """ Affichage de l'intégralité du dataset principal avec la possibilité d'ajouter d'autres courbes de prix. """
+        """ Affichage de l'intégralité des datasets (initial, prédictions d'entrainement, prédictions de test) """
         plt.figure(figsize=(15, 6))
         plt.plot(initial_dataset['Date'], formated_dataset['Dernier'], label='Données réelles', color='black')
         plt.plot(initial_dataset['Date'], train_predict_plot, label='Prédictions entraînement', color='green')
@@ -156,4 +155,3 @@ class DisplayResultsService:
         plt.grid(True)
         plt.tight_layout()
         plt.show()
-

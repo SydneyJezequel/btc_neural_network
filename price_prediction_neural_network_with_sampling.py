@@ -17,12 +17,11 @@ from service.generate_prediction_service import GeneratePredictionService
 
 
 
+
 """ ************************* Paramètres ************************* """
 
-DATASET_PATH = parameters.DATASET_PATH
 PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
-DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 DATASET_FOR_PREDICTIONS = parameters.DATASET_FOR_PREDICTIONS
 FORMATED_BTC_COTATIONS = parameters.FORMATED_BTC_COTATIONS
 TRAIN_PREDICT_START_INDEX = 2000
@@ -50,7 +49,6 @@ print("x_train shape:", x_train.shape)
 print("y_train shape:", y_train.shape)
 print("x_test shape:", x_test.shape)
 print("y_test shape:", y_test.shape)
-
 
 
 
@@ -158,7 +156,7 @@ class MetricsCallback(Callback):
 
 """ ************************* Entrainement du modèle ************************* """
 
-#early_stopping = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True)
+# early_stopping = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True)
 
 # Entraînement du modèle :
 history = model.fit(
@@ -179,31 +177,41 @@ model.save_weights(parameters.SAVE_MODEL_PATH + f'model.weights.h5')
 
 
 
-
 """ ************************* Affichage des résultats ************************* """
-
-# Affichage des métriques stockées :
-print("Metrics History:")
-for metric, values in metrics_history.items():
-    print(f"{metric}: {values}")
 
 display_results = DisplayResultsService()
 
 # Affichage des courbes de pertes :
 display_results.plot_loss(history)
 
-# Affichage des courbes de pertes zoomées :
+# Affichage des courbes de pertes (zoom) :
 display_results.zoom_plot_loss(history)
 
-# Affichage des sur et sous apprentissage :
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-loss_array = np.array(loss)
-val_loss_array = np.array(val_loss)
-# Affichage des tableaux :
-print("Loss Array:", loss_array)
-print("Validation Loss Array:", val_loss_array)
 
+
+
+
+
+
+
+
+
+""" ************************* Génération des résidus d'entrainements ************************* """
+
+# Génération des prédictions :
+train_predict = model.predict(x_train)
+test_predict = model.predict(x_test)
+
+# Dénormalisation :
+train_predict = scaler.inverse_transform(train_predict)
+test_predict = scaler.inverse_transform(test_predict)
+
+original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
+original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
+
+# Affichage des résidus :
+display_results.plot_residuals(original_ytrain, train_predict, 'Training Residuals')
+display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
 
 
 
@@ -224,22 +232,15 @@ model.load_weights('model.weights.h5')
 
 
 
-
-
-
-
 """ ***************** Prédictions sur un dataset indépendant ***************** """
 
-
-""" Prédictions """
+""" Génération des prédictions """
 # Chargement du dataset :
 dataset_for_predictions = DATASET_FOR_PREDICTIONS
 dataset_for_predictions = pd.read_csv(dataset_for_predictions)
-
-# Conserver les dates avant de les supprimer :
 dates = dataset_for_predictions['Date'].values
 
-# Prédictions :
+# Génération des prédictions :
 generate_prediction_service = GeneratePredictionService()
 time_step=15
 predictions = generate_prediction_service.predict_on_new_data(dataset_for_predictions, model, time_step)
@@ -249,61 +250,40 @@ display_results.plot_predictions(dates, predictions, time_step)
 
 
 
-""" Affichage des prédictions à la suite du dataset d'origine """
-formated_dataset = pd.read_csv(FORMATED_BTC_COTATIONS)
-display_results.display_all_dataset(formated_dataset)
 
-# Conversion de la date :
+
+""" Affichage du dataset d'origine et des prédictions """
+# Chargement du dataset initial :
+formated_dataset = pd.read_csv(FORMATED_BTC_COTATIONS)
 formated_dataset['Date'] = pd.to_datetime(formated_dataset['Date'])
 
-# Récupération de la dernière date :
+# Préparation des datasets pour l'affichage :
 formatted_dataset_last_date = formated_dataset['Date'].max()
-print("last date : ", formatted_dataset_last_date)
-
-# Numéro de la nouvelle date :
-num_new_dates = len(formated_dataset)
 num_days = len(predictions)
-print("nombre de dates générées : ", num_new_dates)
-print("nombre de predictions : ", len(predictions))
-
-# Créer de nouvelles dates :
 new_dates = [formatted_dataset_last_date + pd.Timedelta(days=i) for i in range(1, num_days + 1)]
+print("last date : ", formatted_dataset_last_date)
 print("new_dates : ", new_dates)
-
-# Affichage pour vérification
-for d in new_dates:
-    print(d.date())
-
-# Création du dataset de prédictions (Date + Dernier) :
 predictions_dataset = pd.DataFrame({
     'Date': new_dates,
     'Dernier': predictions.flatten()
 })
-print("predictions_dataset : ", predictions_dataset)
 
 # Affichage des prédictions :
 display_results.display_all_dataset(predictions_dataset)
 
-# Ajout des prédictions au dataset :
+# Affichage du dataset initial et des prédictions :
 display_results.display_dataset_and_predictions(formated_dataset, predictions_dataset)
 
 
 
 
 """ Affichage des prédictions d'entrainement et test VS le dataset d'origine """
-# Prédictions :
-train_predict = model.predict(x_train)
-test_predict = model.predict(x_test)
 
-# Dénormalisation :
-train_predict = scaler.inverse_transform(train_predict)
-test_predict = scaler.inverse_transform(test_predict)
-
-# Création des tableaux alignés :
+# Alignement des datasets :
 dataset_length = len(initial_dataset)
 train_predict_plot = generate_prediction_service.insert_with_padding(train_predict, TRAIN_PREDICT_START_INDEX, dataset_length)
 test_predict_plot = generate_prediction_service.insert_with_padding(test_predict, TEST_PREDICT_START_INDEX, dataset_length)
 
-# Tracer la courbe :
+# Afficahges des prédictions :
 display_results.plot_initial_dataset_and_predictions(initial_dataset, formated_dataset, train_predict_plot, test_predict_plot)
 
