@@ -23,9 +23,9 @@ from sklearn.model_selection import GridSearchCV
 
 """ ****************************** Paramètres ****************************** """
 
-PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
+DATASET_PATH = parameters.DATASET_PATH
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
-SAVE_MODEL_PATH = parameters.SAVE_MODEL_PATH
+GRADIENT_BOOSTING_SAVED_MODEL = parameters.GRADIENT_BOOSTING_SAVED_MODEL
 
 
 
@@ -44,7 +44,7 @@ SAVE_MODEL_PATH = parameters.SAVE_MODEL_PATH
 prepare_dataset = PrepareDatasetService()
 
 
-initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
+initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
@@ -74,7 +74,7 @@ print("model_dataset shape : ", model_dataset.shape)
 
 
 # Contrôle : Sauvegarde du dataset :
-model_dataset.to_csv(PATH_TRAINING_DATASET + 'dataset_modified_with_date.csv', index=False)
+model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=False)
 
 
 # Création des datasets d'entrainement et de test pour le modèle :
@@ -146,7 +146,7 @@ model = grid_search.best_estimator_
 
 
 # Sauvegarde du modèle
-joblib.dump(model, SAVE_MODEL_PATH+'gradient_boosting_model.pkl')
+joblib.dump(model, GRADIENT_BOOSTING_SAVED_MODEL)
 
 
 

@@ -17,7 +17,7 @@ class PrepareDatasetService:
 
     def __init__(self):
         pass
-        parameters.FORMATED_BTC_COTATIONS
+        parameters.DATASET_PATH
 
 
 
@@ -55,7 +55,7 @@ class PrepareDatasetService:
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 100)
         # Supprimer les lignes où MA_150 est NaN
         tmp_dataset = tmp_dataset.dropna(subset=['MA_150'])
-        tmp_dataset.to_csv('../btc_neural_network/dataset/training_dataset/dataset_for_model.csv', index=False)
+        tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
         return tmp_dataset
 
 
@@ -136,7 +136,7 @@ class PrepareDatasetService:
     def save_tmp_dataset(self, dataset):
         """ Sauvegarde du dataset dans un fichier .csv """
         saved_dataset = pd.DataFrame(dataset)
-        saved_dataset.to_csv(parameters.FORMATED_BTC_COTATIONS, index=False, encoding='utf-8')
+        saved_dataset.to_csv(parameters.FORMATED_BTC_COTATIONS_FILE, index=False, encoding='utf-8')
 
 
 

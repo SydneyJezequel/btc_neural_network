@@ -23,8 +23,8 @@ from tensorflow.keras.layers import Attention, Concatenate
 
 """ ************************* Paramètres ************************* """
 
-PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
+SAVED_MODEL = parameters.SAVED_MODEL
 
 
 
@@ -40,7 +40,7 @@ prepare_dataset = PrepareDatasetService()
 
 
 # Loading dataset :
-initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
+initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 
 # Préparation du dataset pré-entrainement :
@@ -201,7 +201,7 @@ history = model.fit(
 
 
 # Sauvegarde du modèle :
-model.save_weights(parameters.SAVE_MODEL_PATH + f'model.weights.h5')
+model.save_weights(SAVED_MODEL)
 
 
 

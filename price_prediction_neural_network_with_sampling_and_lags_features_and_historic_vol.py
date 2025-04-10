@@ -23,11 +23,10 @@ from tensorflow.keras.callbacks import Callback
 
 
 """ ************************* Paramètres ************************* """
-DATASET_PATH = parameters.DATASET_PATH
-PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
-TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
-DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
 
+DATASET_PATH = parameters.DATASET_PATH
+TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
+SAVED_MODEL = parameters.SAVED_MODEL
 
 
 
@@ -49,7 +48,7 @@ prepare_dataset = PrepareDatasetService()
 
 
 # Loading dataset :
-initial_dataset = pd.read_csv(PATH_TRAINING_DATASET + TRAINING_DATASET_FILE)
+initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 
 # Preparation of the Dataset :
@@ -89,7 +88,7 @@ print("model_dataset shape : ", model_dataset.shape)
 
 
 # Sauvegarde du dataset pour contrôle :
-model_dataset.to_csv(PATH_TRAINING_DATASET + 'dataset_modified_with_date.csv', index=False)
+model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=False)
 
 
 # Suppression de la colonne date :
@@ -242,7 +241,7 @@ history = model.fit(
 
 
 # Sauvegarde du modèle :
-model.save_weights(parameters.SAVE_MODEL_PATH + f'model.weights.h5')
+model.save_weights(SAVED_MODEL)
 
 
 
