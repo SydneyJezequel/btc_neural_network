@@ -98,10 +98,8 @@ class PrepareDatasetService:
         # Création des ensembles de données en utilisant la fonction create_dataset :
         x, y = self.create_dataset(dataset, time_step)
         x = x.reshape(x.shape[0], x.shape[1], 1)
-        # Affichage des dimensions des ensembles de données après remodelage :
-        print("dataset x: ", x.shape)
-        # On ne modifie pas la forme du dataset y car elle sert de valeur cible à comparer avec le dataset x :
-        print("dataset y: ", y.shape)
+        # Affichage des dimensions des datasets :
+        print("dataset x: ", x.shape, "dataset y: ", y.shape)
         return x, y
 
 

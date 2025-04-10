@@ -14,15 +14,7 @@ from tensorflow.keras.callbacks import Callback
 
 
 
-
-
-
-
-
-
-
-
-""" ************************* Paramètres ************************* """
+""" ************* Paramètres ************* """
 
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 SAVED_MODEL = parameters.SAVED_MODEL
@@ -30,22 +22,12 @@ SAVED_MODEL = parameters.SAVED_MODEL
 
 
 
-
-
-
-
-
-
-
-
-""" ************************* Préparation du dataset ************************* """
+""" ************* Préparation du dataset ************* """
 
 prepare_dataset = PrepareDatasetService()
 
-
-# Loading dataset :
+# Chargement du dataset :
 initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
-
 
 # Préparation du dataset pré-entrainement :
 cutoff_date = '2020-01-01'
@@ -54,20 +36,14 @@ x_train, y_train, x_test, y_test, scaler = prepare_dataset.prepare_dataset(initi
 
 
 
+""" ************* Définition du modèle ************* """
 
-
-
-
-
-
-""" ************************* Définition du modèle ************************* """
-
+# Création du réseau de neurones :
 model = Sequential()
 model.add(LSTM(50, return_sequences=True, input_shape=(None, 1), activation="relu"))
 model.add(LSTM(25, activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
-
 
 # Initialisation des tableaux pour stocker les métriques :
 metrics_history = {
@@ -87,7 +63,6 @@ metrics_history = {
     "train_mpd": [],
     "test_mpd": [],
 }
-
 
 # Callback pour stocker les métriques toutes les 50 epochs :
 class MetricsCallback(Callback):
@@ -145,21 +120,9 @@ class MetricsCallback(Callback):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-""" ************************* Entrainement du modèle ************************* """
+""" ************* Entrainement du modèle ************* """
 
 #early_stopping = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True)
-
 
 # Entraînement du modèle :
 history = model.fit(
@@ -171,71 +134,38 @@ history = model.fit(
     callbacks=[MetricsCallback()] # [MetricsCallback(), early_stopping]
 )
 
-
 # Sauvegarde du modèle :
 model.save_weights(SAVED_MODEL)
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-""" ************************* Affichage des résultats ************************* """
-
-# Affichage des métriques stockées :
-print("Metrics History:")
-for metric, values in metrics_history.items():
-    print(f"{metric}: {values}")
-
+""" ************* ffichage des résultats ************* """
 
 display_results = DisplayResultsService()
-
 
 # Affichage des courbes de pertes :
 display_results.plot_loss(history)
 
-
 # Affichage des courbes de pertes zoomées :
 display_results.zoom_plot_loss(history)
-
 
 # Affichage des sur et sous apprentissage :
 loss = history.history['loss']
 val_loss = history.history['val_loss']
 loss_array = np.array(loss)
 val_loss_array = np.array(val_loss)
-# Affichage des tableaux :
-print("Loss Array:", loss_array)
-print("Validation Loss Array:", val_loss_array)
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-""" ************************* Controle du surapprentissage ************************* """
+""" ************* Controle du surapprentissage ************* """
 
 # Calcul des prédictions :
 train_predict = model.predict(x_train)
 test_predict = model.predict(x_test)
 
+# Mise en forme des datasets :
 train_predict = train_predict.reshape(-1, 1)
 test_predict = test_predict.reshape(-1, 1)
 
@@ -249,4 +179,3 @@ original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
 # Affichage des résidus :
 display_results.plot_residuals(original_ytrain, train_predict, 'Training Residuals')
 display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
-

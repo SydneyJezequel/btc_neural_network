@@ -14,14 +14,6 @@ from tensorflow.keras.callbacks import Callback
 
 
 
-
-
-
-
-
-
-
-
 """ ************************* Paramètres ************************* """
 
 DATASET_PATH = parameters.DATASET_PATH
@@ -31,50 +23,32 @@ SAVED_MODEL = parameters.SAVED_MODEL
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-""" ************************* Préparation du dataset ************************* """
+""" ************* Préparation du dataset ************* """
 
 prepare_dataset = PrepareDatasetService()
 
-
-# Loading dataset :
+# Chargement du dataset :
 initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
-
-# Preparation of the Dataset :
+# Préparation of the Dataset :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
 tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
 
-
 # Ajout de la volatilité historique :
 tmp_dataset['Historical_Volatility'] = prepare_dataset.calculate_historical_volatility(tmp_dataset)
-
 
 # Ajout des caractéristiques de lag :
 lags = [1, 7]
 # lags = [1, 7, 30, 60, 90, 180, 365]
 tmp_dataset = prepare_dataset.add_lag_features(tmp_dataset, lags)
-tmp_dataset = tmp_dataset.dropna()  # Supprimer les lignes avec des valeurs NaN introduites par les lags
-
-
+# Supprimer les lignes avec des valeurs NaN introduites par les lags :
+tmp_dataset = tmp_dataset.dropna()
 
 # Définir une date de coupure pour séparer les anciennes et récentes données :
 cutoff_date = '2020-01-01'
 
-
 # Appliquer le sous-échantillonnage :
 tmp_dataset = prepare_dataset.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
-
 
 # Normalisation :
 tmp_dataset_copy = tmp_dataset.copy()
@@ -86,14 +60,11 @@ model_dataset[columns_to_normalize] = normalized_datas
 print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
 
-
 # Sauvegarde du dataset pour contrôle :
 model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=False)
 
-
 # Suppression de la colonne date :
 del model_dataset['Date']
-
 
 # Création des datasets d'entrainement et test :
 train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
@@ -110,19 +81,9 @@ print("y_test shape:", y_test.shape)
 
 
 
+""" ************* Définition du modèle ************* """
 
-
-
-
-
-
-
-
-
-
-""" ************************* Définition du modèle ************************* """
-
-# Création du modèle :
+# Création du réseau de neurones :
 model = Sequential()
 model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 model.add(Dense(1))
@@ -158,7 +119,6 @@ metrics_history = {
     "train_mpd": [],
     "test_mpd": [],
 }
-
 
 # Callback pour stocker les métriques toutes les 50 epochs :
 class MetricsCallback(Callback):
@@ -216,18 +176,7 @@ class MetricsCallback(Callback):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-""" ************************* Entrainement du modèle ************************* """
+""" ************* Entrainement du modèle ************* """
 
 # Entraînement du modèle :
 history = model.fit(
@@ -239,84 +188,38 @@ history = model.fit(
     callbacks=[MetricsCallback()]
 )
 
-
 # Sauvegarde du modèle :
 model.save_weights(SAVED_MODEL)
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-""" ************************* Affichage des résultats ************************* """
-
-# Affichage des métriques stockées :
-print("Metrics History:")
-for metric, values in metrics_history.items():
-    print(f"{metric}: {values}")
-
+""" ************* Affichage des résultats ************* """
 
 display_results = DisplayResultsService()
-
 
 # Affichage des courbes de pertes :
 display_results.plot_loss(history)
 
-
 # Affichage des courbes de pertes zoomées :
 display_results.zoom_plot_loss(history)
-
 
 # Affichage des sur et sous apprentissage :
 loss = history.history['loss']
 val_loss = history.history['val_loss']
 loss_array = np.array(loss)
 val_loss_array = np.array(val_loss)
-# Affichage des tableaux :
-print("Loss Array:", loss_array)
-print("Validation Loss Array:", val_loss_array)
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-""" ************************* Controle du surapprentissage ************************* """
+""" ************* Controle du surapprentissage ************* """
 
 # Calcul des prédictions :
 train_predict = model.predict(x_train)
 test_predict = model.predict(x_test)
 
+# Mise en forme du dataset :
 train_predict = train_predict.reshape(-1, 1)
 test_predict = test_predict.reshape(-1, 1)
 
@@ -330,8 +233,3 @@ original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
 # Affichage des résidus :
 display_results.plot_residuals(original_ytrain, train_predict, 'Training Residuals')
 display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
-
-
-
-
-

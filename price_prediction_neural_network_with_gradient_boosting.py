@@ -12,16 +12,7 @@ from sklearn.model_selection import GridSearchCV
 
 
 
-
-
-
-
-
-
-
-
-
-""" ****************************** Paramètres ****************************** """
+""" ************* Paramètres ************* """
 
 DATASET_PATH = parameters.DATASET_PATH
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
@@ -30,36 +21,24 @@ GRADIENT_BOOSTING_SAVED_MODEL = parameters.GRADIENT_BOOSTING_SAVED_MODEL
 
 
 
-
-
-
-
-
-
-
-
-
-""" ************************* Préparation du dataset ************************* """
+""" ************* Préparation du dataset ************* """
 
 prepare_dataset = PrepareDatasetService()
 
-
+# Chargement du dataset :
 initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
-
+# Formatage du dataset :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
 tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
 
-
 # Ajout des indicateurs techniques et signaux :
 tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
-
 
 # Ajout des caractéristiques de lag :
 lags = [1, 7, 30]  # Lag pour 1 jour, 1 semaine, 1 mois
 tmp_dataset = prepare_dataset.add_lag_features(tmp_dataset, lags)
 tmp_dataset = tmp_dataset.dropna()  # Supprimer les lignes avec des valeurs NaN introduites par les caractéristiques de lag
-
 
 # Normalisation du dataset :
 tmp_dataset_copy = tmp_dataset.copy()
@@ -72,10 +51,8 @@ model_dataset[columns_to_normalize] = normalized_datas
 print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
 
-
 # Contrôle : Sauvegarde du dataset :
 model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=False)
-
 
 # Création des datasets d'entrainement et de test pour le modèle :
 train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
@@ -87,17 +64,7 @@ y_test = test_data['Dernier'].values
 
 
 
-
-
-
-
-
-
-
-
-
-
-""" ************************* Définition du modèle ************************* """
+""" ************* Définition du modèle ************* """
 
 # Définir les paramètres pour la recherche de grille
 param_grid = {
@@ -107,7 +74,6 @@ param_grid = {
     'subsample': [0.8, 1.0],
     'min_samples_split': [2, 5, 10]
 }
-
 
 # Utiliser GridSearchCV pour trouver les meilleurs hyperparamètres
 grid_search = GridSearchCV(estimator=GradientBoostingRegressor(random_state=42),
@@ -120,30 +86,16 @@ grid_search = GridSearchCV(estimator=GradientBoostingRegressor(random_state=42),
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-""" ************************* Entrainement du modèle ************************* """
+""" ************* Entrainement du modèle ************* """
 
 grid_search.fit(X_train, y_train)
-
 
 # Meilleurs paramètres trouvés :
 best_params = grid_search.best_params_
 print("Meilleurs paramètres trouvés :", best_params)
 
-
 # Entraîner le modèle avec les meilleurs paramètres :
 model = grid_search.best_estimator_
-
 
 # Sauvegarde du modèle
 joblib.dump(model, GRADIENT_BOOSTING_SAVED_MODEL)
@@ -151,25 +103,11 @@ joblib.dump(model, GRADIENT_BOOSTING_SAVED_MODEL)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-""" ************************* Affichage des résultats ************************* """
+""" ************* Affichage des résultats ************* """
 
 # Génération des prédictions  :
 train_predict = model.predict(X_train)
 test_predict = model.predict(X_test)
-
 
 # Mise en forme des prédictions :
 train_predict = train_predict.reshape(-1, 1)
@@ -179,7 +117,6 @@ train_predict = scaler.inverse_transform(train_predict)
 test_predict = scaler.inverse_transform(test_predict)
 original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
 original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
-
 
 # Calcul des métriques :
 train_rmse = np.sqrt(mean_squared_error(original_ytrain, train_predict))
@@ -197,7 +134,6 @@ test_mgd = mean_gamma_deviance(original_ytest, test_predict)
 train_mpd = mean_poisson_deviance(original_ytrain, train_predict)
 test_mpd = mean_poisson_deviance(original_ytest, test_predict)
 
-
 # Affichage des métriques :
 print("train_rmse : ", train_rmse)
 print("test_rmse : ", test_rmse)
@@ -213,7 +149,6 @@ print("train_mgd : ", train_mgd)
 print("test_mgd : ", test_mgd)
 print("train_mpd : ", train_mpd)
 print("test_mpd : ", test_mpd)
-
 
 # Visualisation des résultats :
 plt.figure(figsize=(14, 7))

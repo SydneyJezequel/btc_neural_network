@@ -15,33 +15,16 @@ import joblib
 
 
 
-
-
-
-
-
-
-
-
-""" ****************************** Paramètres ****************************** """
-PATH_TRAINING_DATASET = parameters.PATH_TRAINING_DATASET
+""" ************* Paramètres ************* """
+DATASET_PATH = parameters.DATASET_PATH
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
-DATASET_FOR_MODEL = parameters.DATASET_FOR_MODEL
-SAVE_MODEL_PATH = parameters.SAVE_MODEL_PATH
-MODEL_FOR_PREDICTIONS_PATH = parameters.MODEL_FOR_PREDICTIONS_PATH
+SAVED_MODEL = parameters.SAVED_MODEL
+MODEL_PATH = parameters.MODEL_PATH
 
 
 
 
-
-
-
-
-
-
-
-
-""" ************************* Méthodes ************************* """
+""" ************* Méthodes ************* """
 
 def ma(df, n):
     """ Calcul des moyennes mobiles """
@@ -100,28 +83,18 @@ def create_dataset(dataset, time_step=1):
 
 
 
-
-
-
-
-
-
-""" ************************* Préparation du dataset ************************* """
+""" ************* Préparation du dataset ************* """
 
 prepare_dataset = PrepareDatasetService()
 
-
-# Loading dataset :
-initial_dataset = pd.read_csv(PATH_TRAINING_DATASET+TRAINING_DATASET_FILE)
-
+# Chargement du dataset :
+initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 # Formatage des colonnes :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
 
-
 # Suppression des colonnes :
 tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
-
 
 # Affichage des données :
 fig = px.line(tmp_dataset, x=tmp_dataset.Date, y=tmp_dataset.Dernier,labels={'Date':'date','Dernier':'Close Stock'})
@@ -132,21 +105,11 @@ fig.update_xaxes(showgrid=False)
 fig.update_yaxes(showgrid=False)
 fig.show()
 
-
-# Contrôle des modifications :
-print("En-tête du dataset d'entrainement : ", tmp_dataset.head())
-print("dataset d'entrainement modifié (dernières lignes) pour vérifier si mes indicateurs sont bien calculés : ", tmp_dataset.tail())
-
-
 # Ajout des indicateurs techniques :
 tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
-print(" forme tmp_dataset shape : ", tmp_dataset.shape)
-print(" forme tmp_dataset : ", tmp_dataset)
-
 
 # Contrôle : Enregistrement du dataset au format csv :
-tmp_dataset.to_csv(PATH_TRAINING_DATASET+DATASET_FOR_MODEL, index=False)
-
+tmp_dataset.to_csv(DATASET_PATH+'dataset_for_model.csv', index=False)
 
 # Normalisation des colonnes :
 tmp_dataset_copy = tmp_dataset.copy()
@@ -157,18 +120,14 @@ model_dataset = tmp_dataset
 normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
 model_dataset[columns_to_normalize] = normalized_datas
 print("dataset d'entrainement normalisé :", model_dataset)
-print("model_dataset shape : ", model_dataset.shape)
-
 
 # Contrôle : Sauvegarde du dataset retraité pour traitement par le modèle :
-model_dataset.to_csv(PATH_TRAINING_DATASET+'dataset_modified_with_date.csv', index=False)
-
+model_dataset.to_csv(DATASET_PATH+'dataset_modified_with_date.csv', index=False)
 
 # Suppression de la colonne 'Date' du dataset :
 date_column = model_dataset['Date']
 del tmp_dataset['Date']
-model_dataset.to_csv(PATH_TRAINING_DATASET+'dataset_modified_for_model.csv', index=False)
-
+model_dataset.to_csv(DATASET_PATH+'dataset_modified_for_model.csv', index=False)
 
 # Création des matrices de données pour l'entraînement et le test :
 x_train, y_train = prepare_dataset.create_data_matrix(model_dataset)
@@ -177,19 +136,10 @@ x_test, y_test = prepare_dataset.create_data_matrix(model_dataset)
 
 
 
-
-
-
-
-
-
-
-
-""" ************************* Définition et entrainement du modèle ************************* """
+""" ************* Définition et entrainement du modèle ************* """
 
 # Initialisation du TimeSeriesSplit avec le nombre de splits souhaité :
 tscv = TimeSeriesSplit(n_splits=5)
-
 
 # Initialiser des listes pour stocker les résultats et les métriques :
 results = []
@@ -203,15 +153,13 @@ mpd_results = []
 training_loss_results = []
 validation_loss_results = []
 
-
 # Initialisation du compteur :
 cpt = 1
-
 
 for train_index, val_index in tscv.split(x_train):
 
     """ Entrainement du modèle """
-    print("n° du tour de boucle : ", cpt)
+    print("tour de boucle : ", cpt)
 
     x_train_fold, x_val_fold = x_train[train_index], x_train[val_index]
     y_train_fold, y_val_fold = y_train[train_index], y_train[val_index]
@@ -233,33 +181,26 @@ for train_index, val_index in tscv.split(x_train):
         callbacks=[early_stopping]
     )
 
-
     # Enregistrement des poids du modèle :
-    model.save_weights(SAVE_MODEL_PATH+f'best_model_weights{cpt}.weights.h5')
-
+    model.save_weights(MODEL_PATH+f'best_model_weights{cpt}.weights.h5')
 
     # Évaluation du modèle sur les données de validation :
     val_loss = model.evaluate(x_val_fold, y_val_fold, verbose=0)
     results.append(val_loss)
 
-
     # Prédiction et évaluation des métriques de performance :
     val_predict = model.predict(x_val_fold)
-
 
     # Redimensionner les données pour qu'elles aient deux dimensions :
     y_val_fold_reshaped = y_val_fold.reshape(-1, 1)
     val_predict_reshaped = val_predict.reshape(-1, 1)
 
-
     # Ajustement du scaler sur les données redimensionnées :
     scaler.fit(y_val_fold_reshaped)
-
 
     # Inversion de la transformation :
     original_yval = scaler.inverse_transform(y_val_fold_reshaped)
     val_predict_inversed = scaler.inverse_transform(val_predict_reshaped)
-
 
     # Calcul des métriques :
     rmse = np.sqrt(mean_squared_error(original_yval, val_predict_inversed))
@@ -268,14 +209,12 @@ for train_index, val_index in tscv.split(x_train):
     evs = explained_variance_score(original_yval, val_predict_inversed)
     r2 = r2_score(original_yval, val_predict_inversed)
 
-
     # Vérifier si les valeurs sont strictement positives avant de calculer la déviance gamma et la déviance de Poisson :
     if np.all(original_yval > 0) and np.all(val_predict_inversed > 0):
         mgd = mean_gamma_deviance(original_yval, val_predict_inversed)
         mpd = mean_poisson_deviance(original_yval, val_predict_inversed)
     else:
         mgd, mpd = np.nan, np.nan
-
 
     # Ajout des résultats aux listes :
     rmse_results.append(rmse)
@@ -286,21 +225,13 @@ for train_index, val_index in tscv.split(x_train):
     mgd_results.append(mgd)
     mpd_results.append(mpd)
 
-
     # Incrément du compteur de tours de boucle
     cpt += 1
 
 
 
 
-
-
-
-
-
-
-
-""" ************************* Affichage des résultats ************************* """
+""" ************* Affichage des résultats ************* """
 
 # Conversion des listes en arrays numpy :
 rmse_results = np.array(rmse_results)
@@ -312,7 +243,6 @@ mgd_results = np.array(mgd_results)
 mpd_results = np.array(mpd_results)
 training_loss_results = np.array(training_loss_results)
 validation_loss_results = np.array(validation_loss_results)
-
 
 # Affichage des résultats :
 print("Validation RMSE: ", rmse_results)
@@ -327,38 +257,30 @@ print("Mean Validation Loss: ", np.mean(validation_loss_results))
 print("Training Loss for each fold: ", training_loss_results)
 print("Mean Training Loss: ", np.mean(training_loss_results))
 
-
 # Vérification de l'existence du fichier :
-weights_path = os.path.join(MODEL_FOR_PREDICTIONS_PATH, 'model.weights.h5')
+weights_path = os.path.join(SAVED_MODEL)
 if not os.path.exists(weights_path):
     raise FileNotFoundError(f"Le fichier de poids n'existe pas à l'emplacement spécifié : {weights_path}")
-
 
 # Chargement des poids :
 model.load_weights(weights_path)
 
-
 # Évaluer le modèle sur l'ensemble de test :
 test_loss = model.evaluate(x_test, y_test, verbose=0)
 
-
 # Prédire et évaluer les métriques de performance sur l'ensemble de test :
 test_predict = model.predict(x_test)
-
 
 # Redimensionner les données pour qu'elles aient deux dimensions :
 y_test_reshaped = y_test.reshape(-1, 1)
 test_predict_reshaped = test_predict.reshape(-1, 1)
 
-
 # Ajuster le scaler sur les données redimensionnées :
 scaler.fit(y_test_reshaped)
-
 
 # Inverser la transformation :
 original_ytest = scaler.inverse_transform(y_test_reshaped)
 test_predict_inversed = scaler.inverse_transform(test_predict_reshaped)
-
 
 # Calcul des métriques :
 rmse_test = np.sqrt(mean_squared_error(original_ytest, test_predict_inversed))
@@ -367,14 +289,12 @@ mae_test = mean_absolute_error(original_ytest, test_predict_inversed)
 evs_test = explained_variance_score(original_ytest, test_predict_inversed)
 r2_test = r2_score(original_ytest, test_predict_inversed)
 
-
 # Vérifier si les valeurs sont strictement positives avant de calculer la déviance gamma et la déviance de Poisson :
 if np.all(original_ytest > 0) and np.all(test_predict_inversed > 0):
     mgd_test = mean_gamma_deviance(original_ytest, test_predict_inversed)
     mpd_test = mean_poisson_deviance(original_ytest, test_predict_inversed)
 else:
     mgd_test, mpd_test = np.nan, np.nan
-
 
 # Affichage des résultats :
 print("Test RMSE: ", rmse_test)
@@ -384,9 +304,3 @@ print("Test Explained Variance Score: ", evs_test)
 print("Test R2 Score: ", r2_test)
 print("Test MGD: ", mgd_test)
 print("Test MPD: ", mpd_test)
-
-
-
-
-
-

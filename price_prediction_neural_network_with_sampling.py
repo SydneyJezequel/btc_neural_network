@@ -15,10 +15,7 @@ from service.generate_prediction_service import GeneratePredictionService
 
 
 
-
-
-
-""" ************************* Paramètres ************************* """
+""" ************* Paramètres ************* """
 
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 DATASET_FOR_PREDICTIONS = parameters.DATASET_FOR_PREDICTIONS
@@ -30,13 +27,11 @@ TEST_PREDICT_START_INDEX = 3200
 
 
 
-
-
-""" ************************* Préparation du dataset ************************* """
+""" ************* Préparation du dataset ************* """
 
 prepare_dataset = PrepareDatasetService()
 
-# Loading dataset :
+# Chargement du dataset :
 initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 # Préparation du dataset pré-entrainement :
@@ -52,12 +47,9 @@ print("y_test shape:", y_test.shape)
 
 
 
+""" ************* Définition du modèle ************* """
 
-
-
-""" ************************* Définition du modèle ************************* """
-
-# Création du modèle :
+# Création du réseau de neurones :
 model = Sequential()
 model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 model.add(Dense(1))
@@ -150,10 +142,7 @@ class MetricsCallback(Callback):
 
 
 
-
-
-
-""" ************************* Entrainement du modèle ************************* """
+""" ************* Entrainement du modèle ************* """
 
 # early_stopping = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True)
 
@@ -173,10 +162,7 @@ model.save_weights(SAVED_MODEL)
 
 
 
-
-
-
-""" ************************* Affichage des résultats ************************* """
+""" ************* Affichage des résultats ************* """
 
 display_results = DisplayResultsService()
 
@@ -189,13 +175,7 @@ display_results.zoom_plot_loss(history)
 
 
 
-
-
-
-
-
-
-""" ************************* Génération des résidus d'entrainements ************************* """
+""" ************* Génération des résidus d'entrainements ************* """
 
 # Génération des prédictions :
 train_predict = model.predict(x_train)
@@ -205,6 +185,7 @@ test_predict = model.predict(x_test)
 train_predict = scaler.inverse_transform(train_predict)
 test_predict = scaler.inverse_transform(test_predict)
 
+# Mise en forme du dataset :
 original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
 original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
 
@@ -215,10 +196,7 @@ display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
 
 
 
-
-
-
-""" ***************** Charger le modèle sauvegardé ***************** """
+""" ************* Charger le modèle sauvegardé ************* """
 """
 model.save_weights(...)
 model = create_model()  # fonction qui redéfinit la même architecture
@@ -228,12 +206,8 @@ model.load_weights('model.weights.h5')
 
 
 
+""" ************* Prédictions sur un dataset indépendant ************* """
 
-
-
-""" ***************** Prédictions sur un dataset indépendant ***************** """
-
-""" Génération des prédictions """
 # Chargement du dataset :
 dataset_for_predictions = DATASET_FOR_PREDICTIONS
 dataset_for_predictions = pd.read_csv(dataset_for_predictions)
@@ -250,8 +224,8 @@ display_results.plot_predictions(dates, predictions, time_step)
 
 
 
+""" ************* Affichage du dataset d'origine et des prédictions ************* """
 
-""" Affichage du dataset d'origine et des prédictions """
 # Chargement du dataset initial :
 formated_dataset = pd.read_csv(FORMATED_BTC_COTATIONS_FILE)
 formated_dataset['Date'] = pd.to_datetime(formated_dataset['Date'])
@@ -276,13 +250,12 @@ display_results.display_dataset_and_predictions(formated_dataset, predictions_da
 
 
 
-""" Affichage des prédictions d'entrainement et test VS le dataset d'origine """
+""" ************* Affichage des prédictions d'entrainement et test VS le dataset d'origine  ************* """
 
 # Alignement des datasets :
 dataset_length = len(initial_dataset)
 train_predict_plot = generate_prediction_service.insert_with_padding(train_predict, TRAIN_PREDICT_START_INDEX, dataset_length)
 test_predict_plot = generate_prediction_service.insert_with_padding(test_predict, TEST_PREDICT_START_INDEX, dataset_length)
 
-# Afficahges des prédictions :
+# Affichages des prédictions :
 display_results.plot_initial_dataset_and_predictions(initial_dataset, formated_dataset, train_predict_plot, test_predict_plot)
-
