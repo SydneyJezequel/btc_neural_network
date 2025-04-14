@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pandas as pd
 import numpy as np
 import math
@@ -21,6 +23,7 @@ TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 DATASET_FOR_PREDICTIONS = parameters.DATASET_FOR_PREDICTIONS
 FORMATED_BTC_COTATIONS_FILE = parameters.FORMATED_BTC_COTATIONS_FILE
 SAVED_MODEL = parameters.SAVED_MODEL
+TIME_STEP = parameters.TIME_STEP
 TRAIN_PREDICT_START_INDEX = 2000
 TEST_PREDICT_START_INDEX = 3200
 
@@ -36,7 +39,7 @@ initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 # Préparation du dataset pré-entrainement :
 cutoff_date = '2020-01-01'
-x_train, y_train, x_test, y_test, scaler = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
+x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
 
 # Affichage du dataset :
 print("x_train shape:", x_train.shape)
@@ -211,12 +214,18 @@ model.load_weights('model.weights.h5')
 # Chargement du dataset :
 dataset_for_predictions = DATASET_FOR_PREDICTIONS
 dataset_for_predictions = pd.read_csv(dataset_for_predictions)
-dates = dataset_for_predictions['Date'].values
+# dates = dataset_for_predictions['Date'].values
 
 # Génération des prédictions :
 generate_prediction_service = GeneratePredictionService()
-time_step=15
-predictions = generate_prediction_service.predict_on_new_data(dataset_for_predictions, model, time_step)
+time_step = TIME_STEP
+
+print("test_data : ", test_data)
+
+# predictions = generate_prediction_service.predict_on_new_data(dataset_for_predictions, model, time_step)
+predictions = generate_prediction_service.predict_on_new_data(test_data, model, scaler, time_step)
+
+print("predictions : ", predictions)
 
 # Affichage des prédictions :
 display_results.plot_predictions(dates, predictions, time_step)

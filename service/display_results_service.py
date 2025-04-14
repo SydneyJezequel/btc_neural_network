@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -83,9 +85,15 @@ class DisplayResultsService:
 
     def plot_predictions(self, dates, predictions, time_step):
         """ Affichage des prédictions avec une date sur deux affichée """
-        # Aligner les prédictions et les dates :
+        # Transformation des prédictions en tableau numpy :
+        predictions = np.array(predictions)
+        # Récupérer la dernière date de la série de dates
+        derniere_date = dates.iloc[-1]
+        # Créer de nouvelles dates pour les prédictions
+        nouvelles_dates = [derniere_date + timedelta(days=i) for i in range(1, len(predictions) + 1)]
+        # Aligner les prédictions et les nouvelles dates :
         predictions_with_dates = pd.DataFrame({
-            'Date': dates[time_step:],
+            'Date': nouvelles_dates,
             'Prediction': predictions.flatten()
         })
         # Index :

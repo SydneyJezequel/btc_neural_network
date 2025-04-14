@@ -158,6 +158,8 @@ class PrepareDatasetService:
         model_dataset = tmp_dataset
         normalized_datas = self.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
         model_dataset[columns_to_normalize] = normalized_datas
+        dates = model_dataset['Date']
+        print("dates : ", dates)
         # Suppression de la colonne date :
         del model_dataset['Date']
         # Création des datasets d'entrainement et test :
@@ -167,5 +169,5 @@ class PrepareDatasetService:
         x_test, y_test =  self.create_dataset(test_data, time_step)
         x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
         x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
-        return x_train, y_train, x_test, y_test, scaler
+        return x_train, y_train, x_test, y_test, test_data, dates, scaler
 
