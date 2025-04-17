@@ -1,18 +1,13 @@
-from datetime import timedelta
-
 import pandas as pd
-import numpy as np
-import math
-from keras.src.utils.audio_dataset_utils import prepare_dataset
 from service.display_results_service import DisplayResultsService
 from service.prepare_dataset_service import PrepareDatasetService
-from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
-from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
 import parameters
-from tensorflow.keras.callbacks import Callback
 from service.generate_prediction_service import GeneratePredictionService
+from BO.metrics_callback import MetricsCallback
+
+
 
 
 
@@ -47,6 +42,11 @@ print("y_train shape:", y_train.shape)
 print("x_test shape:", x_test.shape)
 print("y_test shape:", y_test.shape)
 
+print("x_train :", x_train)
+print("y_train :", y_train)
+print("x_test ", x_test)
+print("y_test :", y_test)
+
 
 
 
@@ -70,7 +70,12 @@ optimizer = Adam(learning_rate=0.001)
 model.compile(loss="mean_squared_error", optimizer=optimizer)
 """
 
-# Initialisation des tableaux pour stocker les métriques :
+
+
+
+""" ************* Initialisation des métriques ************* """
+
+# Stockage des métriques :
 metrics_history = {
     "epoch": [],
     "train_rmse": [],
@@ -90,57 +95,7 @@ metrics_history = {
 }
 
 # Callback pour stocker les métriques toutes les 50 epochs :
-class MetricsCallback(Callback):
-    def on_epoch_end(self, epoch, logs=None):
-        if (epoch + 1) % 50 == 0:
-            train_predict = self.model.predict(x_train)
-            test_predict = self.model.predict(x_test)
-
-            train_predict = train_predict.reshape(-1, 1)
-            test_predict = test_predict.reshape(-1, 1)
-
-            scaler = prepare_dataset.get_fitted_scaler(train_predict)
-            train_predict = scaler.inverse_transform(train_predict)
-            test_predict = scaler.inverse_transform(test_predict)
-
-            original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
-            original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
-
-            metrics_history["epoch"].append(epoch + 1)
-            metrics_history["train_rmse"].append(math.sqrt(mean_squared_error(original_ytrain, train_predict)))
-            metrics_history["train_mse"].append(mean_squared_error(original_ytrain, train_predict))
-            metrics_history["train_mae"].append(mean_absolute_error(original_ytrain, train_predict))
-            metrics_history["test_rmse"].append(math.sqrt(mean_squared_error(original_ytest, test_predict)))
-            metrics_history["test_mse"].append(mean_squared_error(original_ytest, test_predict))
-            metrics_history["test_mae"].append(mean_absolute_error(original_ytest, test_predict))
-            metrics_history["train_explained_variance"].append(explained_variance_score(original_ytrain, train_predict))
-            metrics_history["test_explained_variance"].append(explained_variance_score(original_ytest, test_predict))
-            metrics_history["train_r2"].append(r2_score(original_ytrain, train_predict))
-            metrics_history["test_r2"].append(r2_score(original_ytest, test_predict))
-            # Vérification des valeurs strictement positives avant le calcul de la déviance gamma :
-            if np.all(original_ytrain > 0) and np.all(train_predict > 0):
-                mgd = mean_gamma_deviance(original_ytrain, train_predict)
-                metrics_history["train_mgd"].append(mgd)
-            else:
-                metrics_history["train_mgd"].append(np.nan)
-
-            if np.all(original_ytest > 0) and np.all(test_predict > 0):
-                mgd = mean_gamma_deviance(original_ytest, test_predict)
-                metrics_history["test_mgd"].append(mgd)
-            else:
-                metrics_history["test_mgd"].append(np.nan)
-            # Vérification des valeurs strictement positives avant le calcul de la déviance poisson :
-            if np.all(original_ytrain > 0) and np.all(train_predict > 0):
-                mpd = mean_poisson_deviance(original_ytrain, train_predict)
-                metrics_history["train_mpd"].append(mpd)
-            else:
-                metrics_history["train_mpd"].append(np.nan)
-
-            if np.all(original_ytest > 0) and np.all(test_predict > 0):
-                mpd = mean_poisson_deviance(original_ytest, test_predict)
-                metrics_history["test_mpd"].append(mpd)
-            else:
-                metrics_history["test_mpd"].append(np.nan)
+metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_history)
 
 
 
@@ -156,7 +111,7 @@ history = model.fit(
     epochs=200,
     batch_size=32,
     verbose=1,
-    callbacks=[MetricsCallback()] # [MetricsCallback(), early_stopping]
+    callbacks=[metrics_callback] # [metrics_callback, early_stopping]
 )
 
 # Sauvegarde du modèle :
@@ -214,17 +169,15 @@ model.load_weights('model.weights.h5')
 # Chargement du dataset :
 dataset_for_predictions = DATASET_FOR_PREDICTIONS
 dataset_for_predictions = pd.read_csv(dataset_for_predictions)
-# dates = dataset_for_predictions['Date'].values
+
+print("dataset_for_predictions : ", dataset_for_predictions)
 
 # Génération des prédictions :
 generate_prediction_service = GeneratePredictionService()
 time_step = TIME_STEP
 
-print("test_data : ", test_data)
-
 # predictions = generate_prediction_service.predict_on_new_data(dataset_for_predictions, model, time_step)
 predictions = generate_prediction_service.predict_on_new_data(test_data, model, scaler, time_step)
-
 print("predictions : ", predictions)
 
 # Affichage des prédictions :

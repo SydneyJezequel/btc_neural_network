@@ -145,6 +145,8 @@ class PrepareDatasetService:
         tmp_dataset = self.delete_columns(tmp_dataset)
         # Sauvegarde du dataset formaté :
         self.save_tmp_dataset(tmp_dataset)
+        # Ajout des indicateurs techniques au dataset :
+        tmp_dataset = self.add_technicals_indicators(tmp_dataset)
         # Affichage de l'intégralité du dataset avant la transformation des prix :
         display_results = DisplayResultsService()
         display_results.display_all_dataset(tmp_dataset)

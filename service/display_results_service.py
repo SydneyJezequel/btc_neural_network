@@ -88,9 +88,11 @@ class DisplayResultsService:
         # Transformation des prédictions en tableau numpy :
         predictions = np.array(predictions)
         # Récupérer la dernière date de la série de dates
-        derniere_date = dates.iloc[-1]
+        derniere_date = dates.max()
         # Créer de nouvelles dates pour les prédictions
         nouvelles_dates = [derniere_date + timedelta(days=i) for i in range(1, len(predictions) + 1)]
+        # Formatage des dates :
+        nouvelles_dates = [date.strftime("%Y-%m-%d") for date in nouvelles_dates]
         # Aligner les prédictions et les nouvelles dates :
         predictions_with_dates = pd.DataFrame({
             'Date': nouvelles_dates,
