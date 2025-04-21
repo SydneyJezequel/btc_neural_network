@@ -27,6 +27,7 @@ class MetricsCallback(Callback):
 
 
     def on_epoch_end(self, epoch, logs=None):
+        print("hello")
         """ Callback pour stocker les métriques toutes les 50 epochs """
         if (epoch + 1) % 50 == 0:
             train_predict = self.model.predict(self.x_train)

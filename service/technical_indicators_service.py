@@ -38,11 +38,13 @@ class TechnicalIndicatorsService:
     @staticmethod
     def calculate_signal(dataset, taille_sma1, taille_sma2):
         """ Calcul du signal croisement des sma """
+        # Calcul des moyennes mobiles :
         sma1_col = 'MA_' + str(taille_sma1)
         sma2_col = 'MA_' + str(taille_sma2)
         signal_col = sma1_col +  '_supérieure_'  + sma2_col
         dataset[sma1_col] = TechnicalIndicatorsService.ma(dataset, taille_sma1)
         dataset[sma2_col] = TechnicalIndicatorsService.ma(dataset, taille_sma2)
-        dataset[signal_col] = dataset[sma1_col] > dataset[sma2_col]
+        # Calcul des signaux :
+        dataset[signal_col] = (dataset[sma1_col] > dataset[sma2_col]).astype(int)
         return dataset
 

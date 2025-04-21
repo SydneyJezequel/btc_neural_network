@@ -165,3 +165,37 @@ class DisplayResultsService:
         plt.grid(True)
         plt.tight_layout()
         plt.show()
+
+
+
+    def plot_metrics_history(self, metrics_history, metrics_to_plot=None, title_prefix="Évolution de"):
+        """ Affiche l'évolution des métriques d'entraînement/test au fil des epochs. """
+        available_metrics = set()
+        for key in metrics_history.keys():
+            if "_" in key:
+                available_metrics.add(key.split("_")[1])  # ex: "rmse" à partir de "train_rmse"
+
+        if metrics_to_plot is None:
+            metrics_to_plot = sorted(available_metrics)
+
+        epochs = metrics_history["epoch"]
+
+        for metric in metrics_to_plot:
+            train_key = f"train_{metric}"
+            test_key = f"test_{metric}"
+
+            if train_key in metrics_history or test_key in metrics_history:
+                plt.figure(figsize=(10, 5))
+                if train_key in metrics_history:
+                    plt.plot(epochs, metrics_history[train_key], label="Train")
+                if test_key in metrics_history:
+                    plt.plot(epochs, metrics_history[test_key], label="Test")
+                plt.xlabel("Epoch")
+                plt.ylabel(metric.upper())
+                plt.title(f"{title_prefix} {metric.upper()}")
+                plt.legend()
+                plt.grid(True)
+                plt.tight_layout()
+                plt.show()
+            else:
+                print(f"Aucune donnée disponible pour la métrique : {metric}")

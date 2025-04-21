@@ -83,24 +83,45 @@ class PrepareDatasetService:
 
 
     def create_dataset(self, dataset, time_step=1):
-        """ Génère les datasets d'entrainement et de test """
+        # Génère les datasets d'entrainement et de test 
+        dataX, dataY = [], []
+        for i in range(len(dataset) - time_step - 1):
+            a = dataset.iloc[i:(i + time_step)].values 
+            dataX.append(a)
+            dataY.append(dataset.iloc[i + time_step, 0])
+        return np.array(dataX), np.array(dataY)
+    """
+    def create_dataset(self, dataset, time_step=1):
+        # Génère les datasets d'entrainement et de test
         dataX, dataY = [], []
         for i in range(len(dataset) - time_step - 1):
             a = dataset.iloc[i:(i + time_step), 0]
             dataX.append(a)
             dataY.append(dataset.iloc[i + time_step, 0])
         return np.array(dataX), np.array(dataY)
+    """
 
 
 
     def create_data_matrix(self, dataset, time_step=15):
         """ Création des matrices de données """
         # Création des ensembles de données en utilisant la fonction create_dataset :
-        x, y = self.create_dataset(dataset, time_step)
+        x, y = self.create_dataset_for_matrix(dataset, time_step)
         x = x.reshape(x.shape[0], x.shape[1], 1)
         # Affichage des dimensions des datasets :
         print("dataset x: ", x.shape, "dataset y: ", y.shape)
         return x, y
+
+
+
+    def create_dataset_for_matrix(self, dataset, time_step=1):
+        """ Génère les datasets d'entrainement et de test pour une matrice """
+        dataX, dataY = [], []
+        for i in range(len(dataset) - time_step - 1):
+            a = dataset.iloc[i:(i + time_step), 0]
+            dataX.append(a)
+            dataY.append(dataset.iloc[i + time_step, 0])
+        return np.array(dataX), np.array(dataY)
 
 
 
@@ -139,7 +160,7 @@ class PrepareDatasetService:
 
 
     def prepare_dataset(self, dataset, cutoff_date = '2020-01-01'):
-        """ Traitements sur le dataset pré-entrainement """
+        # Traitements sur le dataset pré-entrainement
         # Préparation du dataset :
         tmp_dataset = self.format_dataset(dataset)
         tmp_dataset = self.delete_columns(tmp_dataset)
@@ -161,15 +182,57 @@ class PrepareDatasetService:
         normalized_datas = self.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
         model_dataset[columns_to_normalize] = normalized_datas
         dates = model_dataset['Date']
+        # Suppression de la colonne date :
+        del model_dataset['Date']
+        # Création des datasets d'entrainement et test :
+        train_data, test_data = self.create_train_and_test_dataset(model_dataset)
+        # ******** TEST ****** #
+        # model_dataset.to_csv(parameters.DATASET_PATH + 'train_data.csv', index=False)
+        # model_dataset.to_csv(parameters.DATASET_PATH + 'test_data.csv', index=False)
+        # ******** TEST ****** #
+        time_step = 15
+        x_train, y_train = self.create_dataset(train_data, time_step)
+        x_test, y_test = self.create_dataset(test_data, time_step)
+        # x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
+        # x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
+        return x_train, y_train, x_test, y_test, test_data, dates, scaler
+
+
+    
+    """
+    def prepare_dataset(self, dataset, cutoff_date='2020-01-01'):
+        # Traitements sur le dataset pré-entrainement 
+        # Préparation du dataset :
+        tmp_dataset = self.format_dataset(dataset)
+        tmp_dataset = self.delete_columns(tmp_dataset)
+        # Sauvegarde du dataset formaté :
+        self.save_tmp_dataset(tmp_dataset)
+        # Affichage de l'intégralité du dataset avant la transformation des prix :
+        display_results = DisplayResultsService()
+        display_results.display_all_dataset(tmp_dataset)
+        # Sous-échantillonnage :
+        tmp_dataset = self.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
+        # Normalisation :
+        tmp_dataset_copy = tmp_dataset.copy()
+        columns_to_normalize = ['Dernier']
+        scaler = self.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
+        # joblib.dump(scaler, 'scaler.save')
+        model_dataset = tmp_dataset
+        normalized_datas = self.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
+        model_dataset[columns_to_normalize] = normalized_datas
+        dates = model_dataset['Date']
         print("dates : ", dates)
         # Suppression de la colonne date :
         del model_dataset['Date']
         # Création des datasets d'entrainement et test :
         train_data, test_data = self.create_train_and_test_dataset(model_dataset)
         time_step = 15
-        x_train, y_train =  self.create_dataset(train_data, time_step)
-        x_test, y_test =  self.create_dataset(test_data, time_step)
+        
+        x_train, y_train = self.create_dataset(train_data, time_step)
+        x_test, y_test = self.create_dataset(test_data, time_step)
         x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
         x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
         return x_train, y_train, x_test, y_test, test_data, dates, scaler
+    """
+
 

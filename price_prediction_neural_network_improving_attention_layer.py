@@ -1,3 +1,4 @@
+import pprint
 import pandas as pd
 import numpy as np
 from keras.src.layers import Lambda
@@ -36,6 +37,12 @@ x_train, y_train, x_test, y_test, test_data,  dates, scaler = prepare_dataset.pr
 
 """  ************* Définition du modèle ************* """
 
+# Définition du nombre de timesteps et de features.
+nb_timesteps = x_train.shape[1]
+nb_features = x_train.shape[2]
+print("nb_timesteps : ", nb_timesteps)
+print("nb_features : ", nb_features)
+
 def attention_layer(inputs):
     """ Mécanisme d'attention simple """
     query, value = inputs, inputs # inputs : Sortie de la couche précédente.
@@ -44,7 +51,8 @@ def attention_layer(inputs):
 
 # Création du réseau de neurones :
 model = Sequential()
-model.add(LSTM(10, return_sequences=True, input_shape=(None, 1), activation="relu"))
+# model.add(LSTM(10, return_sequences=True, input_shape=(None, 1), activation="relu"))
+model.add(LSTM(10, return_sequences=True, input_shape=(nb_timesteps, nb_features), activation="relu"))
 model.add(Lambda(lambda x: attention_layer(x)))
 model.add(LSTM(5, activation="relu"))
 model.add(Dense(1))
@@ -118,6 +126,18 @@ history = model.fit(
 
 # Sauvegarde du modèle :
 model.save_weights(SAVED_MODEL)
+
+
+
+
+""" ************* Affichage des métriques ************* """
+
+# Affichage des métriques :
+pprint.pprint(metrics_history)
+
+# Affichage des métriques durant les époques :
+display_results = DisplayResultsService()
+display_results.plot_metrics_history(metrics_history, metrics_to_plot=["rmse", "mse", "mae", "explained_variance", "r2", "mgd", "mpd"])
 
 
 

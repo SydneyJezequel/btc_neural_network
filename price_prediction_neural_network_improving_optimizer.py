@@ -1,3 +1,4 @@
+import pprint
 import pandas as pd
 import numpy as np
 from keras.src.optimizers import Adam
@@ -35,9 +36,16 @@ x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.pre
 
 """ ************* Définition du modèle ************* """
 
+# Définition du nombre de timesteps et de features.
+nb_timesteps = x_train.shape[1]
+nb_features = x_train.shape[2]
+print("nb_timesteps : ", nb_timesteps)
+print("nb_features : ", nb_features)
+
 # Création du réseau de neurones :
 model = Sequential()
-model.add(LSTM(20, input_shape=(None, 1), activation="relu", return_sequences=True))
+model.add(LSTM(20, input_shape=(nb_timesteps, nb_features), activation="relu", return_sequences=True))
+# model.add(LSTM(20, input_shape=(None, 1), activation="relu", return_sequences=True))
 model.add(Dropout(0.2))
 model.add(LSTM(20, activation="relu"))
 model.add(Dropout(0.2))
@@ -117,6 +125,18 @@ history = model.fit(
 
 # Sauvegarde du modèle :
 model.save_weights(SAVED_MODEL)
+
+
+
+
+print("************* Affichage des métriques *************")
+
+# Affichage des métriques :
+pprint.pprint(metrics_history)
+
+# Affichage des métriques durant les époques :
+display_results = DisplayResultsService()
+display_results.plot_metrics_history(metrics_history, metrics_to_plot=["rmse", "mse", "mae", "explained_variance", "r2", "mgd", "mpd"])
 
 
 

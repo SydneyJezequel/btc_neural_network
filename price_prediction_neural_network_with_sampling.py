@@ -1,11 +1,18 @@
+import pprint
 import pandas as pd
+from BO.metrics_callback import MetricsCallback
 from service.display_results_service import DisplayResultsService
 from service.prepare_dataset_service import PrepareDatasetService
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
 import parameters
 from service.generate_prediction_service import GeneratePredictionService
-from BO.metrics_callback import MetricsCallback
+# from BO.metrics_callback import MetricsCallback
+import math
+import numpy as np
+from tensorflow.keras.callbacks import Callback
+from sklearn.metrics import ( mean_squared_error, mean_absolute_error, explained_variance_score, r2_score, mean_poisson_deviance, mean_gamma_deviance)
+from service.prepare_dataset_service import PrepareDatasetService
 
 
 
@@ -41,23 +48,36 @@ print("x_train shape:", x_train.shape)
 print("y_train shape:", y_train.shape)
 print("x_test shape:", x_test.shape)
 print("y_test shape:", y_test.shape)
-
+"""
 print("x_train :", x_train)
 print("y_train :", y_train)
 print("x_test ", x_test)
 print("y_test :", y_test)
+"""
 
 
 
 
 """ ************* Définition du modèle ************* """
 
+# Définition du nombre de timesteps et de features.
+nb_timesteps = x_train.shape[1]
+nb_features = x_train.shape[2]
+print("nb_timesteps : ", nb_timesteps)
+print("nb_features : ", nb_features)
+
+
 # Création du réseau de neurones :
+model = Sequential()
+model.add(LSTM(10, input_shape=(nb_timesteps, nb_features), activation="relu"))
+# model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
+model.add(Dense(1))
+model.compile(loss="mean_squared_error", optimizer="adam")
+"""
 model = Sequential()
 model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
-"""
 # Création du modèle amélioré
 model = Sequential()
 model.add(LSTM(20, input_shape=(None, 1), activation="tanh", return_sequences=True))
@@ -120,9 +140,19 @@ model.save_weights(SAVED_MODEL)
 
 
 
-""" ************* Affichage des résultats ************* """
+""" ************* Affichage des métriques ************* """
 
+# Affichage des métriques :
+pprint.pprint(metrics_history)
+
+# Affichage des métriques durant les époques :
 display_results = DisplayResultsService()
+display_results.plot_metrics_history(metrics_history, metrics_to_plot=["rmse", "mse", "mae", "explained_variance", "r2", "mgd", "mpd"])
+
+
+
+
+""" ************* Affichage des résultats ************* """
 
 # Affichage des courbes de pertes :
 display_results.plot_loss(history)
@@ -169,8 +199,6 @@ model.load_weights('model.weights.h5')
 # Chargement du dataset :
 dataset_for_predictions = DATASET_FOR_PREDICTIONS
 dataset_for_predictions = pd.read_csv(dataset_for_predictions)
-
-print("dataset_for_predictions : ", dataset_for_predictions)
 
 # Génération des prédictions :
 generate_prediction_service = GeneratePredictionService()

@@ -1,3 +1,4 @@
+import pprint
 import pandas as pd
 import numpy as np
 from service.display_results_service import DisplayResultsService
@@ -34,9 +35,17 @@ x_train, y_train, x_test, y_test, test_data,  dates, scaler = prepare_dataset.pr
 
 """ ************* Définition du modèle ************* """
 
+# Définition du nombre de timesteps et de features.
+nb_timesteps = x_train.shape[1]
+nb_features = x_train.shape[2]
+print("nb_timesteps : ", nb_timesteps)
+print("nb_features : ", nb_features)
+
+
 # Création du réseau de neurones :
 model = Sequential()
-model.add(LSTM(100, return_sequences=True, input_shape=(None, 1), activation="relu"))
+# model.add(LSTM(100, return_sequences=True, input_shape=(None, 1), activation="relu"))
+model.add(LSTM(100, return_sequences=True, input_shape=(nb_timesteps, nb_features), activation="relu"))
 model.add(LSTM(50, return_sequences=True, activation="relu"))
 model.add(LSTM(25, activation="relu"))
 model.add(Dense(1))
@@ -88,6 +97,18 @@ history = model.fit(
 
 # Sauvegarde du modèle :
 model.save_weights(SAVED_MODEL)
+
+
+
+
+""" ************* Affichage des métriques ************* """
+
+# Affichage des métriques :
+pprint.pprint(metrics_history)
+
+# Affichage des métriques durant les époques :
+display_results = DisplayResultsService()
+display_results.plot_metrics_history(metrics_history, metrics_to_plot=["rmse", "mse", "mae", "explained_variance", "r2", "mgd", "mpd"])
 
 
 

@@ -38,11 +38,8 @@ class GeneratePredictionService:
         i = 0
         pred_days = 30
 
-        print("test_data : ", dataset_for_predictions)
         # Préparation du dataset :
         # dataset_for_predictions, scaler = self.prepare_dataset_to_predict(dataset_for_predictions, time_step)
-
-        print("test_data post self.prepare_dataset_to_predict() : ", dataset_for_predictions)
 
         # Convert DataFrame to NumPy array
         dataset_for_predictions = dataset_for_predictions.values

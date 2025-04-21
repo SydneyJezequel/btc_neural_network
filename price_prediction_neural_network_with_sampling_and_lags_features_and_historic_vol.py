@@ -1,3 +1,5 @@
+import pprint
+
 import pandas as pd
 import numpy as np
 from BO.metrics_callback import MetricsCallback
@@ -63,12 +65,15 @@ model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=Fals
 del model_dataset['Date']
 
 # Création des datasets d'entrainement et test :
+x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
+"""
 train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
 time_step = 15
 x_train, y_train = prepare_dataset.create_dataset(train_data, time_step)
 x_test, y_test = prepare_dataset.create_dataset(test_data, time_step)
 x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
 x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
+"""
 print("x_train shape:", x_train.shape)
 print("y_train shape:", y_train.shape)
 print("x_test shape:", x_test.shape)
@@ -79,9 +84,16 @@ print("y_test shape:", y_test.shape)
 
 """ ************* Définition du modèle ************* """
 
+# Définition du nombre de timesteps et de features.
+nb_timesteps = x_train.shape[1]
+nb_features = x_train.shape[2]
+print("nb_timesteps : ", nb_timesteps)
+print("nb_features : ", nb_features)
+
 # Création du réseau de neurones :
 model = Sequential()
-model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
+model.add(LSTM(10, input_shape=(nb_timesteps, nb_features), activation="relu"))
+# model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
 """
@@ -141,6 +153,18 @@ history = model.fit(
 
 # Sauvegarde du modèle :
 model.save_weights(SAVED_MODEL)
+
+
+
+
+""" ************* Affichage des métriques ************* """
+
+# Affichage des métriques :
+pprint.pprint(metrics_history)
+
+# Affichage des métriques durant les époques :
+display_results = DisplayResultsService()
+display_results.plot_metrics_history(metrics_history, metrics_to_plot=["rmse", "mse", "mae", "explained_variance", "r2", "mgd", "mpd"])
 
 
 

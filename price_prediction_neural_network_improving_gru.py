@@ -1,3 +1,4 @@
+import pprint
 import pandas as pd
 import numpy as np
 from keras.src.layers import GRU
@@ -87,6 +88,18 @@ history = model.fit(
 
 # Sauvegarde du modèle :
 model.save_weights(SAVED_MODEL)
+
+
+
+
+""" ************* Affichage des métriques************* """
+
+# Affichage des métriques :
+pprint.pprint(metrics_history)
+
+# Affichage des métriques durant les époques :
+display_results = DisplayResultsService()
+display_results.plot_metrics_history(metrics_history, metrics_to_plot=["rmse", "mse", "mae", "explained_variance", "r2", "mgd", "mpd"])
 
 
 
