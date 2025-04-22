@@ -60,6 +60,43 @@ class PrepareDatasetService:
 
 
 
+    # V1 (retrait des SMA mais conservation des signals et du RSI) :
+    """
+    def add_technicals_indicators(self, tmp_dataset):
+        # Ajout des indicateurs techniques au dataset 
+        # Ajout des indicateurs dans les colonnes :
+        tmp_dataset['RSI'] = TechnicalIndicatorsService.rsi(tmp_dataset, 14)
+        # Ajout des signaux générés par les indicateurs :
+        TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 150)
+        TechnicalIndicatorsService.calculate_signal(tmp_dataset, 100, 150)
+        TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 100)
+        tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
+        return tmp_dataset
+    """
+
+    # V2 (retrait des SMA et signaux mais conservation du RSI) :
+    """
+    def add_technicals_indicators(self, tmp_dataset):
+        # Ajout des indicateurs techniques au dataset 
+        tmp_dataset['RSI'] = TechnicalIndicatorsService.rsi(tmp_dataset, 14)
+        tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
+        return tmp_dataset
+    """
+
+    # V3 (retrait des SMA et du RSI mais conservation des signaux) :
+    """
+    def add_technicals_indicators(self, tmp_dataset):
+        # Ajout des indicateurs techniques au dataset 
+        # Ajout des signaux générés par les indicateurs :
+        TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 150)
+        TechnicalIndicatorsService.calculate_signal(tmp_dataset, 100, 150)
+        TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 100)
+        tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
+        return tmp_dataset
+    """
+
+
+
     def get_fitted_scaler(self, tmp_dataset):
         """ Ajuste le scaler """
         scaler = MinMaxScaler(feature_range=(0, 1))
