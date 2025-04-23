@@ -43,7 +43,7 @@ class PrepareDatasetService:
 
 
     def add_technicals_indicators(self, tmp_dataset):
-        """ Ajout des indicateurs techniques au dataset """
+        # Ajout des indicateurs techniques au dataset
         # Ajout des indicateurs dans les colonnes :
         tmp_dataset['MA_150'] = TechnicalIndicatorsService.ma(tmp_dataset, 150)
         tmp_dataset['MA_100'] = TechnicalIndicatorsService.ma(tmp_dataset, 100)
@@ -60,7 +60,23 @@ class PrepareDatasetService:
 
 
 
-    # V1 (retrait des SMA mais conservation des signals et du RSI) :
+    # V1 (retrait des signaux) :
+    """
+    def add_technicals_indicators(self, tmp_dataset):
+        # Ajout des indicateurs techniques au dataset
+        # Ajout des indicateurs dans les colonnes :
+        tmp_dataset['MA_150'] = TechnicalIndicatorsService.ma(tmp_dataset, 150)
+        tmp_dataset['MA_100'] = TechnicalIndicatorsService.ma(tmp_dataset, 100)
+        tmp_dataset['MA_50'] = TechnicalIndicatorsService.ma(tmp_dataset, 50)
+        tmp_dataset['RSI'] = TechnicalIndicatorsService.rsi(tmp_dataset, 14)
+        # Supprimer les lignes où MA_150 est NaN
+        tmp_dataset = tmp_dataset.dropna(subset=['MA_150'])
+        tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
+        return tmp_dataset
+    """
+
+
+    # V2 (retrait des SMA mais conservation des signaux et du RSI) :
     """
     def add_technicals_indicators(self, tmp_dataset):
         # Ajout des indicateurs techniques au dataset 
@@ -74,7 +90,7 @@ class PrepareDatasetService:
         return tmp_dataset
     """
 
-    # V2 (retrait des SMA et signaux mais conservation du RSI) :
+    # V3 (retrait des SMA et signaux mais conservation du RSI) :
     """
     def add_technicals_indicators(self, tmp_dataset):
         # Ajout des indicateurs techniques au dataset 
@@ -83,7 +99,7 @@ class PrepareDatasetService:
         return tmp_dataset
     """
 
-    # V3 (retrait des SMA et du RSI mais conservation des signaux) :
+    # V4 (retrait des SMA et du RSI mais conservation des signaux) :
     """
     def add_technicals_indicators(self, tmp_dataset):
         # Ajout des indicateurs techniques au dataset 
