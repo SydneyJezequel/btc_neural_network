@@ -26,14 +26,11 @@ GRADIENT_BOOSTING_SAVED_MODEL = parameters.GRADIENT_BOOSTING_SAVED_MODEL
 prepare_dataset = PrepareDatasetService()
 
 # Chargement du dataset :
-initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
+initial_dataset = pd.read_csv('../dataset/btc_historic_cotations.csv')
 
 # Formatage du dataset :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
 tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
-
-# Ajout des indicateurs techniques et signaux :
-tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
 
 # Ajout des caractéristiques de lag :
 lags = [1, 7, 30]  # Lag pour 1 jour, 1 semaine, 1 mois
@@ -42,7 +39,7 @@ tmp_dataset = tmp_dataset.dropna()  # Supprimer les lignes avec des valeurs NaN 
 
 # Normalisation du dataset :
 tmp_dataset_copy = tmp_dataset.copy()
-columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100'] + [f'Lag_{lag}' for lag in lags]
+columns_to_normalize = ['Dernier'] + [f'Lag_{lag}' for lag in lags]
 scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
 joblib.dump(scaler, '../../scaler.save')
 model_dataset = tmp_dataset
@@ -52,7 +49,7 @@ print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
 
 # Contrôle : Sauvegarde du dataset :
-model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=False)
+model_dataset.to_csv('../dataset/' + 'dataset_modified_with_date.csv', index=False)
 
 # Création des datasets d'entrainement et de test pour le modèle :
 train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
@@ -98,7 +95,7 @@ print("Meilleurs paramètres trouvés :", best_params)
 model = grid_search.best_estimator_
 
 # Sauvegarde du modèle
-joblib.dump(model, GRADIENT_BOOSTING_SAVED_MODEL)
+joblib.dump(model, '../model/'+'gradient_boosting_model.pkl')
 
 
 

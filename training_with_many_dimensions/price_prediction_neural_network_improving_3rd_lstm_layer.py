@@ -1,12 +1,6 @@
 import pprint
 import pandas as pd
 import numpy as np
-from keras import Input
-from keras.src.callbacks import EarlyStopping, ReduceLROnPlateau
-from keras.src.layers import BatchNormalization, Dropout, Bidirectional
-from keras.src.optimizers import Adam
-from keras.regularizers import L2
-from keras.optimizers import Adam
 from service.display_results_service import DisplayResultsService
 from service.prepare_dataset_service import PrepareDatasetService
 from tensorflow.keras.models import Sequential
@@ -30,7 +24,7 @@ SAVED_MODEL = parameters.SAVED_MODEL
 prepare_dataset = PrepareDatasetService()
 
 # Chargement du dataset :
-initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
+initial_dataset = pd.read_csv('../dataset/btc_historic_cotations.csv')
 
 # Préparation du dataset pré-entrainement :
 cutoff_date = '2020-01-01'
@@ -48,102 +42,13 @@ print("nb_timesteps : ", nb_timesteps)
 print("nb_features : ", nb_features)
 
 
-
-
-
-
-
-
-
-
-# ************ RESEAU DE NEURONES 3 COUCHES V1 ************ #
-"""
 # Création du réseau de neurones :
 model = Sequential()
-# model.add(LSTM(100, return_sequences=True, input_shape=(None, 1), activation="relu"))
 model.add(LSTM(100, return_sequences=True, input_shape=(nb_timesteps, nb_features), activation="relu"))
 model.add(LSTM(50, return_sequences=True, activation="relu"))
 model.add(LSTM(25, activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
-"""
-
-
-
-
-# ************ RESEAU DE NEURONES 3 COUCHES V2 ************ #
-"""
-from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-"""
-"""
-# Création du réseau de neurones
-model = Sequential()
-model.add(LSTM(100, return_sequences=True, input_shape=(nb_timesteps, nb_features), activation="tanh"))
-model.add(BatchNormalization())
-model.add(Dropout(0.2))
-
-model.add(LSTM(50, return_sequences=True, activation="tanh"))
-model.add(BatchNormalization())
-model.add(Dropout(0.2))
-
-model.add(LSTM(25, activation="tanh"))
-model.add(BatchNormalization())
-model.add(Dropout(0.2))
-
-model.add(Dense(1))
-
-# Compilation du modèle
-optimizer = Adam(learning_rate=0.001)
-model.compile(loss="mean_squared_error", optimizer=optimizer)
-
-# Callbacks
-early_stopping = EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
-reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, min_lr=1e-6)
-"""
-
-
-
-
-# ************ RESEAU DE NEURONES 3 COUCHES V3 ************ #
-
-# Création du réseau de neurones :
-
-# Define the regularizer
-l2_regularizer = L2(0.01)
-
-# Create the model
-model = Sequential()
-model.add(Input(shape=(nb_timesteps, nb_features)))
-model.add(Bidirectional(LSTM(100, return_sequences=True)))
-model.add(BatchNormalization())
-model.add(Dropout(0.3))
-
-model.add(Bidirectional(LSTM(50, return_sequences=True)))
-model.add(BatchNormalization())
-model.add(Dropout(0.3))
-
-model.add(Bidirectional(LSTM(25)))
-model.add(BatchNormalization())
-model.add(Dropout(0.3))
-
-model.add(Dense(50, activation="relu", kernel_regularizer=l2_regularizer))
-model.add(Dense(1))
-
-# Compile the model
-optimizer = Adam(learning_rate=0.0001)
-model.compile(loss="mean_squared_error", optimizer=optimizer)
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -175,30 +80,10 @@ metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_his
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 """ ************* Entrainement du modèle ************* """
 
 #early_stopping = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True)
 
-
-
-# ************ RESEAU DE NEURONES 3 COUCHES V1 ************ #
-
-"""
 # Entraînement du modèle :
 history = model.fit(
     x_train, y_train,
@@ -208,35 +93,9 @@ history = model.fit(
     verbose=1,
     callbacks=[metrics_callback] # [metrics_callback, early_stopping]
 )
-"""
-
-
-
-# ************ RESEAU DE NEURONES 3 COUCHES V2 ************ #
-# Entraînement du modèle :
-history = model.fit(
-    x_train, y_train,
-    validation_data=(x_test, y_test),
-    epochs=650,
-    batch_size=32,
-    verbose=1,
-    callbacks=[metrics_callback] # [metrics_callback, early_stopping, reduce_lr] # [metrics_callback, early_stopping]
-)
 
 # Sauvegarde du modèle :
-model.save_weights(SAVED_MODEL)
-
-
-
-
-
-
-
-
-
-
-
-
+model.save_weights('../model/'+f'model.weights.h5')
 
 
 

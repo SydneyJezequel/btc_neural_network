@@ -88,7 +88,7 @@ def create_dataset(dataset, time_step=1):
 prepare_dataset = PrepareDatasetService()
 
 # Chargement du dataset :
-initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
+initial_dataset = pd.read_csv('../dataset/btc_historic_cotations.csv')
 
 # Formatage des colonnes :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
@@ -113,9 +113,9 @@ tmp_dataset.to_csv(DATASET_PATH+'dataset_for_model.csv', index=False)
 
 # Normalisation des colonnes :
 tmp_dataset_copy = tmp_dataset.copy()
-columns_to_normalize = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'MA_50_supérieure_MA_150', 'MA_100_supérieure_MA_150', 'MA_50_supérieure_MA_100']
+columns_to_normalize = ['Dernier']
 scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
-joblib.dump(scaler, 'scaler.save')
+joblib.dump(scaler, '../scaler.save')
 model_dataset = tmp_dataset
 normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
 model_dataset[columns_to_normalize] = normalized_datas

@@ -1,29 +1,17 @@
-import os
 import pandas as pd
 import numpy as np
 import math
-import datetime as dt
 import matplotlib.pyplot as plt
 from keras.src.utils.audio_dataset_utils import prepare_dataset
 from service.prepare_dataset_service import PrepareDataset
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score
-from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance, accuracy_score
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_poisson_deviance, mean_gamma_deviance
 from sklearn.impute import SimpleImputer
-import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, LSTM
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
+from tensorflow.keras.layers import Dense, LSTM
 import parameters
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.regularizers import l2
 from tensorflow.keras.callbacks import Callback
-from tensorflow.keras.callbacks import EarlyStopping
 import joblib
-
-from price_prediction_neural_network_with_cross_validation import model_dataset
 
 """ ****************************** Paramètres ****************************** """
 DATASET_PATH = parameters.DATASET_PATH

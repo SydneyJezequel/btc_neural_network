@@ -1,7 +1,7 @@
 import pprint
-
 import pandas as pd
 import numpy as np
+from tensorflow.python.keras.losses import Huber
 from BO.metrics_callback import MetricsCallback
 from service.display_results_service import DisplayResultsService
 from service.prepare_dataset_service import PrepareDatasetService
@@ -12,9 +12,8 @@ import parameters
 
 
 
-""" ************************* Paramètres ************************* """
+""" ************* Paramètres ************* """
 
-DATASET_PATH = parameters.DATASET_PATH
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 SAVED_MODEL = parameters.SAVED_MODEL
 
@@ -26,58 +25,11 @@ SAVED_MODEL = parameters.SAVED_MODEL
 prepare_dataset = PrepareDatasetService()
 
 # Chargement du dataset :
-initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
+initial_dataset = pd.read_csv('../dataset/btc_historic_cotations.csv')
 
-# Préparation of the Dataset :
-tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
-tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
-
-# Ajout de la volatilité historique :
-tmp_dataset['Historical_Volatility'] = prepare_dataset.calculate_historical_volatility(tmp_dataset)
-
-# Ajout des caractéristiques de lag :
-lags = [1, 7]
-# lags = [1, 7, 30, 60, 90, 180, 365]
-tmp_dataset = prepare_dataset.add_lag_features(tmp_dataset, lags)
-# Supprimer les lignes avec des valeurs NaN introduites par les lags :
-tmp_dataset = tmp_dataset.dropna()
-
-# Définir une date de coupure pour séparer les anciennes et récentes données :
+# Préparation du dataset pré-entrainement :
 cutoff_date = '2020-01-01'
-
-# Appliquer le sous-échantillonnage :
-tmp_dataset = prepare_dataset.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
-
-# Normalisation :
-tmp_dataset_copy = tmp_dataset.copy()
-columns_to_normalize = ['Dernier']
-scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
-model_dataset = tmp_dataset
-normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
-model_dataset[columns_to_normalize] = normalized_datas
-print("dataset d'entrainement normalisé :", model_dataset)
-print("model_dataset shape : ", model_dataset.shape)
-
-# Sauvegarde du dataset pour contrôle :
-model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=False)
-
-# Suppression de la colonne date :
-del model_dataset['Date']
-
-# Création des datasets d'entrainement et test :
 x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
-"""
-train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
-time_step = 15
-x_train, y_train = prepare_dataset.create_dataset(train_data, time_step)
-x_test, y_test = prepare_dataset.create_dataset(test_data, time_step)
-x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
-x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
-"""
-print("x_train shape:", x_train.shape)
-print("y_train shape:", y_train.shape)
-print("x_test shape:", x_test.shape)
-print("y_test shape:", y_test.shape)
 
 
 
@@ -93,21 +45,8 @@ print("nb_features : ", nb_features)
 # Création du réseau de neurones :
 model = Sequential()
 model.add(LSTM(10, input_shape=(nb_timesteps, nb_features), activation="relu"))
-# model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 model.add(Dense(1))
-model.compile(loss="mean_squared_error", optimizer="adam")
-"""
-# Création du modèle amélioré
-model = Sequential()
-model.add(LSTM(20, input_shape=(None, 1), activation="tanh", return_sequences=True))
-model.add(Dropout(0.2))
-model.add(LSTM(20, activation="tanh"))
-model.add(Dropout(0.2))
-model.add(Dense(1))
-# Compilation du modèle
-optimizer = Adam(learning_rate=0.001)
-model.compile(loss="mean_squared_error", optimizer=optimizer)
-"""
+model.compile(loss=Huber(delta=1.0), optimizer="adam")
 
 
 
@@ -141,6 +80,8 @@ metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_his
 
 """ ************* Entrainement du modèle ************* """
 
+#early_stopping = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True)
+
 # Entraînement du modèle :
 history = model.fit(
     x_train, y_train,
@@ -148,16 +89,16 @@ history = model.fit(
     epochs=400,
     batch_size=32,
     verbose=1,
-    callbacks=[metrics_callback]
+    callbacks=[metrics_callback] # [metrics_callback, early_stopping]
 )
 
 # Sauvegarde du modèle :
-model.save_weights(SAVED_MODEL)
+model.save_weights('../model/'+f'model.weights.h5')
 
 
 
 
-""" ************* Affichage des métriques ************* """
+print("************* Affichage des métriques *************")
 
 # Affichage des métriques :
 pprint.pprint(metrics_history)
@@ -194,7 +135,7 @@ val_loss_array = np.array(val_loss)
 train_predict = model.predict(x_train)
 test_predict = model.predict(x_test)
 
-# Mise en forme du dataset :
+# Mise en forme des datasets :
 train_predict = train_predict.reshape(-1, 1)
 test_predict = test_predict.reshape(-1, 1)
 
