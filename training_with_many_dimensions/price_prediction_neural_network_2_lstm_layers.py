@@ -24,7 +24,7 @@ SAVED_MODEL = parameters.SAVED_MODEL
 prepare_dataset = PrepareDatasetService()
 
 # Chargement du dataset :
-initial_dataset = pd.read_csv('../dataset/btc_historic_cotations.csv')
+initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 # Préparation du dataset pré-entrainement :
 cutoff_date = '2020-01-01'
@@ -44,8 +44,7 @@ print("nb_features : ", nb_features)
 
 # Création du réseau de neurones :
 model = Sequential()
-model.add(LSTM(100, return_sequences=True, input_shape=(nb_timesteps, nb_features), activation="relu"))
-model.add(LSTM(50, return_sequences=True, activation="relu"))
+model.add(LSTM(50, return_sequences=True, input_shape=(nb_timesteps, nb_features), activation="relu"))
 model.add(LSTM(25, activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
@@ -88,14 +87,14 @@ metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_his
 history = model.fit(
     x_train, y_train,
     validation_data=(x_test, y_test),
-    epochs=800,
+    epochs=400,
     batch_size=32,
     verbose=1,
-    callbacks=[metrics_callback] # [metrics_callback, early_stopping]
+    callbacks=[metrics_callback] # [metrics_callback , early_stopping]
 )
 
 # Sauvegarde du modèle :
-model.save_weights('../model/'+f'model.weights.h5')
+model.save_weights(SAVED_MODEL)
 
 
 

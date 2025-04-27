@@ -17,6 +17,7 @@ from sklearn.model_selection import GridSearchCV
 DATASET_PATH = parameters.DATASET_PATH
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 GRADIENT_BOOSTING_SAVED_MODEL = parameters.GRADIENT_BOOSTING_SAVED_MODEL
+MODEL_PATH = parameters.MODEL_PATH
 
 
 
@@ -26,7 +27,7 @@ GRADIENT_BOOSTING_SAVED_MODEL = parameters.GRADIENT_BOOSTING_SAVED_MODEL
 prepare_dataset = PrepareDatasetService()
 
 # Chargement du dataset :
-initial_dataset = pd.read_csv('../dataset/btc_historic_cotations.csv')
+initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 # Formatage du dataset :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
@@ -49,7 +50,7 @@ print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
 
 # Contrôle : Sauvegarde du dataset :
-model_dataset.to_csv('../dataset/' + 'dataset_modified_with_date.csv', index=False)
+model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=False)
 
 # Création des datasets d'entrainement et de test pour le modèle :
 train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
@@ -95,7 +96,7 @@ print("Meilleurs paramètres trouvés :", best_params)
 model = grid_search.best_estimator_
 
 # Sauvegarde du modèle
-joblib.dump(model, '../model/'+'gradient_boosting_model.pkl')
+joblib.dump(model, MODEL_PATH +'gradient_boosting_model.pkl')
 
 
 

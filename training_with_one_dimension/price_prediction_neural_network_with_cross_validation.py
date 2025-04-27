@@ -88,7 +88,7 @@ def create_dataset(dataset, time_step=1):
 prepare_dataset = PrepareDatasetService()
 
 # Chargement du dataset :
-initial_dataset = pd.read_csv('../dataset/btc_historic_cotations.csv')
+initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 # Formatage des colonnes :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)

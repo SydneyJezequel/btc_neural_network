@@ -26,7 +26,7 @@ SAVED_MODEL = parameters.SAVED_MODEL
 prepare_dataset = PrepareDatasetService()
 
 # Chargement du dataset :
-initial_dataset = pd.read_csv('../dataset/btc_historic_cotations.csv')
+initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 # Préparation of the Dataset :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
@@ -59,7 +59,7 @@ print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
 
 # Sauvegarde du dataset pour contrôle :
-model_dataset.to_csv('../dataset/' + 'dataset_modified_with_date.csv', index=False)
+model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=False)
 
 # Suppression de la colonne date :
 del model_dataset['Date']
@@ -145,8 +145,7 @@ history = model.fit(
 )
 
 # Sauvegarde du modèle :
-model.save_weights('../model/'+f'model.weights.h5')
-
+model.save_weights(SAVED_MODEL)
 
 
 

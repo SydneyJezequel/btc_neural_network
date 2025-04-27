@@ -1,19 +1,24 @@
 import pprint
 import pandas as pd
 import numpy as np
-from BO.metrics_callback import MetricsCallback
+from keras import Input
+from keras.src.callbacks import EarlyStopping, ReduceLROnPlateau
+from keras.src.layers import BatchNormalization, Dropout, Bidirectional
+from keras.src.optimizers import Adam
+from keras.regularizers import L2
+from keras.optimizers import Adam
 from service.display_results_service import DisplayResultsService
 from service.prepare_dataset_service import PrepareDatasetService
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, LSTM
+from tensorflow.keras.layers import Dense, LSTM
 import parameters
+from BO.metrics_callback import MetricsCallback
 
 
 
 
 """ ************* Paramètres ************* """
 
-DATASET_PATH = parameters.DATASET_PATH
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 SAVED_MODEL = parameters.SAVED_MODEL
 
@@ -27,61 +32,48 @@ prepare_dataset = PrepareDatasetService()
 # Chargement du dataset :
 initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
-# Preparation of the Dataset :
-tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
-tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
-
-# Ajout des caractéristiques de lag :
-lags = [1, 7]
-# lags = [30, 365]
-# lags = [7, 30, 365]
-# lags = [1, 7, 30, 365]
-# lags = [30, 60, 90, 180, 365]
-# lags = [1, 7, 30, 60, 90, 180, 365]
-tmp_dataset = prepare_dataset.add_lag_features(tmp_dataset, lags)
-tmp_dataset = tmp_dataset.dropna()
-
-# Définir une date de coupure pour séparer les anciennes et récentes données :
+# Préparation du dataset pré-entrainement :
 cutoff_date = '2020-01-01'
-
-# Appliquer le sous-échantillonnage :
-tmp_dataset = prepare_dataset.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
-
-# Normalisation :
-tmp_dataset_copy = tmp_dataset.copy()
-columns_to_normalize = ['Dernier']
-scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
-model_dataset = tmp_dataset
-normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
-model_dataset[columns_to_normalize] = normalized_datas
-print("dataset d'entrainement normalisé :", model_dataset)
-print("model_dataset shape : ", model_dataset.shape)
-
-# Sauvegarde du dataset pour contrôle :
-model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=False)
-
-# Suppression de la colonne date :
-del model_dataset['Date']
-
-# Création des datasets d'entrainement et test :
-x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_one_dimension_dataset(initial_dataset, cutoff_date)
-
-print("x_train shape:", x_train.shape)
-print("y_train shape:", y_train.shape)
-print("x_test shape:", x_test.shape)
-print("y_test shape:", y_test.shape)
+x_train, y_train, x_test, y_test, test_data,  dates, scaler = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
 
 
 
 
 """ ************* Définition du modèle ************* """
 
-# Création du réseau de neurones :
-model = Sequential()
-model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
-model.add(Dense(1))
-model.compile(loss="mean_squared_error", optimizer="adam")
+# Définition du nombre de timesteps et de features.
+nb_timesteps = x_train.shape[1]
+nb_features = x_train.shape[2]
+print("nb_timesteps : ", nb_timesteps)
+print("nb_features : ", nb_features)
 
+
+# Création du réseau de neurones :
+
+# Define the regularizer
+l2_regularizer = L2(0.01)
+
+# Create the model
+model = Sequential()
+model.add(Input(shape=(nb_timesteps, nb_features)))
+model.add(Bidirectional(LSTM(100, return_sequences=True)))
+model.add(BatchNormalization())
+model.add(Dropout(0.3))
+
+model.add(Bidirectional(LSTM(50, return_sequences=True)))
+model.add(BatchNormalization())
+model.add(Dropout(0.3))
+
+model.add(Bidirectional(LSTM(25)))
+model.add(BatchNormalization())
+model.add(Dropout(0.3))
+
+model.add(Dense(50, activation="relu", kernel_regularizer=l2_regularizer))
+model.add(Dense(1))
+
+# Compile the model
+optimizer = Adam(learning_rate=0.0001)
+model.compile(loss="mean_squared_error", optimizer=optimizer)
 
 
 
@@ -113,20 +105,68 @@ metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_his
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 """ ************* Entrainement du modèle ************* """
 
+#early_stopping = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True)
+
+
+
+# ************ RESEAU DE NEURONES 3 COUCHES V1 ************ #
+
+"""
 # Entraînement du modèle :
 history = model.fit(
     x_train, y_train,
     validation_data=(x_test, y_test),
-    epochs=200,
+    epochs=800,
     batch_size=32,
     verbose=1,
-    callbacks=[metrics_callback]
+    callbacks=[metrics_callback] # [metrics_callback, early_stopping]
+)
+"""
+
+
+
+# ************ RESEAU DE NEURONES 3 COUCHES V2 ************ #
+# Entraînement du modèle :
+history = model.fit(
+    x_train, y_train,
+    validation_data=(x_test, y_test),
+    epochs=650,
+    batch_size=32,
+    verbose=1,
+    callbacks=[metrics_callback] # [metrics_callback, early_stopping, reduce_lr] # [metrics_callback, early_stopping]
 )
 
 # Sauvegarde du modèle :
 model.save_weights(SAVED_MODEL)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -168,7 +208,7 @@ val_loss_array = np.array(val_loss)
 train_predict = model.predict(x_train)
 test_predict = model.predict(x_test)
 
-# Mise en forme du dataset :
+# Mise en forme des datasets :
 train_predict = train_predict.reshape(-1, 1)
 test_predict = test_predict.reshape(-1, 1)
 

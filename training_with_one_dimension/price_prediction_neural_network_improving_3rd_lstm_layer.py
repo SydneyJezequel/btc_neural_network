@@ -24,7 +24,7 @@ SAVED_MODEL = parameters.SAVED_MODEL
 prepare_dataset = PrepareDatasetService()
 
 # Chargement du dataset :
-initial_dataset = pd.read_csv('../dataset/btc_historic_cotations.csv')
+initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 # Préparation du dataset pré-entrainement :
 cutoff_date = '2020-01-01'
@@ -88,7 +88,7 @@ history = model.fit(
 )
 
 # Sauvegarde du modèle :
-model.save_weights('../model/'+f'model.weights.h5')
+model.save_weights(SAVED_MODEL)
 
 
 
