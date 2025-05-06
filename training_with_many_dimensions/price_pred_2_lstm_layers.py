@@ -41,7 +41,6 @@ nb_features = x_train.shape[2]
 print("nb_timesteps : ", nb_timesteps)
 print("nb_features : ", nb_features)
 
-
 # Création du réseau de neurones :
 model = Sequential()
 model.add(LSTM(50, return_sequences=True, input_shape=(nb_timesteps, nb_features), activation="relu"))

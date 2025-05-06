@@ -37,7 +37,7 @@ x_train, y_train, x_test, y_test, test_data,  dates, scaler = prepare_dataset.pr
 
 """  ************* Définition du modèle ************* """
 
-# Définition du nombre de timesteps et de features.
+# Définition du nombre de timesteps et de features :
 nb_timesteps = x_train.shape[1]
 nb_features = x_train.shape[2]
 print("nb_timesteps : ", nb_timesteps)

@@ -1,5 +1,4 @@
 import pprint
-
 import pandas as pd
 import numpy as np
 from BO.metrics_callback import MetricsCallback
@@ -84,7 +83,7 @@ print("y_test shape:", y_test.shape)
 
 """ ************* Définition du modèle ************* """
 
-# Définition du nombre de timesteps et de features.
+# Définition du nombre de timesteps et de features :
 nb_timesteps = x_train.shape[1]
 nb_features = x_train.shape[2]
 print("nb_timesteps : ", nb_timesteps)

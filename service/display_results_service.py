@@ -1,5 +1,4 @@
 from datetime import timedelta
-
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -85,7 +84,7 @@ class DisplayResultsService:
 
     def plot_predictions(self, dates, predictions, time_step):
         """ Affichage des prédictions avec une date sur deux affichée """
-        # Transformation des prédictions en tableau numpy :
+        # Transformer les prédictions en tableau numpy :
         predictions = np.array(predictions)
         # Récupérer la dernière date de la série de dates
         derniere_date = dates.max()
@@ -173,7 +172,7 @@ class DisplayResultsService:
         available_metrics = set()
         for key in metrics_history.keys():
             if "_" in key:
-                available_metrics.add(key.split("_")[1])  # ex: "rmse" à partir de "train_rmse"
+                available_metrics.add(key.split("_")[1])
 
         if metrics_to_plot is None:
             metrics_to_plot = sorted(available_metrics)

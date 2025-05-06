@@ -26,9 +26,9 @@ class TechnicalIndicatorsService:
         d = u.copy()
         u[delta > 0] = delta[delta > 0]
         d[delta < 0] = -delta[delta < 0]
-        u[u.index[period-1]] = np.mean(u[:period])  # first value is sum of avg gains
+        u[u.index[period-1]] = np.mean(u[:period])
         u = u.drop(u.index[:(period-1)])
-        d[d.index[period-1]] = np.mean(d[:period])  # first value is sum of avg losses
+        d[d.index[period-1]] = np.mean(d[:period])
         d = d.drop(d.index[:(period-1)])
         rs = u.ewm(com=period-1, adjust=False).mean() / d.ewm(com=period-1, adjust=False).mean()
         return 100 - 100 / (1 + rs)
@@ -47,4 +47,3 @@ class TechnicalIndicatorsService:
         # Calcul des signaux :
         dataset[signal_col] = (dataset[sma1_col] > dataset[sma2_col]).astype(int)
         return dataset
-

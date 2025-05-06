@@ -65,7 +65,6 @@ del model_dataset['Date']
 
 # Création des datasets d'entrainement et test :
 x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_one_dimension_dataset(initial_dataset, cutoff_date)
-
 print("x_train shape:", x_train.shape)
 print("y_train shape:", y_train.shape)
 print("x_test shape:", x_test.shape)
@@ -81,7 +80,6 @@ model = Sequential()
 model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
-
 
 
 

@@ -36,7 +36,7 @@ tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
 # Ajout des caractéristiques de lag :
 lags = [1, 7, 30]  # Lag pour 1 jour, 1 semaine, 1 mois
 tmp_dataset = prepare_dataset.add_lag_features(tmp_dataset, lags)
-tmp_dataset = tmp_dataset.dropna()  # Supprimer les lignes avec des valeurs NaN introduites par les caractéristiques de lag
+tmp_dataset = tmp_dataset.dropna()
 
 # Normalisation du dataset :
 tmp_dataset_copy = tmp_dataset.copy()
@@ -64,7 +64,7 @@ y_test = test_data['Dernier'].values
 
 """ ************* Définition du modèle ************* """
 
-# Définir les paramètres pour la recherche de grille
+# Définir les paramètres pour la recherche de grille :
 param_grid = {
     'n_estimators': [50, 100, 200],
     'learning_rate': [0.01, 0.1, 0.2],
@@ -73,7 +73,7 @@ param_grid = {
     'min_samples_split': [2, 5, 10]
 }
 
-# Utiliser GridSearchCV pour trouver les meilleurs hyperparamètres
+# Utiliser GridSearchCV pour trouver les meilleurs hyperparamètres :
 grid_search = GridSearchCV(estimator=GradientBoostingRegressor(random_state=42),
                           param_grid=param_grid,
                           scoring='neg_mean_squared_error',

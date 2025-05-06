@@ -49,7 +49,7 @@ model.add(Dropout(0.2))
 model.add(LSTM(20, activation="relu"))
 model.add(Dropout(0.2))
 model.add(Dense(1))
-# Compilation du modèle
+# Compilation du modèle :
 optimizer = Adam(learning_rate=0.0001)
 model.compile(loss="mean_squared_error", optimizer=optimizer)
 

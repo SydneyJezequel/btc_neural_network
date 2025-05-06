@@ -2,9 +2,7 @@ import pprint
 import pandas as pd
 import numpy as np
 from keras import Input
-from keras.src.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras.src.layers import BatchNormalization, Dropout, Bidirectional
-from keras.src.optimizers import Adam
 from keras.regularizers import L2
 from keras.optimizers import Adam
 from service.display_results_service import DisplayResultsService
@@ -47,13 +45,10 @@ nb_features = x_train.shape[2]
 print("nb_timesteps : ", nb_timesteps)
 print("nb_features : ", nb_features)
 
-
-# Création du réseau de neurones :
-
-# Define the regularizer
+# Initialisation du Regularizer :
 l2_regularizer = L2(0.01)
 
-# Create the model
+# Création du modèle :
 model = Sequential()
 model.add(Input(shape=(nb_timesteps, nb_features)))
 model.add(Bidirectional(LSTM(100, return_sequences=True)))
@@ -71,7 +66,7 @@ model.add(Dropout(0.3))
 model.add(Dense(50, activation="relu", kernel_regularizer=l2_regularizer))
 model.add(Dense(1))
 
-# Compile the model
+# Compilation du modèle :
 optimizer = Adam(learning_rate=0.0001)
 model.compile(loss="mean_squared_error", optimizer=optimizer)
 

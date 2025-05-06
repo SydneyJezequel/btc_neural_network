@@ -120,7 +120,7 @@ model.save_weights(SAVED_MODEL)
 
 
 
-print("************* Affichage des métriques *************")
+""" ************* Affichage des métriques ************* """
 
 # Affichage des métriques :
 pprint.pprint(metrics_history)

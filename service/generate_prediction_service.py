@@ -17,6 +17,7 @@ class GeneratePredictionService:
 
 
 
+    # Génération des prédiction (V1) :
     """
     def predict_on_new_data(self, dataset_for_predictions, model, time_step=15):
         # Génération de prédictions
@@ -137,4 +138,3 @@ class GeneratePredictionService:
             values = values[:(end_index - start_index)]
         arr[start_index:end_index] = values.flatten()
         return arr
-

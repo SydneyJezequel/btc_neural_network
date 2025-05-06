@@ -6,11 +6,6 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
 import parameters
 from service.generate_prediction_service import GeneratePredictionService
-# from BO.metrics_callback import MetricsCallback
-import math
-import numpy as np
-from tensorflow.keras.callbacks import Callback
-from sklearn.metrics import ( mean_squared_error, mean_absolute_error, explained_variance_score, r2_score, mean_poisson_deviance, mean_gamma_deviance)
 from service.prepare_dataset_service import PrepareDatasetService
 
 
@@ -47,12 +42,6 @@ print("x_train shape:", x_train.shape)
 print("y_train shape:", y_train.shape)
 print("x_test shape:", x_test.shape)
 print("y_test shape:", y_test.shape)
-"""
-print("x_train :", x_train)
-print("y_train :", y_train)
-print("x_test ", x_test)
-print("y_test :", y_test)
-"""
 
 
 
@@ -126,7 +115,6 @@ history = model.fit(
 )
 
 # Sauvegarde du modèle :
-
 model.save_weights(SAVED_MODEL)
 
 

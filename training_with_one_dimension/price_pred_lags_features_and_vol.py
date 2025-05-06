@@ -1,5 +1,4 @@
 import pprint
-
 import pandas as pd
 import numpy as np
 from BO.metrics_callback import MetricsCallback
@@ -39,6 +38,7 @@ tmp_dataset['Historical_Volatility'] = prepare_dataset.calculate_historical_vola
 lags = [1, 7]
 # lags = [1, 7, 30, 60, 90, 180, 365]
 tmp_dataset = prepare_dataset.add_lag_features(tmp_dataset, lags)
+
 # Supprimer les lignes avec des valeurs NaN introduites par les lags :
 tmp_dataset = tmp_dataset.dropna()
 
@@ -66,14 +66,6 @@ del model_dataset['Date']
 
 # Création des datasets d'entrainement et test :
 x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_one_dimension_dataset(initial_dataset, cutoff_date)
-"""
-train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
-time_step = 15
-x_train, y_train = prepare_dataset.create_dataset(train_data, time_step)
-x_test, y_test = prepare_dataset.create_dataset(test_data, time_step)
-x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
-x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
-"""
 print("x_train shape:", x_train.shape)
 print("y_train shape:", y_train.shape)
 print("x_test shape:", x_test.shape)
