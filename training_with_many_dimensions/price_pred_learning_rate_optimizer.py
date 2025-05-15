@@ -29,7 +29,7 @@ initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 # Préparation du dataset pré-entrainement :
 cutoff_date = '2020-01-01'
-x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
+x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_many_dimensions_dataset(initial_dataset, cutoff_date)
 
 
 
@@ -50,7 +50,7 @@ model.add(LSTM(20, activation="relu"))
 model.add(Dropout(0.2))
 model.add(Dense(1))
 # Compilation du modèle :
-optimizer = Adam(learning_rate=0.0001)
+optimizer = Adam(learning_rate=0.001)
 model.compile(loss="mean_squared_error", optimizer=optimizer)
 
 """

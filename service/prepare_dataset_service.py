@@ -143,9 +143,13 @@ class PrepareDatasetService:
 
     def calculate_historical_volatility(self, dataset, window=252):
         """ Calcul de la volatilité historique """
+        # Calcul des rendements logarithmiques
         dataset['Returns'] = np.log(dataset['Dernier'] / dataset['Dernier'].shift(1))
-        volatility = dataset['Returns'].rolling(window=window).std() * np.sqrt(252)
-        return volatility
+        # Calcul de la volatilité historique
+        dataset['Historical_Volatility'] = dataset['Returns'].rolling(window=window).std() * np.sqrt(252)
+        # Suppression de la colonne temporaire 'Returns'
+        dataset.drop(columns=['Returns'], inplace=True)
+        return dataset
 
 
 
@@ -156,7 +160,7 @@ class PrepareDatasetService:
 
 
 
-    def prepare_dataset(self, dataset, cutoff_date = '2020-01-01'):
+    def prepare_many_dimensions_dataset(self, dataset, cutoff_date='2020-01-01', lags=None, add_volatility=False):
         """ Préparation du dataset à plusieurs dimensions avant l'entrainement """
         # Préparation du dataset :
         tmp_dataset = self.format_dataset(dataset)
@@ -165,9 +169,18 @@ class PrepareDatasetService:
         self.save_tmp_dataset(tmp_dataset)
         # Ajout des indicateurs techniques au dataset :
         tmp_dataset = self.add_technicals_indicators(tmp_dataset)
+        """ tmp_dataset = self.add_technicals_indicators_sma_rsi_smasignal(tmp_dataset) """
+        """ tmp_dataset = self.add_technicals_indicators(tmp_dataset) """
+        """ tmp_dataset = self.add_technicals_indicators_sma(tmp_dataset) """
         # Affichage de l'intégralité du dataset avant la transformation des prix :
         display_results = DisplayResultsService()
         display_results.display_all_dataset(tmp_dataset)
+        # Ajout des lags si spécifiés :
+        if lags is not None:
+            tmp_dataset = self.add_lag_features(tmp_dataset, lags)
+        # Ajout de la volatilité historique si spécifié :
+        if add_volatility:
+            tmp_dataset = self.calculate_historical_volatility(tmp_dataset)
         # Sous-échantillonnage :
         tmp_dataset = self.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
         # Normalisation :
@@ -181,6 +194,8 @@ class PrepareDatasetService:
         dates = model_dataset['Date']
         # Suppression de la colonne date :
         del model_dataset['Date']
+        # Sauvegarde du dataset :
+        model_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
         # Création des datasets d'entrainement et test :
         train_data, test_data = self.create_train_and_test_dataset(model_dataset)
         time_step = 15
@@ -229,9 +244,22 @@ class PrepareDatasetService:
     """ ************** Autres versions de la méthode add_technicals_indicators() ************** """
 
 
-    """
-    def add_technicals_indicators(self, tmp_dataset):
-        # Ajout des indicateurs techniques au dataset (SMA, croisements SMA et RSI)
+
+    def add_technicals_indicators_sma(self, tmp_dataset):
+        """ Ajout des indicateurs techniques au dataset (SMA, croisements SMA et RSI) """
+        # Ajout des indicateurs dans les colonnes :
+        tmp_dataset['MA_150'] = TechnicalIndicatorsService.ma(tmp_dataset, 150)
+        tmp_dataset['MA_100'] = TechnicalIndicatorsService.ma(tmp_dataset, 100)
+        tmp_dataset['MA_50'] = TechnicalIndicatorsService.ma(tmp_dataset, 50)
+        # Supprimer les lignes où MA_150 est NaN
+        tmp_dataset = tmp_dataset.dropna(subset=['MA_150'])
+        tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
+        return tmp_dataset
+
+
+
+    def add_technicals_indicators_sma_rsi_smasignal(self, tmp_dataset):
+        """ Ajout des indicateurs techniques au dataset (retrait des croisements SMA et RSI mais conservation des SMA) """
         # Ajout des indicateurs dans les colonnes :
         tmp_dataset['MA_150'] = TechnicalIndicatorsService.ma(tmp_dataset, 150)
         tmp_dataset['MA_100'] = TechnicalIndicatorsService.ma(tmp_dataset, 100)
@@ -245,12 +273,11 @@ class PrepareDatasetService:
         tmp_dataset = tmp_dataset.dropna(subset=['MA_150'])
         tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
         return tmp_dataset
-    """
 
 
-    """
-    def add_technicals_indicators(self, tmp_dataset):
-        # Ajout des indicateurs techniques au dataset (retrait des SMA mais conservation des croisements SMA et du RSI) 
+
+    def add_technicals_indicators_rsi_smasignal(self, tmp_dataset):
+        """ Ajout des indicateurs techniques au dataset (retrait des SMA mais conservation des croisements SMA et du RSI) """
         # Ajout des indicateurs dans les colonnes :
         tmp_dataset['RSI'] = TechnicalIndicatorsService.rsi(tmp_dataset, 14)
         # Ajout des signaux générés par les indicateurs :
@@ -259,25 +286,22 @@ class PrepareDatasetService:
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 100)
         tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
         return tmp_dataset
-    """
 
 
-    """
-    def add_technicals_indicators(self, tmp_dataset):
-        # Ajout des indicateurs techniques au dataset (retrait des SMA, des croisements SMA mais conservation du RSI)
+
+    def add_technicals_indicators_rsi(self, tmp_dataset):
+        """ Ajout des indicateurs techniques au dataset (retrait des SMA, des croisements SMA mais conservation du RSI) """
         tmp_dataset['RSI'] = TechnicalIndicatorsService.rsi(tmp_dataset, 14)
         tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
         return tmp_dataset
-    """
 
 
-    """
-    def add_technicals_indicators(self, tmp_dataset):
-        # Ajout des indicateurs techniques au dataset (retrait des SMA, du RSI mais conservation des signaux) 
+
+    def add_technicals_indicators_sma_signal(self, tmp_dataset):
+        """ Ajout des indicateurs techniques au dataset (retrait des SMA, du RSI mais conservation des croisements SMA) """
         # Ajout des signaux générés par les indicateurs :
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 150)
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 100, 150)
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 100)
         tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
         return tmp_dataset
-    """

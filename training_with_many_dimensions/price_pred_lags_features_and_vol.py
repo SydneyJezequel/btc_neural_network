@@ -27,23 +27,29 @@ prepare_dataset = PrepareDatasetService()
 # Chargement du dataset :
 initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
+"""
 # Préparation of the Dataset :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
 tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
 
 # Ajout de la volatilité historique :
 tmp_dataset['Historical_Volatility'] = prepare_dataset.calculate_historical_volatility(tmp_dataset)
+"""
 
 # Ajout des caractéristiques de lag :
 lags = [1, 7]
 # lags = [1, 7, 30, 60, 90, 180, 365]
+
+"""
 tmp_dataset = prepare_dataset.add_lag_features(tmp_dataset, lags)
 # Supprimer les lignes avec des valeurs NaN introduites par les lags :
 tmp_dataset = tmp_dataset.dropna()
+"""
 
 # Définir une date de coupure pour séparer les anciennes et récentes données :
 cutoff_date = '2020-01-01'
 
+"""
 # Appliquer le sous-échantillonnage :
 tmp_dataset = prepare_dataset.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
 
@@ -62,9 +68,10 @@ model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=Fals
 
 # Suppression de la colonne date :
 del model_dataset['Date']
+"""
 
 # Création des datasets d'entrainement et test :
-x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
+x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_many_dimensions_dataset(initial_dataset, cutoff_date, lags, add_volatility=True)
 """
 train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
 time_step = 15
@@ -143,7 +150,7 @@ metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_his
 history = model.fit(
     x_train, y_train,
     validation_data=(x_test, y_test),
-    epochs=800,
+    epochs=400,
     batch_size=32,
     verbose=1,
     callbacks=[metrics_callback]

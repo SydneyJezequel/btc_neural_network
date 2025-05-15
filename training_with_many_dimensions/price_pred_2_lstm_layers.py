@@ -28,7 +28,7 @@ initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 # Préparation du dataset pré-entrainement :
 cutoff_date = '2020-01-01'
-x_train, y_train, x_test, y_test, test_data,  dates, scaler = prepare_dataset.prepare_dataset(initial_dataset, cutoff_date)
+x_train, y_train, x_test, y_test, test_data,  dates, scaler = prepare_dataset.prepare_many_dimensions_dataset(initial_dataset, cutoff_date)
 
 
 
@@ -86,7 +86,7 @@ metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_his
 history = model.fit(
     x_train, y_train,
     validation_data=(x_test, y_test),
-    epochs=400,
+    epochs=650,
     batch_size=32,
     verbose=1,
     callbacks=[metrics_callback] # [metrics_callback , early_stopping]
