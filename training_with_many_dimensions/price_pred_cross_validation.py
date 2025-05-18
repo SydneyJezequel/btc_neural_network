@@ -108,9 +108,6 @@ fig.show()
 # Ajout des indicateurs techniques :
 tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
 
-# Contrôle : Enregistrement du dataset au format csv :
-tmp_dataset.to_csv(DATASET_PATH+'dataset_for_model.csv', index=False)
-
 # Normalisation des colonnes :
 tmp_dataset_copy = tmp_dataset.copy()
 columns_to_normalize = ['Dernier']
@@ -121,13 +118,14 @@ normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_n
 model_dataset[columns_to_normalize] = normalized_datas
 print("dataset d'entrainement normalisé :", model_dataset)
 
-# Contrôle : Sauvegarde du dataset retraité pour traitement par le modèle :
-model_dataset.to_csv(DATASET_PATH+'dataset_modified_with_date.csv', index=False)
-
 # Suppression de la colonne 'Date' du dataset :
 date_column = model_dataset['Date']
 del tmp_dataset['Date']
-model_dataset.to_csv(DATASET_PATH+'dataset_modified_for_model.csv', index=False)
+
+# Sauvegarde du dataset :
+prepare_dataset.save_tmp_dataset(model_dataset)
+
+
 
 # Création des matrices de données pour l'entraînement et le test :
 x_train, y_train = prepare_dataset.create_data_matrix(model_dataset)

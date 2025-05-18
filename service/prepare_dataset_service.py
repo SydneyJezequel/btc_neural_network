@@ -51,7 +51,6 @@ class PrepareDatasetService:
         tmp_dataset['RSI'] = TechnicalIndicatorsService.rsi(tmp_dataset, 14)
         # Supprimer les lignes où MA_150 est NaN :
         tmp_dataset = tmp_dataset.dropna(subset=['MA_150'])
-        tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
         return tmp_dataset
 
 
@@ -170,8 +169,9 @@ class PrepareDatasetService:
         # Ajout des indicateurs techniques au dataset :
         tmp_dataset = self.add_technicals_indicators(tmp_dataset)
         """ tmp_dataset = self.add_technicals_indicators_sma_rsi_smasignal(tmp_dataset) """
-        """ tmp_dataset = self.add_technicals_indicators(tmp_dataset) """
         """ tmp_dataset = self.add_technicals_indicators_sma(tmp_dataset) """
+        """ tmp_dataset = self.add_technicals_indicators_rsi(tmp_dataset) """
+        """ tmp_dataset = self.add_technicals_indicators_sma_signal(tmp_dataset) """
         # Affichage de l'intégralité du dataset avant la transformation des prix :
         display_results = DisplayResultsService()
         display_results.display_all_dataset(tmp_dataset)
@@ -195,7 +195,7 @@ class PrepareDatasetService:
         # Suppression de la colonne date :
         del model_dataset['Date']
         # Sauvegarde du dataset :
-        model_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
+        self.save_tmp_dataset(model_dataset)
         # Création des datasets d'entrainement et test :
         train_data, test_data = self.create_train_and_test_dataset(model_dataset)
         time_step = 15
@@ -225,6 +225,8 @@ class PrepareDatasetService:
         dates = model_dataset['Date']
         # Suppression de la colonne date :
         del model_dataset['Date']
+        # Sauvegarde du dataset :
+        self.save_tmp_dataset(model_dataset)
         # Création des datasets d'entrainement et test :
         train_data, test_data = self.create_train_and_test_dataset(model_dataset)
         time_step = 15
@@ -253,7 +255,6 @@ class PrepareDatasetService:
         tmp_dataset['MA_50'] = TechnicalIndicatorsService.ma(tmp_dataset, 50)
         # Supprimer les lignes où MA_150 est NaN
         tmp_dataset = tmp_dataset.dropna(subset=['MA_150'])
-        tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
         return tmp_dataset
 
 
@@ -271,7 +272,6 @@ class PrepareDatasetService:
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 100)
         # Supprimer les lignes où MA_150 est NaN
         tmp_dataset = tmp_dataset.dropna(subset=['MA_150'])
-        tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
         return tmp_dataset
 
 
@@ -284,7 +284,6 @@ class PrepareDatasetService:
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 150)
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 100, 150)
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 100)
-        tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
         return tmp_dataset
 
 
@@ -292,7 +291,6 @@ class PrepareDatasetService:
     def add_technicals_indicators_rsi(self, tmp_dataset):
         """ Ajout des indicateurs techniques au dataset (retrait des SMA, des croisements SMA mais conservation du RSI) """
         tmp_dataset['RSI'] = TechnicalIndicatorsService.rsi(tmp_dataset, 14)
-        tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
         return tmp_dataset
 
 
@@ -303,5 +301,4 @@ class PrepareDatasetService:
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 150)
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 100, 150)
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 100)
-        tmp_dataset.to_csv(parameters.DATASET_PATH + 'dataset_for_model.csv', index=False)
         return tmp_dataset

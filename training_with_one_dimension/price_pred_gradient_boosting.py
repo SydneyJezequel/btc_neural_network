@@ -50,7 +50,7 @@ print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
 
 # Contrôle : Sauvegarde du dataset :
-model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=False)
+prepare_dataset.save_tmp_dataset(model_dataset)
 
 # Création des datasets d'entrainement et de test pour le modèle :
 train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
