@@ -122,8 +122,6 @@ del tmp_dataset['Date']
 # Sauvegarde du dataset :
 prepare_dataset.save_tmp_dataset(model_dataset)
 
-
-
 # Création des matrices de données pour l'entraînement et le test :
 x_train, y_train = prepare_dataset.create_data_matrix(model_dataset)
 x_test, y_test = prepare_dataset.create_data_matrix(model_dataset)
