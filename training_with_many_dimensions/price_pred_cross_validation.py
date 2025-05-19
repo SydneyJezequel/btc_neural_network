@@ -105,9 +105,6 @@ fig.update_xaxes(showgrid=False)
 fig.update_yaxes(showgrid=False)
 fig.show()
 
-# Ajout des indicateurs techniques :
-tmp_dataset = prepare_dataset.add_technicals_indicators(tmp_dataset)
-
 # Normalisation des colonnes :
 tmp_dataset_copy = tmp_dataset.copy()
 columns_to_normalize = ['Dernier']
