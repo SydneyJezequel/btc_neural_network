@@ -11,7 +11,7 @@ import parameters
 
 
 class PrepareDatasetService:
-    """ Réalise des traitements sur le dataset avant l'entrainement du modèle """
+    """ Processing on the dataset before model training """
 
 
 
@@ -22,7 +22,7 @@ class PrepareDatasetService:
 
 
     def format_dataset(self, initial_dataset):
-        """ Préparation des données """
+        """ Data preparation """
         tmp_dataset = initial_dataset.copy()
         tmp_dataset['Date'] = pd.to_datetime(initial_dataset['Date'], format='%d/%m/%Y', errors='coerce')
         tmp_dataset = tmp_dataset.sort_values(by='Date')
@@ -36,27 +36,27 @@ class PrepareDatasetService:
 
 
     def delete_columns(self, tmp_dataset):
-        """ Suppression des colones du dataset d'origine """
+        """ Removal of columns from the original dataset """
         tmp_dataset = tmp_dataset.drop(columns=['Vol.', 'Variation %', 'Ouv.', ' Plus Haut', 'Plus Bas'])
         return tmp_dataset
 
 
 
     def add_technicals_indicators(self, tmp_dataset):
-        """ Ajout des indicateurs techniques au dataset (sans ajout des croisement sma) """
-        # Ajout des indicateurs dans les colonnes :
+        """ Adding technical indicators to the dataset (without adding SMA crossings) """
+        # Adding indicators :
         tmp_dataset['MA_150'] = TechnicalIndicatorsService.ma(tmp_dataset, 150)
         tmp_dataset['MA_100'] = TechnicalIndicatorsService.ma(tmp_dataset, 100)
         tmp_dataset['MA_50'] = TechnicalIndicatorsService.ma(tmp_dataset, 50)
         tmp_dataset['RSI'] = TechnicalIndicatorsService.rsi(tmp_dataset, 14)
-        # Supprimer les lignes où MA_150 est NaN :
+        # Remove rows where MA_150 is NaN:
         tmp_dataset = tmp_dataset.dropna(subset=['MA_150'])
         return tmp_dataset
 
 
 
     def get_fitted_scaler(self, tmp_dataset):
-        """ Ajuste le scaler """
+        """ Adjusts the scaler """
         scaler = MinMaxScaler(feature_range=(0, 1))
         scaler.fit(tmp_dataset)
         return scaler
@@ -64,13 +64,13 @@ class PrepareDatasetService:
 
 
     def normalize_datas(self, tmp_dataset, scaler):
-        """ Normalise le dataset """
+        """ Normalizes the dataset """
         return scaler.transform(tmp_dataset)
 
 
 
     def create_train_and_test_dataset(self, model_dataset):
-        """ Création des datasets d'entrainement et tests """
+        """ Creation of training and test datasets """
         training_size = int(len(model_dataset) * 0.60)
         train_data, test_data = model_dataset.iloc[0:training_size, :], model_dataset.iloc[training_size:len(model_dataset), :]
         return train_data, test_data
@@ -78,7 +78,7 @@ class PrepareDatasetService:
 
 
     def create_dataset(self, dataset, time_step=1):
-        """ Génère les datasets d'entrainement et de test à plusieurs dimensions """
+        """ Generates multi-dimensional training and test datasets """
         dataX, dataY = [], []
         for i in range(len(dataset) - time_step - 1):
             a = dataset.iloc[i:(i + time_step)].values 
@@ -89,7 +89,7 @@ class PrepareDatasetService:
 
 
     def create_one_dimension_dataset(self, dataset, time_step=1):
-        """ Génère les datasets d'entrainement et de test """
+        """ Generates training and test datasets at one dimension """
         dataX, dataY = [], []
         for i in range(len(dataset) - time_step - 1):
             a = dataset.iloc[i:(i + time_step), 0]
@@ -100,18 +100,18 @@ class PrepareDatasetService:
 
 
     def create_data_matrix(self, dataset, time_step=15):
-        """ Création des matrices de données """
-        # Création des ensembles de données en utilisant la fonction create_dataset :
+        """ Creation of data matrices """
+        # Creating datasets :
         x, y = self.create_dataset_for_matrix(dataset, time_step)
         x = x.reshape(x.shape[0], x.shape[1], 1)
-        # Affichage des dimensions des datasets :
+        # Displaying dimensions of the datasets:
         print("dataset x: ", x.shape, "dataset y: ", y.shape)
         return x, y
 
 
 
     def create_dataset_for_matrix(self, dataset, time_step=1):
-        """ Génère les datasets d'entrainement et de test pour une matrice """
+        """ Generates training and test datasets for a matrix """
         dataX, dataY = [], []
         for i in range(len(dataset) - time_step - 1):
             a = dataset.iloc[i:(i + time_step), 0]
@@ -122,7 +122,7 @@ class PrepareDatasetService:
 
 
     def subsample_old_data(self, tmp_dataset, cutoff_date, fraction=0.1):
-        """ Sous-échantillonnage des données anciennes """
+        """ Subsampling of old data """
         old_data = tmp_dataset[tmp_dataset['Date'] < cutoff_date]
         recent_data = tmp_dataset[tmp_dataset['Date'] >= cutoff_date]
         old_data_sampled = old_data.sample(frac=fraction, random_state=42)
@@ -133,7 +133,7 @@ class PrepareDatasetService:
 
 
     def add_lag_features(self, dataset, lags):
-        """ Ajout des lags """
+        """ Adding lags """
         for lag in lags:
             dataset[f'Lag_{lag}'] = dataset['Dernier'].shift(lag)
         return dataset
@@ -141,62 +141,61 @@ class PrepareDatasetService:
 
 
     def calculate_historical_volatility(self, dataset, window=252):
-        """ Calcul de la volatilité historique """
-        # Calcul des rendements logarithmiques
+        """ Calculation of historical volatility """
+        # Calculation of logarithmic returns :
         dataset['Returns'] = np.log(dataset['Dernier'] / dataset['Dernier'].shift(1))
-        # Calcul de la volatilité historique
+        # Calculation of historical volatility :
         dataset['Historical_Volatility'] = dataset['Returns'].rolling(window=window).std() * np.sqrt(252)
-        # Suppression de la colonne temporaire 'Returns'
+        # Removal of the temporary 'Returns' column :
         dataset.drop(columns=['Returns'], inplace=True)
         return dataset
 
 
 
     def save_tmp_dataset(self, dataset):
-        """ Sauvegarde du dataset dans un fichier .csv """
+        """ Saving the dataset to a .csv file """
         saved_dataset = pd.DataFrame(dataset)
         saved_dataset.to_csv(parameters.FORMATED_BTC_COTATIONS_FILE, index=False, encoding='utf-8')
 
 
 
     def prepare_many_dimensions_dataset(self, dataset, cutoff_date='2020-01-01', lags=None, add_volatility=False):
-        """ Préparation du dataset à plusieurs dimensions avant l'entrainement """
-        # Préparation du dataset :
+        """ Preparation of the multi-dimensional dataset before training """
+        # Preparation of the dataset :
         tmp_dataset = self.format_dataset(dataset)
         tmp_dataset = self.delete_columns(tmp_dataset)
-        # Sauvegarde du dataset formaté :
+        # Saving the formatted dataset :
         self.save_tmp_dataset(tmp_dataset)
-        # Ajout des indicateurs techniques au dataset :
+        # Adding technical indicators to the dataset :
         tmp_dataset = self.add_technicals_indicators(tmp_dataset)
         """ tmp_dataset = self.add_technicals_indicators_sma_rsi_smasignal(tmp_dataset) """
         """ tmp_dataset = self.add_technicals_indicators_sma(tmp_dataset) """
         """ tmp_dataset = self.add_technicals_indicators_rsi(tmp_dataset) """
         """ tmp_dataset = self.add_technicals_indicators_sma_signal(tmp_dataset) """
-        # Affichage de l'intégralité du dataset avant la transformation des prix :
+        # Displaying the entire dataset before price transformation :
         display_results = DisplayResultsService()
         display_results.display_all_dataset(tmp_dataset)
-        # Ajout des lags si spécifiés :
+        # Adding lags if specified :
         if lags is not None:
             tmp_dataset = self.add_lag_features(tmp_dataset, lags)
-        # Ajout de la volatilité historique si spécifié :
+        # Adding historical volatility if specified :
         if add_volatility:
             tmp_dataset = self.calculate_historical_volatility(tmp_dataset)
-        # Sous-échantillonnage :
+        # Subsampling :
         tmp_dataset = self.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
-        # Normalisation :
+        # Normalization :
         tmp_dataset_copy = tmp_dataset.copy()
         columns_to_normalize = ['Dernier']
         scaler = self.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
-        # joblib.dump(scaler, 'scaler.save')
         model_dataset = tmp_dataset
         normalized_datas = self.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
         model_dataset[columns_to_normalize] = normalized_datas
         dates = model_dataset['Date']
-        # Suppression de la colonne date :
+        # Removal of the date column :
         del model_dataset['Date']
-        # Sauvegarde du dataset :
+        # Saving dataset :
         self.save_tmp_dataset(model_dataset)
-        # Création des datasets d'entrainement et test :
+        # Creation of training and test datasets :
         train_data, test_data = self.create_train_and_test_dataset(model_dataset)
         time_step = 15
         x_train, y_train = self.create_dataset(train_data, time_step)
@@ -206,16 +205,16 @@ class PrepareDatasetService:
 
 
     def prepare_one_dimension_dataset(self, dataset, cutoff_date = '2020-01-01'):
-        """ Préparation du dataset à une dimension avant l'entrainement """
-        # Préparation du dataset :
+        """ Preparation of the one-dimensional dataset before training """
+        # Preparation of the dataset :
         tmp_dataset = self.format_dataset(dataset)
         tmp_dataset = self.delete_columns(tmp_dataset)
-        # Affichage de l'intégralité du dataset avant la transformation des prix :
+        # Displaying the entire dataset before price transformation :
         display_results = DisplayResultsService()
         display_results.display_all_dataset(tmp_dataset)
-        # Sous-échantillonnage :
+        # Subsampling :
         tmp_dataset = self.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
-        # Normalisation :
+        # Normalization :
         tmp_dataset_copy = tmp_dataset.copy()
         columns_to_normalize = ['Dernier']
         scaler = self.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
@@ -223,11 +222,11 @@ class PrepareDatasetService:
         normalized_datas = self.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
         model_dataset[columns_to_normalize] = normalized_datas
         dates = model_dataset['Date']
-        # Suppression de la colonne date :
+        # Removal of the date column :
         del model_dataset['Date']
-        # Sauvegarde du dataset :
+        # Saving the dataset :
         self.save_tmp_dataset(model_dataset)
-        # Création des datasets d'entrainement et test :
+        # Creation of training and test datasets :
         train_data, test_data = self.create_train_and_test_dataset(model_dataset)
         time_step = 15
         x_train, y_train = self.create_dataset(train_data, time_step)
@@ -243,44 +242,44 @@ class PrepareDatasetService:
 
 
 
-    """ ************** Autres versions de la méthode add_technicals_indicators() ************** """
+    """ ************** Others versions of add_technicals_indicators() method ************** """
 
 
 
     def add_technicals_indicators_sma(self, tmp_dataset):
-        """ Ajout des indicateurs techniques au dataset (SMA, croisements SMA et RSI) """
-        # Ajout des indicateurs dans les colonnes :
+        """ Adding technical indicators to the dataset (SMA, SMA crossings, and RSI) """
+        # Adding indicators in the columns :
         tmp_dataset['MA_150'] = TechnicalIndicatorsService.ma(tmp_dataset, 150)
         tmp_dataset['MA_100'] = TechnicalIndicatorsService.ma(tmp_dataset, 100)
         tmp_dataset['MA_50'] = TechnicalIndicatorsService.ma(tmp_dataset, 50)
-        # Supprimer les lignes où MA_150 est NaN
+        # Remove rows where MA_150 is NaN :
         tmp_dataset = tmp_dataset.dropna(subset=['MA_150'])
         return tmp_dataset
 
 
 
     def add_technicals_indicators_sma_rsi_smasignal(self, tmp_dataset):
-        """ Ajout des indicateurs techniques au dataset (retrait des croisements SMA et RSI mais conservation des SMA) """
-        # Ajout des indicateurs dans les colonnes :
+        """ Adding technical indicators to the dataset (removal of SMA crossings and RSI but keeping SMA) """
+        # Adding indicators in the columns :
         tmp_dataset['MA_150'] = TechnicalIndicatorsService.ma(tmp_dataset, 150)
         tmp_dataset['MA_100'] = TechnicalIndicatorsService.ma(tmp_dataset, 100)
         tmp_dataset['MA_50'] = TechnicalIndicatorsService.ma(tmp_dataset, 50)
         tmp_dataset['RSI'] = TechnicalIndicatorsService.rsi(tmp_dataset, 14)
-        # Ajout des signaux générés par les indicateurs :
+        # Adding signals generated by the indicators :
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 150)
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 100, 150)
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 100)
-        # Supprimer les lignes où MA_150 est NaN
+        # Remove rows where MA_150 is NaN :
         tmp_dataset = tmp_dataset.dropna(subset=['MA_150'])
         return tmp_dataset
 
 
 
     def add_technicals_indicators_rsi_smasignal(self, tmp_dataset):
-        """ Ajout des indicateurs techniques au dataset (retrait des SMA mais conservation des croisements SMA et du RSI) """
-        # Ajout des indicateurs dans les colonnes :
+        """ Adding technical indicators to the dataset (removal of SMA but keeping SMA crossings and RSI) """
+        # Adding indicators in the columns :
         tmp_dataset['RSI'] = TechnicalIndicatorsService.rsi(tmp_dataset, 14)
-        # Ajout des signaux générés par les indicateurs :
+        # Adding signals generated by the indicators :
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 150)
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 100, 150)
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 100)
@@ -289,16 +288,131 @@ class PrepareDatasetService:
 
 
     def add_technicals_indicators_rsi(self, tmp_dataset):
-        """ Ajout des indicateurs techniques au dataset (retrait des SMA, des croisements SMA mais conservation du RSI) """
+        """ Adding technical indicators to the dataset (removal of SMA, SMA crossings but keeping RSI) """
         tmp_dataset['RSI'] = TechnicalIndicatorsService.rsi(tmp_dataset, 14)
         return tmp_dataset
 
 
 
     def add_technicals_indicators_sma_signal(self, tmp_dataset):
-        """ Ajout des indicateurs techniques au dataset (retrait des SMA, du RSI mais conservation des croisements SMA) """
-        # Ajout des signaux générés par les indicateurs :
+        """ Adding technical indicators to the dataset (removal of SMA, RSI but keeping SMA crossings) """
+        # Adding signals generated by the indicators :
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 150)
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 100, 150)
         TechnicalIndicatorsService.calculate_signal(tmp_dataset, 50, 100)
         return tmp_dataset
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" ******************* Traduction des commentaires ******************* """
+
+
+
+
+""" Performs processing on the dataset before training the model """
+
+""" Data preparation """
+
+""" Removal of columns from the original dataset """
+
+""" Adding technical indicators to the dataset (without adding SMA crossings) """
+# Adding indicators in the columns:
+# Remove rows where MA_150 is NaN:
+
+""" Adjusts the scaler """
+
+""" Normalizes the dataset """
+
+""" Creation of training and test datasets """
+
+""" Generates multi-dimensional training and test datasets """
+
+""" Generates training and test datasets """
+
+""" Creation of data matrices """
+        # Creating datasets using the create_dataset function:
+        # Displaying the dimensions of the datasets:
+
+""" Generates training and test datasets for a matrix """
+
+""" Subsampling of old data """
+
+""" Adding lags """
+
+""" Calculation of historical volatility """
+# Calculation of logarithmic returns
+# Calculation of historical volatility
+# Removal of the temporary 'Returns' column
+
+""" Saving the dataset to a .csv file """
+
+""" Preparation of the multi-dimensional dataset before training """
+# Preparation of the dataset:
+# Saving the formatted dataset:
+# Adding technical indicators to the dataset:
+# Displaying the entire dataset before price transformation:
+# Adding lags if specified:
+# Adding historical volatility if specified:
+# Subsampling:
+# Normalization:
+# Removal of the date column:
+# Saving the dataset:
+# Creation of training and test datasets:
+
+""" Preparation of the one-dimensional dataset before training """
+# Preparation of the dataset:
+# Displaying the entire dataset before price transformation:
+# Subsampling:
+# Normalization:
+# Removal of the date column:
+# Saving the dataset:
+# Creation of training and test datasets:
+
+""" Adding technical indicators to the dataset (SMA, SMA crossings, and RSI) """
+# Adding indicators in the columns:
+# Remove rows where MA_150 is NaN
+
+""" Adding technical indicators to the dataset (removal of SMA crossings and RSI but keeping SMA) """
+# Adding indicators in the columns:
+# Adding signals generated by the indicators:
+# Remove rows where MA_150 is NaN
+
+""" Adding technical indicators to the dataset (removal of SMA but keeping SMA crossings and RSI) """
+# Adding indicators in the columns:
+# Adding signals generated by the indicators:
+
+""" Adding technical indicators to the dataset (removal of SMA, SMA crossings but keeping RSI) """
+
+""" Adding technical indicators to the dataset (removal of SMA, RSI but keeping SMA crossings) """
+# Adding signals generated by the indicators:

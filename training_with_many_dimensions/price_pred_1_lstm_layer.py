@@ -13,7 +13,7 @@ from service.prepare_dataset_service import PrepareDatasetService
 
 
 
-""" ************* Paramètres ************* """
+""" ************* Parameters ************* """
 
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 DATASET_FOR_PREDICTIONS = parameters.DATASET_FOR_PREDICTIONS
@@ -26,18 +26,18 @@ TEST_PREDICT_START_INDEX = 3200
 
 
 
-""" ************* Préparation du dataset ************* """
+""" ************* Dataset Preparation ************* """
 
 prepare_dataset = PrepareDatasetService()
 
-# Chargement du dataset :
+# Loading dataset :
 initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
-# Préparation du dataset pré-entrainement :
+# Prepare dataset :
 cutoff_date = '2020-01-01'
 x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_many_dimensions_dataset(initial_dataset, cutoff_date)
 
-# Affichage du dataset :
+# Display dataset :
 print("x_train shape:", x_train.shape)
 print("y_train shape:", y_train.shape)
 print("x_test shape:", x_test.shape)
@@ -46,16 +46,16 @@ print("y_test shape:", y_test.shape)
 
 
 
-""" ************* Définition du modèle ************* """
+""" ************* Model Definition ************* """
 
-# Définition du nombre de timesteps et de features.
+# Define timesteps and features number :
 nb_timesteps = x_train.shape[1]
 nb_features = x_train.shape[2]
 print("nb_timesteps : ", nb_timesteps)
 print("nb_features : ", nb_features)
 
 
-# Création du réseau de neurones :
+# Create neural network :
 model = Sequential()
 model.add(LSTM(10, input_shape=(nb_timesteps, nb_features), activation="relu"))
 model.add(Dense(1))
@@ -80,9 +80,9 @@ model.compile(loss="mean_squared_error", optimizer=optimizer)
 
 
 
-""" ************* Initialisation des métriques ************* """
+""" ************* Metrics Initialization ************* """
 
-# Stockage des métriques :
+# Metric's storage :
 metrics_history = {
     "epoch": [],
     "train_rmse": [],
@@ -101,17 +101,17 @@ metrics_history = {
     "test_mpd": [],
 }
 
-# Callback pour stocker les métriques toutes les 50 epochs :
+# Callback to store metrics every 50 epochs :
 metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_history)
 
 
 
 
-""" ************* Entrainement du modèle ************* """
+""" ************* Model Training ************* """
 
 # early_stopping = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True)
 
-# Entraînement du modèle :
+# Model training :
 history = model.fit(
     x_train, y_train,
     validation_data=(x_test, y_test),
@@ -121,57 +121,57 @@ history = model.fit(
     callbacks=[metrics_callback] # [metrics_callback, early_stopping]
 )
 
-# Sauvegarde du modèle :
+# Save model :
 model.save_weights(SAVED_MODEL)
 
 
 
 
-""" ************* Affichage des métriques ************* """
+""" ************* Display Metrics ************* """
 
-# Affichage des métriques :
+# Display metrics :
 pprint.pprint(metrics_history)
 
-# Affichage des métriques durant les époques :
+# Display metrics at epochs :
 display_results = DisplayResultsService()
 display_results.plot_metrics_history(metrics_history, metrics_to_plot=["rmse", "mse", "mae", "explained_variance", "r2", "mgd", "mpd"])
 
 
 
 
-""" ************* Affichage des résultats ************* """
+""" ************* Display Results ************* """
 
-# Affichage des courbes de pertes :
+# Display loss curves :
 display_results.plot_loss(history)
 
-# Affichage des courbes de pertes (zoom) :
+# Display loss curves (zoom) :
 display_results.zoom_plot_loss(history)
 
 
 
 
-""" ************* Génération des résidus d'entrainements ************* """
+""" ************* Generation of Training Residuals ************* """
 
-# Génération des prédictions :
+# Generate predictions :
 train_predict = model.predict(x_train)
 test_predict = model.predict(x_test)
 
-# Dénormalisation :
+# Denormalization :
 train_predict = scaler.inverse_transform(train_predict)
 test_predict = scaler.inverse_transform(test_predict)
 
-# Mise en forme du dataset :
+# Reshape dataset :
 original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
 original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
 
-# Affichage des résidus :
+# Display residus :
 display_results.plot_residuals(original_ytrain, train_predict, 'Training Residuals')
 display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
 
 
 
 
-""" ************* Charger le modèle sauvegardé ************* """
+""" ************* Load the Saved Model ************* """
 """
 model.save_weights(...)
 model = create_model()  # fonction qui redéfinit la même architecture
@@ -181,13 +181,13 @@ model.load_weights('model.weights.h5')
 
 
 
-""" ************* Prédictions sur un dataset indépendant ************* """
+""" ************* Predictions on an Independent Dataset ************* """
 
-# Chargement du dataset :
+# Loading dataset :
 dataset_for_predictions = '../dataset/btc_cotations_for_predictions.csv'
 dataset_for_predictions = pd.read_csv(dataset_for_predictions)
 
-# Génération des prédictions :
+# Generate predictions :
 generate_prediction_service = GeneratePredictionService()
 time_step = TIME_STEP
 
@@ -195,19 +195,19 @@ time_step = TIME_STEP
 predictions = generate_prediction_service.predict_on_new_data(test_data, model, scaler, time_step)
 print("predictions : ", predictions)
 
-# Affichage des prédictions :
+# Display predictions :
 display_results.plot_predictions(dates, predictions, time_step)
 
 
 
 
-""" ************* Affichage du dataset d'origine et des prédictions ************* """
+""" ************* Display the Original Dataset and Predictions ************* """
 
-# Chargement du dataset initial :
+# Loading initial dataset :
 formated_dataset = pd.read_csv(FORMATED_BTC_COTATIONS_FILE)
 formated_dataset['Date'] = pd.to_datetime(formated_dataset['Date'])
 
-# Préparation des datasets pour l'affichage :
+# Preparing dataset for display :
 formatted_dataset_last_date = formated_dataset['Date'].max()
 num_days = len(predictions)
 new_dates = [formatted_dataset_last_date + pd.Timedelta(days=i) for i in range(1, num_days + 1)]
@@ -218,21 +218,22 @@ predictions_dataset = pd.DataFrame({
     'Dernier': predictions.flatten()
 })
 
-# Affichage des prédictions :
+# Display predictions :
 display_results.display_all_dataset(predictions_dataset)
 
-# Affichage du dataset initial et des prédictions :
+# Display initial dataset and predictions :
 display_results.display_dataset_and_predictions(formated_dataset, predictions_dataset)
 
 
 
 
-""" ************* Affichage des prédictions d'entrainement et test VS le dataset d'origine  ************* """
+""" ************* Display Training and Test Predictions VS the Original Dataset ************* """
 
-# Alignement des datasets :
+# Datasets alignment :
 dataset_length = len(initial_dataset)
 train_predict_plot = generate_prediction_service.insert_with_padding(train_predict, TRAIN_PREDICT_START_INDEX, dataset_length)
 test_predict_plot = generate_prediction_service.insert_with_padding(test_predict, TEST_PREDICT_START_INDEX, dataset_length)
 
-# Affichages des prédictions :
+# Display predictions :
 display_results.plot_initial_dataset_and_predictions(initial_dataset, formated_dataset, train_predict_plot, test_predict_plot)
+

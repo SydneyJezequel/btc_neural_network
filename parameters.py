@@ -1,4 +1,4 @@
-""" ************ Paramètres du dataset et du fichier de poids ************ """
+""" ************ Dataset and Weights File Parameters ************ """
 DATASET_PATH = '../dataset/'
 MODEL_PATH = '../model/'
 TRAINING_DATASET_FILE = DATASET_PATH + 'btc_historic_cotations.csv'
@@ -9,12 +9,12 @@ GRADIENT_BOOSTING_SAVED_MODEL = MODEL_PATH + 'gradient_boosting_model.pkl'
 
 
 
-""" ************ Paramètres de prévisions ************ """
+""" ************ Forecasting Parameters ************ """
 TIME_STEP = 15
 
 
 
-""" ************ Paramètres du Llm ************ """
+""" ************ LLM Parameters ************ """
 API_KEY = ''
 API_URL = ''
 

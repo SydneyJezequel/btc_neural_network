@@ -11,7 +11,7 @@ import parameters
 
 
 
-""" ************************* Paramètres ************************* """
+""" ************* Parameters ************* """
 
 DATASET_PATH = parameters.DATASET_PATH
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
@@ -20,66 +20,22 @@ SAVED_MODEL = parameters.SAVED_MODEL
 
 
 
-""" ************* Préparation du dataset ************* """
+""" ************* Dataset Preparation ************* """
 
 prepare_dataset = PrepareDatasetService()
 
-# Chargement du dataset :
+# Loading dataset :
 initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
-"""
-# Préparation of the Dataset :
-tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
-tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
-
-# Ajout de la volatilité historique :
-tmp_dataset['Historical_Volatility'] = prepare_dataset.calculate_historical_volatility(tmp_dataset)
-"""
-
-# Ajout des caractéristiques de lag :
+# Lags features :
 lags = [1, 7]
 # lags = [1, 7, 30, 60, 90, 180, 365]
 
-"""
-tmp_dataset = prepare_dataset.add_lag_features(tmp_dataset, lags)
-# Supprimer les lignes avec des valeurs NaN introduites par les lags :
-tmp_dataset = tmp_dataset.dropna()
-"""
-
-# Définir une date de coupure pour séparer les anciennes et récentes données :
+# Date to separate old and new data periods:
 cutoff_date = '2020-01-01'
 
-"""
-# Appliquer le sous-échantillonnage :
-tmp_dataset = prepare_dataset.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
-
-# Normalisation :
-tmp_dataset_copy = tmp_dataset.copy()
-columns_to_normalize = ['Dernier']
-scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
-model_dataset = tmp_dataset
-normalized_datas = prepare_dataset.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
-model_dataset[columns_to_normalize] = normalized_datas
-print("dataset d'entrainement normalisé :", model_dataset)
-print("model_dataset shape : ", model_dataset.shape)
-
-# Sauvegarde du dataset pour contrôle :
-model_dataset.to_csv(DATASET_PATH + 'dataset_modified_with_date.csv', index=False)
-
-# Suppression de la colonne date :
-del model_dataset['Date']
-"""
-
-# Création des datasets d'entrainement et test :
+# Create training and test dataset :
 x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_many_dimensions_dataset(initial_dataset, cutoff_date, lags, add_volatility=True)
-"""
-train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
-time_step = 15
-x_train, y_train = prepare_dataset.create_dataset(train_data, time_step)
-x_test, y_test = prepare_dataset.create_dataset(test_data, time_step)
-x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
-x_test = x_test.reshape(x_test.shape[0], x_test.shape[1], 1)
-"""
 print("x_train shape:", x_train.shape)
 print("y_train shape:", y_train.shape)
 print("x_test shape:", x_test.shape)
@@ -88,15 +44,15 @@ print("y_test shape:", y_test.shape)
 
 
 
-""" ************* Définition du modèle ************* """
+""" ************* Model Definition ************* """
 
-# Définition du nombre de timesteps et de features :
+# Define timesteps and features number :
 nb_timesteps = x_train.shape[1]
 nb_features = x_train.shape[2]
 print("nb_timesteps : ", nb_timesteps)
 print("nb_features : ", nb_features)
 
-# Création du réseau de neurones :
+# Create neural network :
 model = Sequential()
 model.add(LSTM(10, input_shape=(nb_timesteps, nb_features), activation="relu"))
 model.add(Dense(1))
@@ -117,9 +73,9 @@ model.compile(loss="mean_squared_error", optimizer=optimizer)
 
 
 
-""" ************* Initialisation des métriques ************* """
+""" ************* Metrics Initialization ************* """
 
-# Stockage des métriques :
+# Metric's storage :
 metrics_history = {
     "epoch": [],
     "train_rmse": [],
@@ -138,15 +94,15 @@ metrics_history = {
     "test_mpd": [],
 }
 
-# Callback pour stocker les métriques toutes les 50 epochs :
+# Callback to store metrics every 50 epochs :
 metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_history)
 
 
 
 
-""" ************* Entrainement du modèle ************* """
+""" ************* Model Training ************* """
 
-# Entraînement du modèle :
+# Model training :
 history = model.fit(
     x_train, y_train,
     validation_data=(x_test, y_test),
@@ -156,35 +112,35 @@ history = model.fit(
     callbacks=[metrics_callback]
 )
 
-# Sauvegarde du modèle :
+# Save model :
 model.save_weights(SAVED_MODEL)
 
 
 
 
-""" ************* Affichage des métriques ************* """
+""" ************* Display Metrics ************* """
 
-# Affichage des métriques :
+# Display metrics :
 pprint.pprint(metrics_history)
 
-# Affichage des métriques durant les époques :
+# Display metrics at epochs :
 display_results = DisplayResultsService()
 display_results.plot_metrics_history(metrics_history, metrics_to_plot=["rmse", "mse", "mae", "explained_variance", "r2", "mgd", "mpd"])
 
 
 
 
-""" ************* Affichage des résultats ************* """
+""" ************* Display Results ************* """
 
 display_results = DisplayResultsService()
 
-# Affichage des courbes de pertes :
+# Display loss curves :
 display_results.plot_loss(history)
 
-# Affichage des courbes de pertes zoomées :
+# Display loss curves (zoom) :
 display_results.zoom_plot_loss(history)
 
-# Affichage des sur et sous apprentissage :
+# Display over and under fitting :
 loss = history.history['loss']
 val_loss = history.history['val_loss']
 loss_array = np.array(loss)
@@ -193,13 +149,13 @@ val_loss_array = np.array(val_loss)
 
 
 
-""" ************* Controle du surapprentissage ************* """
+""" ************* Generation of Training Residuals ************* """
 
-# Calcul des prédictions :
+# Generate predictions :
 train_predict = model.predict(x_train)
 test_predict = model.predict(x_test)
 
-# Mise en forme du dataset :
+# Reshape dataset :
 train_predict = train_predict.reshape(-1, 1)
 test_predict = test_predict.reshape(-1, 1)
 
@@ -210,6 +166,7 @@ test_predict = scaler.inverse_transform(test_predict)
 original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
 original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
 
-# Affichage des résidus :
+# Display residus :
 display_results.plot_residuals(original_ytrain, train_predict, 'Training Residuals')
 display_results.plot_residuals(original_ytest, test_predict, 'Test Residuals')
+

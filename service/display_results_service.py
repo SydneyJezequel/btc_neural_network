@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 
 
 class DisplayResultsService:
-    """ Affiche les résultats du modèle """
+    """ Displays the model results """
 
 
 
@@ -22,9 +22,9 @@ class DisplayResultsService:
 
 
     def display_all_dataset(self, dataset):
-        """  Affichage de l'intégralité du dataset """
+        """ Display the entire dataset """
         fig = px.line(dataset, x=dataset.Date, y=dataset.Dernier,
-                      labels={'Date': 'date', 'Dernier': 'Close Stock'})
+                      labels={'Date': 'date', 'Last': 'Close Stock'})
         fig.update_traces(marker_line_width=2, opacity=0.8, marker_line_color='orange')
         fig.update_layout(title_text='Whole period of timeframe of Bitcoin close price 2014-2025', plot_bgcolor='white',
                           font_size=15, font_color='black')
@@ -35,7 +35,7 @@ class DisplayResultsService:
 
 
     def plot_loss(self, history):
-        """ Affichage des courbes de pertes """
+        """ Display loss curves """
         loss = history.history['loss']
         val_loss = history.history['val_loss']
         epochs = range(len(loss))
@@ -49,7 +49,7 @@ class DisplayResultsService:
 
 
     def zoom_plot_loss(self, history):
-        """ Affichage des courbes de pertes avec zoom sur les zones ou se trouvent les courbes """
+        """ Display loss curves with zoom """
         loss = history.history['loss']
         val_loss = history.history['val_loss']
         loss_array = np.array(loss)
@@ -61,7 +61,7 @@ class DisplayResultsService:
         plt.ylabel('Loss')
         plt.title('Training and Validation Loss (Zoomed)')
         plt.legend()
-        # Zoom sur la zone des pertes (bas de page) :
+        # Zoom on loss area (graphic bottom) :
         plt.ylim(0, 0.003)
         plt.grid(True)
         plt.show()
@@ -69,7 +69,7 @@ class DisplayResultsService:
 
 
     def plot_residuals(self, y_true, y_pred, title):
-        """ Affichage des résidus """
+        """ Display residuals """
         residuals = y_true - y_pred
         plt.figure(figsize=(10, 6))
         plt.plot(residuals, label='Residuals')
@@ -83,42 +83,38 @@ class DisplayResultsService:
 
 
     def plot_predictions(self, dates, predictions, time_step):
-        """ Affichage des prédictions avec une date sur deux affichée """
-        # Transformer les prédictions en tableau numpy :
+        """ Display predictions with every other date shown """
+        # Transform predictions in numpy array :
         predictions = np.array(predictions)
-        # Récupérer la dernière date de la série de dates
+        # Create new dates for predictions :
         derniere_date = dates.max()
-        # Créer de nouvelles dates pour les prédictions
         nouvelles_dates = [derniere_date + timedelta(days=i) for i in range(1, len(predictions) + 1)]
-        # Formatage des dates :
         nouvelles_dates = [date.strftime("%Y-%m-%d") for date in nouvelles_dates]
-        # Aligner les prédictions et les nouvelles dates :
+        # Align predictions and new dates :
         predictions_with_dates = pd.DataFrame({
             'Date': nouvelles_dates,
             'Prediction': predictions.flatten()
         })
-        # Index :
+        # Graphic :
         predictions_with_dates.set_index('Date', inplace=True)
-        # Schéma :
         plt.figure(figsize=(12, 6))
         ax = sns.lineplot(data=predictions_with_dates, x=predictions_with_dates.index, y='Prediction', marker='o')
-        # Sélection d'une date sur deux pour l'affichage :
+        # Display 1/2 date :
         tick_indices = range(0, len(predictions_with_dates), 2)
         ax.set_xticks(predictions_with_dates.index[tick_indices])
         ax.set_xticklabels(predictions_with_dates.index[tick_indices], rotation=45)
-        # Titres et légendes :
-        plt.title('Prédictions')
+        plt.title('Predictions')
         plt.xlabel('Date')
-        plt.ylabel('Valeur')
+        plt.ylabel('Value')
         plt.grid()
         plt.show()
 
 
 
     def display_dataset_and_predictions(self, dataset, predictions_dataset):
-        """ Affichage du dataset principal avec la possibilité d'ajouter d'autres courbes de prix """
+        """ Display the main dataset with the possibility to add other price curves """
         fig = go.Figure()
-        # Ajout de la première courbe de prix :
+        # Add first price curve :
         fig.add_trace(go.Scatter(
             x=dataset['Date'],
             y=dataset['Dernier'],
@@ -126,15 +122,15 @@ class DisplayResultsService:
             name='Bitcoin',
             line=dict(color='orange', width=2)
         ))
-        # Ajout de courbes supplémentaires :
+        # Additionnal price curves :
         fig.add_trace(go.Scatter(
             x=predictions_dataset['Date'],
             y=predictions_dataset['Dernier'],
             mode='lines',
-            name='prédictions',
+            name='predictions',
             line=dict(width=2)
         ))
-        # Mise à jour de la mise en page :
+        # Graphic :
         fig.update_layout(
             title_text='Whole period of timeframe of Bitcoin close price 2014-2025',
             plot_bgcolor='white',
@@ -143,23 +139,21 @@ class DisplayResultsService:
             xaxis_title='Date',
             yaxis_title='Close Price'
         )
-        # Suppression des grilles :
         fig.update_xaxes(showgrid=False)
         fig.update_yaxes(showgrid=False)
-        # Affichage du graphique :
         fig.show()
 
 
 
     def plot_initial_dataset_and_predictions(self, initial_dataset, formated_dataset, train_predict_plot, test_predict_plot):
-        """ Affichage de l'intégralité des datasets (initial, prédictions d'entrainement, prédictions de test) """
+        """ Display all datasets (initial, training predictions, test predictions) """
         plt.figure(figsize=(15, 6))
-        plt.plot(initial_dataset['Date'], formated_dataset['Dernier'], label='Données réelles', color='black')
-        plt.plot(initial_dataset['Date'], train_predict_plot, label='Prédictions entraînement', color='green')
-        plt.plot(initial_dataset['Date'], test_predict_plot, label='Prédictions test', color='red')
-        plt.title("Courbe réelle vs prédictions LSTM")
+        plt.plot(initial_dataset['Date'], formated_dataset['Dernier'], label='Datas', color='black')
+        plt.plot(initial_dataset['Date'], train_predict_plot, label='Training predictions', color='green')
+        plt.plot(initial_dataset['Date'], test_predict_plot, label='Test predictions', color='red')
+        plt.title("Real price vs LSTM predictions")
         plt.xlabel("Date")
-        plt.ylabel("Prix (dénormalisé)")
+        plt.ylabel("Price (denormalized)")
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
@@ -167,8 +161,8 @@ class DisplayResultsService:
 
 
 
-    def plot_metrics_history(self, metrics_history, metrics_to_plot=None, title_prefix="Évolution de"):
-        """ Affiche l'évolution des métriques d'entraînement/test au fil des epochs. """
+    def plot_metrics_history(self, metrics_history, metrics_to_plot=None, title_prefix="Evolution of"):
+        """ Displays the evolution of training/test metrics over the epochs. """
         available_metrics = set()
         for key in metrics_history.keys():
             if "_" in key:
@@ -197,4 +191,5 @@ class DisplayResultsService:
                 plt.tight_layout()
                 plt.show()
             else:
-                print(f"Aucune donnée disponible pour la métrique : {metric}")
+                print(f"No available data for metric : {metric}")
+

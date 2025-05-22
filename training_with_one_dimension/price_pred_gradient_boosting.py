@@ -12,7 +12,7 @@ from sklearn.model_selection import GridSearchCV
 
 
 
-""" ************* Paramètres ************* """
+""" ************* Parameters ************* """
 
 DATASET_PATH = parameters.DATASET_PATH
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
@@ -22,23 +22,23 @@ MODEL_PATH = parameters.MODEL_PATH
 
 
 
-""" ************* Préparation du dataset ************* """
+""" ************* Dataset Preparation ************* """
 
 prepare_dataset = PrepareDatasetService()
 
-# Chargement du dataset :
+# Loading dataset :
 initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
-# Formatage du dataset :
+# Format dataset :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
 tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
 
-# Ajout des caractéristiques de lag :
+# Add lags features :
 lags = [1, 7, 30]  # Lag pour 1 jour, 1 semaine, 1 mois
 tmp_dataset = prepare_dataset.add_lag_features(tmp_dataset, lags)
 tmp_dataset = tmp_dataset.dropna()
 
-# Normalisation du dataset :
+# Dataset normalization :
 tmp_dataset_copy = tmp_dataset.copy()
 columns_to_normalize = ['Dernier'] + [f'Lag_{lag}' for lag in lags]
 scaler = prepare_dataset.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
@@ -49,10 +49,10 @@ model_dataset[columns_to_normalize] = normalized_datas
 print("dataset d'entrainement normalisé :", model_dataset)
 print("model_dataset shape : ", model_dataset.shape)
 
-# Contrôle : Sauvegarde du dataset :
+# Save dataset :
 prepare_dataset.save_tmp_dataset(model_dataset)
 
-# Création des datasets d'entrainement et de test pour le modèle :
+# Create training and test dataset :
 train_data, test_data = prepare_dataset.create_train_and_test_dataset(model_dataset)
 X_train = train_data.drop(columns=['Date']).values
 y_train = train_data['Dernier'].values
@@ -62,9 +62,9 @@ y_test = test_data['Dernier'].values
 
 
 
-""" ************* Définition du modèle ************* """
+""" ************* Model Definition ************* """
 
-# Définir les paramètres pour la recherche de grille :
+# Define parameters for grid :
 param_grid = {
     'n_estimators': [50, 100, 200],
     'learning_rate': [0.01, 0.1, 0.2],
@@ -73,7 +73,7 @@ param_grid = {
     'min_samples_split': [2, 5, 10]
 }
 
-# Utiliser GridSearchCV pour trouver les meilleurs hyperparamètres :
+# Use GridSearchCV to find bests hyperparameters :
 grid_search = GridSearchCV(estimator=GradientBoostingRegressor(random_state=42),
                           param_grid=param_grid,
                           scoring='neg_mean_squared_error',
@@ -84,30 +84,30 @@ grid_search = GridSearchCV(estimator=GradientBoostingRegressor(random_state=42),
 
 
 
-""" ************* Entrainement du modèle ************* """
+""" ************* Model Training ************* """
 
 grid_search.fit(X_train, y_train)
 
-# Meilleurs paramètres trouvés :
+# Get bests parameters :
 best_params = grid_search.best_params_
 print("Meilleurs paramètres trouvés :", best_params)
 
-# Entraîner le modèle avec les meilleurs paramètres :
+# Train model with bests parameters :
 model = grid_search.best_estimator_
 
-# Sauvegarde du modèle
+# Save model :
 joblib.dump(model, MODEL_PATH +'gradient_boosting_model.pkl')
 
 
 
 
-""" ************* Affichage des résultats ************* """
+""" ************* Display Results ************* """
 
-# Génération des prédictions  :
+# Generate predictions :
 train_predict = model.predict(X_train)
 test_predict = model.predict(X_test)
 
-# Mise en forme des prédictions :
+# Reshape dataset :
 train_predict = train_predict.reshape(-1, 1)
 test_predict = test_predict.reshape(-1, 1)
 scaler = prepare_dataset.get_fitted_scaler(train_predict)
@@ -116,7 +116,7 @@ test_predict = scaler.inverse_transform(test_predict)
 original_ytrain = scaler.inverse_transform(y_train.reshape(-1, 1))
 original_ytest = scaler.inverse_transform(y_test.reshape(-1, 1))
 
-# Calcul des métriques :
+# Metrics calculation :
 train_rmse = np.sqrt(mean_squared_error(original_ytrain, train_predict))
 test_rmse = np.sqrt(mean_squared_error(original_ytest, test_predict))
 train_mse = mean_squared_error(original_ytrain, train_predict)
@@ -132,7 +132,7 @@ test_mgd = mean_gamma_deviance(original_ytest, test_predict)
 train_mpd = mean_poisson_deviance(original_ytrain, train_predict)
 test_mpd = mean_poisson_deviance(original_ytest, test_predict)
 
-# Affichage des métriques :
+# Display metrics :
 print("train_rmse : ", train_rmse)
 print("test_rmse : ", test_rmse)
 print("train_mse : ", train_mse)
@@ -148,7 +148,6 @@ print("test_mgd : ", test_mgd)
 print("train_mpd : ", train_mpd)
 print("test_mpd : ", test_mpd)
 
-# Visualisation des résultats :
 plt.figure(figsize=(14, 7))
 plt.plot(train_data['Date'], y_train, label='Train Actual')
 plt.plot(train_data['Date'], train_predict, label='Train Predicted', alpha=0.7)
@@ -159,3 +158,4 @@ plt.xlabel('Date')
 plt.ylabel('Price')
 plt.legend()
 plt.show()
+
