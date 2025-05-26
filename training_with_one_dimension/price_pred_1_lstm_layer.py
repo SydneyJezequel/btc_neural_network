@@ -106,8 +106,8 @@ metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_his
 history = model.fit(
     x_train, y_train,
     validation_data=(x_test, y_test),
-    epochs=200,
-    batch_size=32,
+    epochs=300,
+    batch_size=50,
     verbose=1,
     callbacks=[metrics_callback] # [metrics_callback, early_stopping]
 )
@@ -181,8 +181,6 @@ dataset_for_predictions = pd.read_csv(dataset_for_predictions)
 # Generate predictions :
 generate_prediction_service = GeneratePredictionService()
 time_step = TIME_STEP
-
-# predictions = generate_prediction_service.predict_on_new_data(dataset_for_predictions, model, time_step)
 predictions = generate_prediction_service.predict_on_new_data(test_data, model, scaler, time_step)
 print("predictions : ", predictions)
 
@@ -195,10 +193,12 @@ display_results.plot_predictions(dates, predictions, time_step)
 """ ************* Display the Original Dataset and Predictions ************* """
 
 # Loading initial dataset :
-formated_dataset = pd.read_csv(FORMATED_BTC_COTATIONS_FILE)
-formated_dataset['Date'] = pd.to_datetime(formated_dataset['Date'])
+formated_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 # Preparing dataset for display :
+formated_dataset['Date'] = pd.to_datetime(formated_dataset['Date'], format="%d/%m/%Y")
+formated_dataset['Dernier'] = formated_dataset['Dernier'].str.replace('.', '').str.replace(',', '.').astype(float)
+print("formated_dataset : ", formated_dataset)
 formatted_dataset_last_date = formated_dataset['Date'].max()
 num_days = len(predictions)
 new_dates = [formatted_dataset_last_date + pd.Timedelta(days=i) for i in range(1, num_days + 1)]
@@ -209,8 +209,6 @@ predictions_dataset = pd.DataFrame({
     'Dernier': predictions.flatten()
 })
 
-# Display predictions :
-display_results.display_all_dataset(predictions_dataset)
 
 # Display initial dataset and predictions :
 display_results.display_dataset_and_predictions(formated_dataset, predictions_dataset)
@@ -222,9 +220,10 @@ display_results.display_dataset_and_predictions(formated_dataset, predictions_da
 
 # Datasets alignment :
 dataset_length = len(initial_dataset)
+formated_dataset = formated_dataset.iloc[::-1].reset_index(drop=True)
 train_predict_plot = generate_prediction_service.insert_with_padding(train_predict, TRAIN_PREDICT_START_INDEX, dataset_length)
 test_predict_plot = generate_prediction_service.insert_with_padding(test_predict, TEST_PREDICT_START_INDEX, dataset_length)
 
-#  Display predictions :
+#  Display training and test predictions VS dataset :
 display_results.plot_initial_dataset_and_predictions(initial_dataset, formated_dataset, train_predict_plot, test_predict_plot)
 
