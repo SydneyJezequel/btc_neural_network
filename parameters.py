@@ -15,6 +15,7 @@ TIME_STEP = 15
 
 
 """ ************ LLM Parameters ************ """
-API_KEY = ''
-API_URL = ''
-
+LLM_API_URL = '' # Cette ligne sera peut être à supprimer.
+LLM_API_KEY = '' # Cette ligne sera peut être à supprimer.
+FINANCIAL_NEWS_API_URL = 'A RECUPERER'
+FINANCIAL_NEWS_API_KEY = 'https://yfapi.net/v8/finance/some_endpoint'
