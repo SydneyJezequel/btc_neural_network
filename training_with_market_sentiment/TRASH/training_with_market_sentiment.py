@@ -1,6 +1,5 @@
 import requests
 import parameters
-from parameters import FINANCIAL_NEWS_API
 from transformers import pipeline # Hugging Face Transformers library, which provides access to pre-trained models like BERT.
 import pandas as pd
 from service.prepare_dataset_service import PrepareDatasetService
