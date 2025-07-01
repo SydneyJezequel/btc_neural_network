@@ -1,3 +1,4 @@
+from datetime import datetime
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
@@ -5,7 +6,8 @@ from service.technical_indicators_service import TechnicalIndicatorsService
 from service.display_results_service import DisplayResultsService
 import parameters
 import requests
-from transformers import pipeline
+import json
+from BO.sentiment_analyzer import SentimentAnalyzer
 
 
 
@@ -240,12 +242,7 @@ class PrepareDatasetService:
 
 
 
-
-
-
-
     """ ************** Others versions of add_technicals_indicators() method ************** """
-
 
 
     def add_technicals_indicators_sma(self, tmp_dataset):
@@ -309,46 +306,95 @@ class PrepareDatasetService:
 
 
 
+    """ ************** Methods for market sentiment analyze ************** """
+
+
+    def merge_data(self, initial_df, api_scores_map):
+        """ Api scores and dataset merging """
+        # data merging :
+        initial_df['Date_for_join'] = initial_df['Date'].dt.strftime('%d/%m/%Y')
+        initial_df['Score API'] = initial_df['Date_for_join'].map(api_scores_map)
+        initial_df = initial_df.drop(columns=['Date_for_join'])
+        # Convert NaN values to 0 :
+        initial_df['Score API'] = initial_df['Score API'].fillna(0)
+        # Replace values equal to 0 with 0 :
+        initial_df['Score API'] = initial_df['Score API'].apply(lambda x: 0 if x == 0 else x)
+        return initial_df
 
 
 
-    """ ************** Méthodes utilisées pour intégrer le sentiment de marché dans le datase ************** """
+    def get_api_market_sentiment_scores(self, market_scores_api_url):
+        """ Sentiment market scores loading """
+        api_response_data = {}
+        try:
+            response = requests.get(market_scores_api_url)
+            response.raise_for_status()
+            api_response_data = response.json()
+            print("API data loaded.")
+            return api_response_data
+        except requests.exceptions.HTTPError as errh:
+            print(f"HTTP Error during API call : {errh}")
+            exit()
+        except requests.exceptions.ConnectionError as errc:
+            print(f"API connexion error : {errc}")
+            exit()
+        except requests.exceptions.Timeout as errt:
+            print(f"Time out : {errt}")
+            exit()
+        except requests.exceptions.RequestException as err:
+            print(f"Unexpected error : {err}")
+            exit()
 
 
-    def fetch_bitcoin_news(self, api_key):
-        """ Récupération des actualités sur le Bitcoin via une API """
-        url = parameters.FINANCIAL_NEWS_API_URL
-        params = {
-            'q': 'Bitcoin',
-            'apiKey': api_key,
-            'pageSize': 100  # Adjust the number of articles as needed
-        }
-        response = requests.get(url, params=params)
-        if response.status_code == 200:
-            return response.json()['articles']
+
+    def sort_scores_api_data(self, api_response_data):
+        """ Market sentiment scores sorting by date """
+
+        # Data retrieving :
+        btc_scores = []
+
+        # Checking :
+        if "BTC-USD.CC" in api_response_data:
+            btc_scores  = api_response_data["BTC-USD.CC"]
         else:
-            print(f"Error fetching news: {response.status_code}")
-            return []
+            print("'btc-usd.cc' key has not been found.")
+
+        # Sorting by date :
+        api_scores_map = {}
+        if btc_scores :
+            btc_scores_sorted = sorted(btc_scores , key=lambda x: x["date"])
+            # Article retrieving :
+            api_scores_map = {entry["date"]: entry["normalized"] for entry in btc_scores_sorted}
+            # Convert data to "DD/MM/YYYY" :
+            api_scores_map = {datetime.strptime(date, "%Y-%m-%d").strftime("%d/%m/%Y"): score for date, score in api_scores_map.items()}
+            print(list(api_scores_map.keys())[:5])
+            return api_scores_map
+        else:
+            print("No BTC-USD.CC to process for API scores.")
 
 
 
-    def analyze_sentiment(self, text):
-        """ Méthode qui extrait le sentiment de marché des actualités """
-        sentiment_pipeline = pipeline("sentiment-analysis")
-        result = sentiment_pipeline(text)
-        return result[0]['label'], result[0]['score']
+    def sort_news_api_data(self, api_response_data, sentiment_analyzer):
+        """ Market news sorting by date """
 
+        # Data retrieving :
+        btc_articles = []
+        print("Data from API :")
+        if isinstance(api_response_data, list) and api_response_data:
+            print(json.dumps(api_response_data[0], indent=4))
+            btc_articles = api_response_data
+        else:
+            print("API response is not a list of items as expected")
+            btc_articles = []
 
+        # News sorting by date :
+        if btc_articles:
+            btc_articles_sorted = sorted(btc_articles, key=lambda x: sentiment_analyzer.parse_article_date(x["date"]))
+            print(f"News BTC-USD.CC sorted by date (from oldest to newest). Total: {len(btc_articles_sorted)} news. ")
+            for i, article in enumerate(btc_articles_sorted[:3]):  # Limité à 3 pour l'affichage initial
+                print(f"Date: {article['date']}, Title: {article['title']}")
+            if len(btc_articles_sorted) > 3:
+                print("...")
 
-    def integrate_market_sentiment(self, dataset, news_articles):
-        """ Intégration du sentiment de marché au dataset """
-        # Ajout des scores de sentiment au dataset :
-        sentiment_scores = []
-        for article in news_articles:
-            sentiment, score = self.analyze_sentiment(article['title'])
-            sentiment_scores.append(score)
-        # Intégration du sentiment de marché au dataset :
-        dataset['sentiment_score'] = sentiment_scores[:len(dataset)]
-        print(dataset)
-        return dataset
+            return btc_articles_sorted
 

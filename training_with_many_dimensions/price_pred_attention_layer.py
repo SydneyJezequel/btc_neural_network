@@ -64,7 +64,7 @@ model = Sequential()
 model.add(LSTM(100, return_sequences=True, input_shape=(None, 1), activation="relu"))
 # `return_sequences=True` permet de conserver toute la séquence pour les couches suivantes.
 # Ajout du mécanisme d'attention après la première couche LSTM
-# model.add(attention_layer)  # Erreur ici : attention_layer doit être appelé comme une fonction
+# model.add(attention_layer)
 # AUTRE VERSION :
 model.add(Lambda(lambda x: attention_layer(x)))
 # Deuxième couche LSTM, toujours avec return_sequences=True pour transmettre toute la séquence

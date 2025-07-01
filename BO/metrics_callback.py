@@ -10,12 +10,12 @@ from service.prepare_dataset_service import PrepareDatasetService
 
 
 class MetricsCallback(Callback):
-    """ Stockage des métriques """
+    """ Metrics Storage """
 
 
 
     def __init__(self, x_train, y_train, x_test, y_test, metrics_history):
-        """ Constructeur """
+        """ Constructor """
         super().__init__()
         self.x_train = x_train
         self.y_train = y_train
