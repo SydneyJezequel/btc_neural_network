@@ -18,7 +18,6 @@ MARKET_SCORES_API_URL = parameters.MARKET_SCORES_API_URL
 TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 
 """ A SUPPRIMER """
-OUTPUT_CSV_FILE = parameters.OUTPUT_CSV_FILE
 DATASET_FOR_PREDICTIONS = parameters.DATASET_FOR_PREDICTIONS
 FORMATED_BTC_COTATIONS_FILE = parameters.FORMATED_BTC_COTATIONS_FILE
 SAVED_MODEL = parameters.SAVED_MODEL
@@ -49,10 +48,6 @@ print("Merged dataset : ", initial_df)
 
 
 """ ************* Dataset Preparation ************* """
-
-""" TEST : A SUPPRIMER """
-initial_df.to_csv(OUTPUT_CSV_FILE, index=False, encoding='utf-8')
-""" TEST : A SUPPRIMER """
 
 # Prepare dataset :
 cutoff_date = '2020-01-01'

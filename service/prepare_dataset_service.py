@@ -312,7 +312,7 @@ class PrepareDatasetService:
     def merge_data(self, initial_df, api_scores_map):
         """ Api scores and dataset merging """
         # data merging :
-        initial_df['Date_for_join'] = initial_df['Date'].dt.strftime('%d/%m/%Y')
+        initial_df['Date_for_join'] = initial_df['Date'].dt.strftime('%Y-%m-%d')
         initial_df['Score API'] = initial_df['Date_for_join'].map(api_scores_map)
         initial_df = initial_df.drop(columns=['Date_for_join'])
         # Convert NaN values to 0 :
@@ -365,8 +365,6 @@ class PrepareDatasetService:
             btc_scores_sorted = sorted(btc_scores , key=lambda x: x["date"])
             # Article retrieving :
             api_scores_map = {entry["date"]: entry["normalized"] for entry in btc_scores_sorted}
-            # Convert data to "DD/MM/YYYY" :
-            api_scores_map = {datetime.strptime(date, "%Y-%m-%d").strftime("%d/%m/%Y"): score for date, score in api_scores_map.items()}
             print(list(api_scores_map.keys())[:5])
             return api_scores_map
         else:
@@ -391,7 +389,7 @@ class PrepareDatasetService:
         if btc_articles:
             btc_articles_sorted = sorted(btc_articles, key=lambda x: sentiment_analyzer.parse_article_date(x["date"]))
             print(f"News BTC-USD.CC sorted by date (from oldest to newest). Total: {len(btc_articles_sorted)} news. ")
-            for i, article in enumerate(btc_articles_sorted[:3]):  # Limité à 3 pour l'affichage initial
+            for i, article in enumerate(btc_articles_sorted[:3]):
                 print(f"Date: {article['date']}, Title: {article['title']}")
             if len(btc_articles_sorted) > 3:
                 print("...")

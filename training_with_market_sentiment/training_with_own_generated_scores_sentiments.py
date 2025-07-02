@@ -20,7 +20,6 @@ TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
 MARKET_NEWS_API_URL = parameters.MARKET_NEWS_API_URL
 
 """ A SUPPRIMER """
-OUTPUT_CSV_FILE = 'output.csv'
 DATASET_FOR_PREDICTIONS = parameters.DATASET_FOR_PREDICTIONS
 FORMATED_BTC_COTATIONS_FILE = parameters.FORMATED_BTC_COTATIONS_FILE
 SAVED_MODEL = parameters.SAVED_MODEL
@@ -37,10 +36,11 @@ TEST_PREDICT_START_INDEX = 3200
 prepare_dataset = PrepareDatasetService()
 sentiment_analyzer = SentimentAnalyzer(parameters.API_MONSTER_KEY, parameters.MODEL_NAME, parameters.BASE_URL)
 
+# btc dataset loading :
 initial_df = pd.read_csv(TRAINING_DATASET_FILE, parse_dates=['Date'], dayfirst=True)
 btc_articles = []
 
-# api news loading :
+# Api news loading :
 api_response_data = prepare_dataset.get_api_market_sentiment_scores(parameters.MARKET_NEWS_API_URL)
 
 # API news sorting :
@@ -54,7 +54,10 @@ for new_score in news_scores:
     print(f"  Explanation : {new_score['explanation']}\n")
 
 # Convert news_scores to a dictionary with dates as keys :
-api_scores_map = {score['date']: score['score'] for score in news_scores}
+api_scores_map = {
+    pd.to_datetime(score['date']).strftime('%Y-%m-%d'): score['score']
+    for score in news_scores
+}
 
 # Merging :
 initial_df = pd.read_csv(TRAINING_DATASET_FILE, parse_dates=['Date'], dayfirst=True)
@@ -63,12 +66,7 @@ initial_df = prepare_dataset.merge_data(initial_df, api_scores_map)
 
 
 
-
 """ ************* Dataset Preparation ************* """
-
-""" TEST : A SUPPRIMER """
-initial_df.to_csv(OUTPUT_CSV_FILE, index=False, encoding='utf-8')
-""" TEST : A SUPPRIMER """
 
 # Prepare dataset :
 cutoff_date = '2020-01-01'
