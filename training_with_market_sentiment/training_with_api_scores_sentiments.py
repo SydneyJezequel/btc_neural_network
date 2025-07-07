@@ -78,28 +78,6 @@ model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
 
 
-# Model (other version) :
-"""
-model = Sequential()
-model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
-model.add(Dense(1))
-model.compile(loss="mean_squared_error", optimizer="adam")
-"""
-
-
-# Enhanced model :
-"""
-model = Sequential()
-model.add(LSTM(20, input_shape=(None, 1), activation="tanh", return_sequences=True))
-model.add(Dropout(0.2))
-model.add(LSTM(20, activation="tanh"))
-model.add(Dropout(0.2))
-model.add(Dense(1))
-optimizer = Adam(learning_rate=0.001)
-model.compile(loss="mean_squared_error", optimizer=optimizer)
-"""
-
-
 
 
 """ ************* Metrics Initialization ************* """
@@ -137,8 +115,8 @@ metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_his
 history = model.fit(
     x_train, y_train,
     validation_data=(x_test, y_test),
-    epochs=400,
-    batch_size=32,
+    epochs=300,
+    batch_size=50,
     verbose=1,
     callbacks=[metrics_callback] # [metrics_callback, early_stopping]
 )

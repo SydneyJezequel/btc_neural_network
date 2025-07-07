@@ -156,8 +156,8 @@ metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_his
 history = model.fit(
     x_train, y_train,
     validation_data=(x_test, y_test),
-    epochs=400,
-    batch_size=32,
+    epochs=300,
+    batch_size=50,
     verbose=1,
     callbacks=[metrics_callback] # [metrics_callback, early_stopping]
 )
