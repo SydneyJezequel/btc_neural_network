@@ -51,12 +51,9 @@ model = Sequential()
 model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
 model.add(Dense(1))
 model.compile(loss="mean_squared_error", optimizer="adam")
+
 """
-model = Sequential()
-model.add(LSTM(10, input_shape=(None, 1), activation="relu"))
-model.add(Dense(1))
-model.compile(loss="mean_squared_error", optimizer="adam")
-# Création du modèle amélioré
+# Create neural network with tanh activation function and leaning rate optimizer :
 model = Sequential()
 model.add(LSTM(20, input_shape=(None, 1), activation="tanh", return_sequences=True))
 model.add(Dropout(0.2))
