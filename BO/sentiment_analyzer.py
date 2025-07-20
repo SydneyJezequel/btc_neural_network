@@ -21,7 +21,7 @@ class SentimentAnalyzer:
 
 
     def analyze_sentiment(self, text):
-        """ Sentiment scoring on multiple articles """
+        """ Sentiment scoring on an article """
         response = self.monster_client.chat.completions.create(
             # model="meta-llama/Meta-Llama-3.1-8B-Instruct",
             model=self.model_name,
@@ -41,7 +41,7 @@ class SentimentAnalyzer:
 
 
     def analyze_sentiments(self, articles):
-        """ Sentiment scoring on an article """
+        """ Sentiment scoring on multiple articles """
         results = []
         for article in articles:
             sentiment = self.analyze_sentiment(article['title'])
