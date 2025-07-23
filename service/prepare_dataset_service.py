@@ -7,7 +7,6 @@ from service.display_results_service import DisplayResultsService
 import parameters
 import requests
 import json
-from BO.sentiment_analyzer import SentimentAnalyzer
 
 
 
@@ -142,6 +141,17 @@ class PrepareDatasetService:
             dataset[f'Lag_{lag}'] = dataset['Dernier'].shift(lag)
         return dataset
 
+    # NOUVELLE VERSION --> NE SERA PEUT-ÊTRE PAS A UTILISER :
+    """
+    def add_lag_features(self, dataset, lags, scaler):
+        # Adding lags
+        for lag in lags:
+            dataset[f'Lag_{lag}'] = dataset['Dernier'].shift(lag)
+        lags_columns = [f'Lag_{lag}' for lag in lags]
+        dataset[lags_columns] = self.normalize_datas(dataset[lags_columns], scaler)
+        return dataset
+    """
+
 
 
     def calculate_historical_volatility(self, dataset, window=252):
@@ -179,9 +189,6 @@ class PrepareDatasetService:
         # Displaying the entire dataset before price transformation :
         display_results = DisplayResultsService()
         display_results.display_all_dataset(tmp_dataset)
-        # Adding lags if specified :
-        if lags is not None:
-            tmp_dataset = self.add_lag_features(tmp_dataset, lags)
         # Adding historical volatility if specified :
         if add_volatility:
             tmp_dataset = self.calculate_historical_volatility(tmp_dataset)
@@ -195,6 +202,9 @@ class PrepareDatasetService:
         normalized_datas = self.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
         model_dataset[columns_to_normalize] = normalized_datas
         dates = model_dataset['Date']
+        # Adding lags if specified :
+        if lags is not None:
+            model_dataset = self.add_lag_features(tmp_dataset, lags)
         # Removal of the date column :
         del model_dataset['Date']
         # Saving dataset :
