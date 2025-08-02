@@ -141,17 +141,6 @@ class PrepareDatasetService:
             dataset[f'Lag_{lag}'] = dataset['Dernier'].shift(lag)
         return dataset
 
-    # NOUVELLE VERSION --> NE SERA PEUT-ÊTRE PAS A UTILISER :
-    """
-    def add_lag_features(self, dataset, lags, scaler):
-        # Adding lags
-        for lag in lags:
-            dataset[f'Lag_{lag}'] = dataset['Dernier'].shift(lag)
-        lags_columns = [f'Lag_{lag}' for lag in lags]
-        dataset[lags_columns] = self.normalize_datas(dataset[lags_columns], scaler)
-        return dataset
-    """
-
 
 
     def calculate_historical_volatility(self, dataset, window=252):
@@ -175,18 +164,17 @@ class PrepareDatasetService:
 
     def prepare_many_dimensions_dataset(self, dataset, cutoff_date='2020-01-01', lags=None, add_volatility=False):
         """ Preparation of the multi-dimensional dataset before training """
-        # Preparation of the dataset :
+        # Data formating and column deletion :
         tmp_dataset = self.format_dataset(dataset)
         tmp_dataset = self.delete_columns(tmp_dataset)
-        # Saving the formatted dataset :
         self.save_tmp_dataset(tmp_dataset)
-        # Adding technical indicators to the dataset :
-        tmp_dataset = self.add_technicals_indicators(tmp_dataset)
+        # Adding technical indicators :
+        """tmp_dataset = self.add_technicals_indicators(tmp_dataset) """
         """ tmp_dataset = self.add_technicals_indicators_sma_rsi_smasignal(tmp_dataset) """
-        """ tmp_dataset = self.add_technicals_indicators_sma(tmp_dataset) """
+        tmp_dataset = self.add_technicals_indicators_sma(tmp_dataset)
         """ tmp_dataset = self.add_technicals_indicators_rsi(tmp_dataset) """
         """ tmp_dataset = self.add_technicals_indicators_sma_signal(tmp_dataset) """
-        # Displaying the entire dataset before price transformation :
+        # Display dataset before price transformation :
         display_results = DisplayResultsService()
         display_results.display_all_dataset(tmp_dataset)
         # Adding historical volatility if specified :
@@ -194,20 +182,25 @@ class PrepareDatasetService:
             tmp_dataset = self.calculate_historical_volatility(tmp_dataset)
         # Subsampling :
         tmp_dataset = self.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
+        # Delete NaN values in datset for technical indicators and historical_volatility :
+        tmp_dataset.fillna(method='ffill', inplace=True)
+        tmp_dataset.fillna(method='bfill', inplace=True)
         # Normalization :
-        tmp_dataset_copy = tmp_dataset.copy()
-        columns_to_normalize = ['Dernier']
-        scaler = self.get_fitted_scaler(tmp_dataset_copy[columns_to_normalize])
-        model_dataset = tmp_dataset
-        normalized_datas = self.normalize_datas(tmp_dataset_copy[columns_to_normalize], scaler)
-        model_dataset[columns_to_normalize] = normalized_datas
-        dates = model_dataset['Date']
+        columns_to_normalize_for_scaler = ['Dernier']
+        scaler = self.get_fitted_scaler(tmp_dataset[columns_to_normalize_for_scaler])
+        tmp_dataset[columns_to_normalize_for_scaler] = self.normalize_datas(
+            tmp_dataset[columns_to_normalize_for_scaler], scaler
+        )
         # Adding lags if specified :
         if lags is not None:
-            model_dataset = self.add_lag_features(tmp_dataset, lags)
-        # Removal of the date column :
+            tmp_dataset = self.add_lag_features(tmp_dataset, lags)
+        # Delete NaN values in datset for lags :
+        tmp_dataset.fillna(method='ffill', inplace=True)
+        tmp_dataset.fillna(method='bfill', inplace=True)
+        # creation of final dataset :
+        model_dataset = tmp_dataset.copy()
+        dates = model_dataset['Date']
         del model_dataset['Date']
-        # Saving dataset :
         self.save_tmp_dataset(model_dataset)
         # Creation of training and test datasets :
         train_data, test_data = self.create_train_and_test_dataset(model_dataset)
