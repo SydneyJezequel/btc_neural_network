@@ -1,6 +1,7 @@
 PROJECT PRESENTATION :
 * This project trains a neural network to predict the BTC price.
 * It is trained with a dataset containing daily BTC closing prices from 2014 to 2025.
+* The details of this reflection are summarized in the following documents in this repository :  Analyse - Modélisation du prix du Bitcoin avec un réseau de neurones.docx.pdf (french version), Reflection on Bitcoin price prediction modeling.docx.pdf (english version).
 
 
 WHAT THE INDICATORS CORRESPOND TO : 
