@@ -56,3 +56,4 @@ wheel==0.41.2
 wrapt==1.17.2
 tf-keras==2.16.0
 monsterapi==1.0.9.3
+torch==2.2.1

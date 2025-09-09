@@ -9,7 +9,7 @@ from service.prepare_dataset_service import PrepareDatasetService
 
 
 
-class MetricsCallback(Callback):
+class MetricsLstmCallback(Callback):
     """ Metrics Storage """
 
 

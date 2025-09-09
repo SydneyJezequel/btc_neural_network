@@ -2,7 +2,7 @@ import pprint
 import pandas as pd
 import numpy as np
 from keras.src.optimizers import Adam
-from BO.metrics_callback import MetricsCallback
+from BO.metrics_lstm_callback import MetricsLstmCallback
 from service.display_results_service import DisplayResultsService
 from service.prepare_dataset_service import PrepareDatasetService
 from tensorflow.keras.models import Sequential
@@ -102,7 +102,7 @@ metrics_history = {
 }
 
 # Callback to store metrics every 50 epochs :
-metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_history)
+metrics_callback = MetricsLstmCallback(x_train, y_train, x_test, y_test, metrics_history)
 
 
 

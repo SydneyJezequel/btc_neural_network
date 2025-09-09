@@ -7,7 +7,7 @@ from service.prepare_dataset_service import PrepareDatasetService
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
 import parameters
-from BO.metrics_callback import MetricsCallback
+from BO.metrics_lstm_callback import MetricsLstmCallback
 
 
 
@@ -67,7 +67,7 @@ metrics_history = {
 }
 
 # Callback to store metrics every 50 epochs :
-metrics_callback = MetricsCallback(x_train, y_train, x_test, y_test, metrics_history)
+metrics_callback = MetricsLstmCallback(x_train, y_train, x_test, y_test, metrics_history)
 
 
 
