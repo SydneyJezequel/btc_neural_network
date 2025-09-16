@@ -16,7 +16,7 @@ from BO.sentiment_analyzer import SentimentAnalyzer
 API_MONSTER_KEY = parameters.API_MONSTER_KEY
 BASE_URL = parameters.BASE_URL
 MODEL_NAME = parameters.MODEL_NAME
-TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
+TRAINING_DATASET_FILE = parameters.TRAINING_DAILY_DATASET_FILE
 MARKET_NEWS_API_URL = parameters.MARKET_NEWS_API_URL
 
 """ A SUPPRIMER """

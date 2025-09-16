@@ -1,12 +1,12 @@
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 import torch
-from BO.time_series_transformer import TimeSeriesTransformer
 from BO.transformer_dataset import TransformerDataset
-import parameters
+from BO.time_series_transformer import TimeSeriesTransformer
 from BO.transformer_metrics_logger import TransformerMetricsLogger
 from service.display_results_service import DisplayResultsService
 from service.prepare_dataset_service import PrepareDatasetService
+import parameters
 from service.train_transformer_model_service import TrainTransformerModelService
 
 
@@ -16,29 +16,56 @@ from service.train_transformer_model_service import TrainTransformerModelService
 
 """ ************* Parameters ************* """
 
-TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
+API_TOKEN = parameters.API_TOKEN
+MARKET_SCORES_API_URL = parameters.MARKET_SCORES_API_URL
+TRAINING_DATASET_FILE = parameters.TRAINING_HOURLY_DATASET_FILE
+
+# ************ A supprimer ???? ************ #
+FEATURE_SIZE =  parameters.FEATURE_SIZE
+NUM_LAYERS = parameters.NUM_LAYERS
+D_MODEL = parameters.D_MODEL
+NHEAD = parameters.NHEAD
+DIM_FEEDFORWARD = parameters.DIM_FEEDFORWARD
+DROPOUT = parameters.DROPOUT
+SEQ_LENGTH = parameters.SEQ_LENGTH
+PREDICTION_LENGTH = parameters.PREDICTION_LENGTH
+# ************ A supprimer ???? ************ #
+
+
+
+
+""" ************* Merge Btc cotations and api sentiment scores ************* """
+
+# Loading initial dataset :
+dataset = pd.read_csv(TRAINING_DATASET_FILE)
+
+# Adding market sentiment scores :
+"""
+# api scores loading and sorting :
+api_response_data = prepare_dataset.get_api_market_sentiment_scores(MARKET_SCORES_API_URL)
+api_scores_map = prepare_dataset.sort_scores_api_data(api_response_data)
+
+# api scores and btc dataset merging :
+dataset = prepare_dataset.merge_data(dataset, api_scores_map)
+print("Merged dataset : ", dataset)
+"""
 
 
 
 
 """ ************* Dataset Preparation ************* """
 
-# Loading initial dataset :
-df = pd.read_csv(TRAINING_DATASET_FILE)
-
 # Data formatting and indicators adding into data :
 prepare_dataset = PrepareDatasetService()
-df = prepare_dataset.data_formatting_for_transformer_model(df)
-df = prepare_dataset.add_technical_indicators(df)
+cutoff_date = '2020-01-01'
+dataset, feature_cols, scaler = prepare_dataset.prepare_many_dimensions_dataset_for_transformer_model(dataset, cutoff_date)
 
-# Select data features and scale :
-data_scaled, scaler, feature_cols = prepare_dataset.select_and_scale_features(df)
-
-# Create dataset for model
+# Create dataset for model :
 target_col_idx = feature_cols.index('Dernier')
-seq_length = 30
+seq_length = 5
 pred_length = 1
-dataset = TransformerDataset(data_scaled, seq_length, pred_length, len(feature_cols), target_col_idx)
+dataset = dataset.values
+dataset =  TransformerDataset(dataset, seq_length, pred_length, len(feature_cols), target_col_idx)
 
 # Train/Validation/Test Split (80% train, 10% val, 10% test) :
 train_size = int(len(dataset) * 0.8)
@@ -66,7 +93,7 @@ model = TimeSeriesTransformer(
     d_model=64,
     nhead=8,
     dim_feedforward=256,
-    dropout=0.1,
+    dropout=0.3,
     seq_length=seq_length,
     prediction_length=pred_length
 )
@@ -81,8 +108,8 @@ trained_model, train_losses, val_losses = train_transformer_model_service.train_
     model,
     train_loader,
     val_loader,
-    lr=1e-3,
-    epochs=20,
+    lr=1e-4,
+    epochs=50,
     device=device,
     metrics_logger=metrics_logger
 )

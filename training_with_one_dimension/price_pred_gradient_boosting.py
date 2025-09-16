@@ -15,7 +15,7 @@ from sklearn.model_selection import GridSearchCV
 """ ************* Parameters ************* """
 
 DATASET_PATH = parameters.DATASET_PATH
-TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
+TRAINING_DATASET_FILE = parameters.TRAINING_DAILY_DATASET_FILE
 GRADIENT_BOOSTING_SAVED_MODEL = parameters.GRADIENT_BOOSTING_SAVED_MODEL
 MODEL_PATH = parameters.MODEL_PATH
 

@@ -14,7 +14,7 @@ import parameters
 
 """ ************* Parameters ************* """
 
-TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
+TRAINING_DATASET_FILE = parameters.TRAINING_DAILY_DATASET_FILE
 SAVED_MODEL = parameters.SAVED_MODEL
 
 

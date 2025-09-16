@@ -1,7 +1,9 @@
 import torch.nn as nn
 import numpy as np
 import torch
-
+""" ********* TEST ********* """
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+""" ********* TEST ********* """
 
 
 
@@ -31,10 +33,23 @@ class TrainTransformerModelService:
         """ Trains a Transformer model for time series tasks. """
         # Losses, optimizer and model initialisation :
         criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        """ ********* TEST ********* """
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+        """ ********* TEST ********* """
+        """ ********* TEST ********* """
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
+        """ ********* TEST ********* """
         model.to(device)
         train_epoch_losses = []
         val_epoch_losses = []
+        """ ********* TEST ********* """
+        # Early Stopping parameters :
+        best_val_loss = float('inf')
+        epochs_no_improve = 0
+        patience = 5
+        val_loss= float('inf')
+        """ ********* TEST ********* """
 
         # Training :
         for epoch in range(epochs):
@@ -64,9 +79,22 @@ class TrainTransformerModelService:
                         output_val = model(x_val)
                         loss_val = criterion(output_val, y_val)
                         epoch_val_losses_temp.append(loss_val.item())
+
                 # Adding val losses in numpy array for plot losses :
                 mean_val_loss = np.mean(epoch_val_losses_temp)
                 val_epoch_losses.append(mean_val_loss)
+                """ ********* TEST ********* """
+                scheduler.step(mean_val_loss)
+                """ ********* TEST ********* """
+                """ ********* TEST ********* """
+                # Early Stopping check :
+                should_stop, best_val_loss, epochs_no_improve = self.check_early_stopping(
+                    mean_val_loss, best_val_loss, epochs_no_improve, patience
+                )
+                if should_stop:
+                    break
+                """ ********* TEST ********* """
+
                 # Print losses :
                 print(f"Epoch [{epoch + 1}/{epochs}], Train Loss: {mean_train_loss:.6f}, Val Loss: {mean_val_loss:.6f}")
             else:
@@ -84,4 +112,20 @@ class TrainTransformerModelService:
                     metrics_logger.calculate_and_store_metrics(val_predictions, val_targets, "val_")
 
         return model, train_epoch_losses, val_epoch_losses
+
+
+
+    def check_early_stopping(self, mean_val_loss, best_val_loss, epochs_no_improve, patience):
+        """ Checks if the training should be stopped early based on validation loss. """
+        print("mean_val_loss : ", mean_val_loss, " best_val_loss : ", best_val_loss)
+        should_stop = False
+        if mean_val_loss < best_val_loss:
+            best_val_loss = mean_val_loss
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+            if epochs_no_improve == patience:
+                print("Early stopping triggered!")
+                should_stop = True
+        return should_stop, best_val_loss, epochs_no_improve
 

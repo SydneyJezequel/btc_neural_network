@@ -481,10 +481,18 @@ class PrepareDatasetService:
         tmp_dataset.fillna(method='bfill', inplace=True)
         # Normalization :
         columns_to_normalize_for_scaler = ['Dernier']
+        # columns_to_normalize_for_scaler = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'RSI']
+        """ ***** VERSION 1 ***** """
+        """
         scaler = self.get_fitted_scaler(tmp_dataset[columns_to_normalize_for_scaler])
         tmp_dataset[columns_to_normalize_for_scaler] = self.normalize_datas(
             tmp_dataset[columns_to_normalize_for_scaler], scaler
         )
+        """
+        """ ***** VERSION 1 ***** """
+        """ ***** VERSION 2 ***** """
+        tmp_dataset, scaler = self.select_and_scale_features2(tmp_dataset, columns_to_normalize_for_scaler)
+        """ ***** VERSION 2 ***** """
         # Adding lags if specified :
         if lags is not None:
             tmp_dataset = self.add_lag_features(tmp_dataset, lags)
@@ -499,4 +507,24 @@ class PrepareDatasetService:
         # get columns of the dataset :
         feature_cols = model_dataset.columns.tolist()
         return model_dataset, feature_cols, scaler
+
+
+
+    """ *********** TEST ********* ==> A SUPPRIMER ********** """
+    def select_and_scale_features2(self, df, columns_to_normalize_for_scaler):
+        """
+        Given a DataFrame, selects the relevant columns and applies MinMax scaling.
+        Returns the scaled array, the fitted scaler (for inversing later), and the list of columns used.
+        """
+        """
+        data = df[columns_to_normalize_for_scaler].values  # shape: (num_samples, num_features)
+        scaler = MinMaxScaler()
+        df[columns_to_normalize_for_scaler] = scaler.fit_transform(data)
+        """
+        data = df[columns_to_normalize_for_scaler].values
+        scaler = MinMaxScaler()
+        scaler.fit(data)
+        df[columns_to_normalize_for_scaler] = scaler.transform(data)
+        return df, scaler
+        """ *********** TEST ********* ==> A SUPPRIMER ********** """
 

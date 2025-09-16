@@ -13,7 +13,7 @@ from service.prepare_dataset_service import PrepareDatasetService
 
 """ ************* Parameters ************* """
 
-TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
+TRAINING_DATASET_FILE = parameters.TRAINING_DAILY_DATASET_FILE
 DATASET_FOR_PREDICTIONS = parameters.DATASET_FOR_PREDICTIONS
 FORMATED_BTC_COTATIONS_FILE = parameters.FORMATED_BTC_COTATIONS_FILE
 SAVED_MODEL = parameters.SAVED_MODEL

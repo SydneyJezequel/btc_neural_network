@@ -18,7 +18,18 @@ from service.train_transformer_model_service import TrainTransformerModelService
 
 API_TOKEN = parameters.API_TOKEN
 MARKET_SCORES_API_URL = parameters.MARKET_SCORES_API_URL
-TRAINING_DATASET_FILE = parameters.TRAINING_DATASET_FILE
+TRAINING_DATASET_FILE = parameters.TRAINING_DAILY_DATASET_FILE
+
+# ************ A supprimer ???? ************ #
+FEATURE_SIZE =  parameters.FEATURE_SIZE
+NUM_LAYERS = parameters.NUM_LAYERS
+D_MODEL = parameters.D_MODEL
+NHEAD = parameters.NHEAD
+DIM_FEEDFORWARD = parameters.DIM_FEEDFORWARD
+DROPOUT = parameters.DROPOUT
+SEQ_LENGTH = parameters.SEQ_LENGTH
+PREDICTION_LENGTH = parameters.PREDICTION_LENGTH
+# ************ A supprimer ???? ************ #
 
 
 
@@ -51,7 +62,7 @@ dataset, feature_cols, scaler = prepare_dataset.prepare_many_dimensions_dataset_
 
 # Create dataset for model :
 target_col_idx = feature_cols.index('Dernier')
-seq_length = 30
+seq_length = 5
 pred_length = 1
 dataset = dataset.values
 dataset =  TransformerDataset(dataset, seq_length, pred_length, len(feature_cols), target_col_idx)
@@ -82,7 +93,7 @@ model = TimeSeriesTransformer(
     d_model=64,
     nhead=8,
     dim_feedforward=256,
-    dropout=0.1,
+    dropout=0.3,
     seq_length=seq_length,
     prediction_length=pred_length
 )
@@ -97,8 +108,8 @@ trained_model, train_losses, val_losses = train_transformer_model_service.train_
     model,
     train_loader,
     val_loader,
-    lr=1e-3,
-    epochs=20,
+    lr=1e-4,
+    epochs=50,
     device=device,
     metrics_logger=metrics_logger
 )
