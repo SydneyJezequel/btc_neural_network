@@ -8,6 +8,7 @@ from service.display_results_service import DisplayResultsService
 from service.prepare_dataset_service import PrepareDatasetService
 import parameters
 from service.train_transformer_model_service import TrainTransformerModelService
+from training_with_transformer_model.transformer_training_enriched_daily_dataset import use_scheduler
 
 
 
@@ -19,17 +20,6 @@ from service.train_transformer_model_service import TrainTransformerModelService
 API_TOKEN = parameters.API_TOKEN
 MARKET_SCORES_API_URL = parameters.MARKET_SCORES_API_URL
 TRAINING_DATASET_FILE = parameters.TRAINING_HOURLY_DATASET_FILE
-
-# ************ A supprimer ???? ************ #
-FEATURE_SIZE =  parameters.FEATURE_SIZE
-NUM_LAYERS = parameters.NUM_LAYERS
-D_MODEL = parameters.D_MODEL
-NHEAD = parameters.NHEAD
-DIM_FEEDFORWARD = parameters.DIM_FEEDFORWARD
-DROPOUT = parameters.DROPOUT
-SEQ_LENGTH = parameters.SEQ_LENGTH
-PREDICTION_LENGTH = parameters.PREDICTION_LENGTH
-# ************ A supprimer ???? ************ #
 
 
 
@@ -55,14 +45,23 @@ print("Merged dataset : ", dataset)
 
 """ ************* Dataset Preparation ************* """
 
+# Date for data splitting :
+cutoff_date = '2020-01-01'
+# Adding lags features :
+lags = [12, 24, 168]
+# Adding volatility :
+add_volatility=True
+# Columns to delete :
+delete_columns = ['Id', 'Open', 'High', 'Low', 'Volume', 'Close_Time', 'Quote_Asset_Volume', 'Number_of_Trades', 'Taker_Buy_Base_Volume', 'Taker_Buy_Quote_Volume', 'Ignore']
+
 # Data formatting and indicators adding into data :
 prepare_dataset = PrepareDatasetService()
-cutoff_date = '2020-01-01'
-dataset, feature_cols, scaler = prepare_dataset.prepare_many_dimensions_dataset_for_transformer_model(dataset, cutoff_date)
+dataset, feature_cols, scaler = prepare_dataset.prepare_many_dimensions_hourly_dataset_for_transformer_model(dataset, delete_columns, cutoff_date)
+
 
 # Create dataset for model :
 target_col_idx = feature_cols.index('Dernier')
-seq_length = 5
+seq_length = 3
 pred_length = 1
 dataset = dataset.values
 dataset =  TransformerDataset(dataset, seq_length, pred_length, len(feature_cols), target_col_idx)
@@ -77,7 +76,7 @@ train_dataset = torch.utils.data.Subset(dataset, range(0, train_size))
 val_dataset = torch.utils.data.Subset(dataset, range(train_size, train_size + val_size))
 test_dataset = torch.utils.data.Subset(dataset, range(train_size + val_size, len(dataset)))
 batch_size = 32
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
@@ -89,11 +88,11 @@ test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 # Transformer model and device initialisation :
 model = TimeSeriesTransformer(
     feature_size=len(feature_cols),
-    num_layers=2,
+    num_layers=4,
     d_model=64,
     nhead=8,
     dim_feedforward=256,
-    dropout=0.3,
+    dropout=0.1,
     seq_length=seq_length,
     prediction_length=pred_length
 )
@@ -102,6 +101,12 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # Logs initialisation :
 metrics_logger = TransformerMetricsLogger(scaler, target_col_idx)
 
+# Adding Early Stopping :
+early_stopping = True
+
+# Adding Scheduler :
+use_scheduler = False
+
 # Training execution :
 train_transformer_model_service = TrainTransformerModelService()
 trained_model, train_losses, val_losses = train_transformer_model_service.train_transformer_model(
@@ -109,9 +114,11 @@ trained_model, train_losses, val_losses = train_transformer_model_service.train_
     train_loader,
     val_loader,
     lr=1e-4,
-    epochs=50,
+    epochs=80,
     device=device,
-    metrics_logger=metrics_logger
+    metrics_logger=metrics_logger,
+    early_stopping=early_stopping,
+    use_scheduler=use_scheduler
 )
 
 

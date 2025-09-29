@@ -1,9 +1,7 @@
 import torch.nn as nn
 import numpy as np
 import torch
-""" ********* TEST ********* """
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-""" ********* TEST ********* """
+
 
 
 
@@ -29,27 +27,33 @@ class TrainTransformerModelService:
             epochs=20,
             device='cpu',
             metrics_logger=None,
+            early_stopping=False,
+            patience=3,
+            use_scheduler=False
     ):
         """ Trains a Transformer model for time series tasks. """
         # Losses, optimizer and model initialisation :
-        criterion = nn.MSELoss()
-        # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-        """ ********* TEST ********* """
+        criterion = nn.L1Loss()
+        # nn.MSELoss()
         optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
-        """ ********* TEST ********* """
-        """ ********* TEST ********* """
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
-        """ ********* TEST ********* """
+        # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+        # Scheduler initialization :
+        scheduler = None
+        if use_scheduler:
+            from torch.optim.lr_scheduler import ReduceLROnPlateau
+            scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
+
+        # Early Stopping parameters :
+        best_val_loss = None
+        epochs_no_improve = None
+        if early_stopping:
+            best_val_loss = float('inf')
+            epochs_no_improve = 0
+
         model.to(device)
         train_epoch_losses = []
         val_epoch_losses = []
-        """ ********* TEST ********* """
-        # Early Stopping parameters :
-        best_val_loss = float('inf')
-        epochs_no_improve = 0
-        patience = 5
-        val_loss= float('inf')
-        """ ********* TEST ********* """
 
         # Training :
         for epoch in range(epochs):
@@ -64,6 +68,7 @@ class TrainTransformerModelService:
                 loss.backward()
                 optimizer.step()
                 epoch_train_losses_temp.append(loss.item())
+
             # Adding train losses in numpy array for plot losses :
             mean_train_loss = np.mean(epoch_train_losses_temp)
             train_epoch_losses.append(mean_train_loss)
@@ -83,17 +88,19 @@ class TrainTransformerModelService:
                 # Adding val losses in numpy array for plot losses :
                 mean_val_loss = np.mean(epoch_val_losses_temp)
                 val_epoch_losses.append(mean_val_loss)
-                """ ********* TEST ********* """
-                scheduler.step(mean_val_loss)
-                """ ********* TEST ********* """
-                """ ********* TEST ********* """
+
+                # Scheduler using :
+                if use_scheduler:
+                    scheduler.step(mean_val_loss)
+
                 # Early Stopping check :
-                should_stop, best_val_loss, epochs_no_improve = self.check_early_stopping(
-                    mean_val_loss, best_val_loss, epochs_no_improve, patience
-                )
-                if should_stop:
-                    break
-                """ ********* TEST ********* """
+                if early_stopping:
+                    should_stop, best_val_loss, epochs_no_improve = self.check_early_stopping(
+                        mean_val_loss, best_val_loss, epochs_no_improve, patience
+                    )
+                    if should_stop:
+                        print(f"Early stopping triggered at epoch {epoch + 1}.")
+                        break
 
                 # Print losses :
                 print(f"Epoch [{epoch + 1}/{epochs}], Train Loss: {mean_train_loss:.6f}, Val Loss: {mean_val_loss:.6f}")

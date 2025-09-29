@@ -31,7 +31,9 @@ initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
 # Format dataset :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
-tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
+# Columns to delete :
+delete_columns = ['Ouv.', ' Plus Haut', 'Plus Bas', 'Vol.', 'Variation %']
+tmp_dataset = prepare_dataset.delete_columns(tmp_dataset, delete_columns)
 
 # Add lags features :
 lags = [1, 7, 30]  # Lag pour 1 jour, 1 semaine, 1 mois

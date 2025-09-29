@@ -88,8 +88,11 @@ initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 # Format dataset :
 tmp_dataset = prepare_dataset.format_dataset(initial_dataset)
 
+# Columns to delete :
+delete_columns = ['Ouv.', ' Plus Haut', 'Plus Bas', 'Vol.', 'Variation %']
+
 # Remove dataset :
-tmp_dataset = prepare_dataset.delete_columns(tmp_dataset)
+tmp_dataset = prepare_dataset.delete_columns(tmp_dataset, delete_columns)
 
 # Display datas :
 fig = px.line(tmp_dataset, x=tmp_dataset.Date, y=tmp_dataset.Dernier,labels={'Date':'date','Dernier':'Close Stock'})

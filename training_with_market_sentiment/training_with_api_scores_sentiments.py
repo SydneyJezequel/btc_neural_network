@@ -49,9 +49,11 @@ print("Merged dataset : ", initial_df)
 
 """ ************* Dataset Preparation ************* """
 
-# Prepare dataset :
+# Date for data splitting :
 cutoff_date = '2020-01-01'
-x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_one_dimension_dataset(initial_df, cutoff_date)
+# Columns to delete :
+delete_columns = ['Ouv.', ' Plus Haut', 'Plus Bas', 'Vol.', 'Variation %']
+x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_one_dimension_dataset(initial_df, delete_columns, cutoff_date)
 
 # Display dataset :
 print("x_train shape:", x_train.shape)

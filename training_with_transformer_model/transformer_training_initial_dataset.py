@@ -17,16 +17,6 @@ from service.train_transformer_model_service import TrainTransformerModelService
 """ ************* Parameters ************* """
 
 TRAINING_DATASET_FILE = parameters.TRAINING_DAILY_DATASET_FILE
-# ************ A supprimer ???? ************ #
-FEATURE_SIZE =  parameters.FEATURE_SIZE
-NUM_LAYERS = parameters.NUM_LAYERS
-D_MODEL = parameters.D_MODEL
-NHEAD = parameters.NHEAD
-DIM_FEEDFORWARD = parameters.DIM_FEEDFORWARD
-DROPOUT = parameters.DROPOUT
-SEQ_LENGTH = parameters.SEQ_LENGTH
-PREDICTION_LENGTH = parameters.PREDICTION_LENGTH
-# ************ A supprimer ???? ************ #
 
 
 

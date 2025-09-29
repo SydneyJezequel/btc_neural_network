@@ -20,17 +20,6 @@ API_TOKEN = parameters.API_TOKEN
 MARKET_SCORES_API_URL = parameters.MARKET_SCORES_API_URL
 TRAINING_DATASET_FILE = parameters.TRAINING_DAILY_DATASET_FILE
 
-# ************ A supprimer ???? ************ #
-FEATURE_SIZE =  parameters.FEATURE_SIZE
-NUM_LAYERS = parameters.NUM_LAYERS
-D_MODEL = parameters.D_MODEL
-NHEAD = parameters.NHEAD
-DIM_FEEDFORWARD = parameters.DIM_FEEDFORWARD
-DROPOUT = parameters.DROPOUT
-SEQ_LENGTH = parameters.SEQ_LENGTH
-PREDICTION_LENGTH = parameters.PREDICTION_LENGTH
-# ************ A supprimer ???? ************ #
-
 
 
 
@@ -55,10 +44,13 @@ print("Merged dataset : ", dataset)
 
 """ ************* Dataset Preparation ************* """
 
+# Date for data splitting :
+cutoff_date = '2020-01-01'
+# Columns to delete :
+delete_columns = ['Vol.', 'Variation %', 'Ouv.', ' Plus Haut', 'Plus Bas']
 # Data formatting and indicators adding into data :
 prepare_dataset = PrepareDatasetService()
-cutoff_date = '2020-01-01'
-dataset, feature_cols, scaler = prepare_dataset.prepare_many_dimensions_dataset_for_transformer_model(dataset, cutoff_date)
+dataset, feature_cols, scaler = prepare_dataset.prepare_many_dimensions_dataset_for_transformer_model(dataset, delete_columns, cutoff_date)
 
 # Create dataset for model :
 target_col_idx = feature_cols.index('Dernier')
@@ -102,6 +94,12 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # Logs initialisation :
 metrics_logger = TransformerMetricsLogger(scaler, target_col_idx)
 
+# Adding Early Stopping :
+early_stopping = False
+
+# Adding Scheduler :
+use_scheduler = False
+
 # Training execution :
 train_transformer_model_service = TrainTransformerModelService()
 trained_model, train_losses, val_losses = train_transformer_model_service.train_transformer_model(
@@ -111,7 +109,9 @@ trained_model, train_losses, val_losses = train_transformer_model_service.train_
     lr=1e-4,
     epochs=50,
     device=device,
-    metrics_logger=metrics_logger
+    metrics_logger=metrics_logger,
+    early_stopping=early_stopping,
+    use_scheduler=use_scheduler
 )
 
 

@@ -15,14 +15,14 @@ class TimeSeriesTransformer(nn.Module):
     def __init__(
         # Transformer model features :
         self,
-        feature_size=parameters.FEATURE_SIZE,
-        num_layers=parameters.NUM_LAYERS,
-        d_model=parameters.D_MODEL,
-        nhead=parameters.NHEAD,
-        dim_feedforward=parameters.DIM_FEEDFORWARD,
-        dropout=parameters.DROPOUT,
-        seq_length=parameters.SEQ_LENGTH,
-        prediction_length=parameters.PREDICTION_LENGTH
+        feature_size=8,
+        num_layers=2,
+        d_model=64,
+        nhead=8,
+        dim_feedforward=256,
+        dropout=0.1,
+        seq_length=30,
+        prediction_length=1
     ):
         """ Constructor """
         """

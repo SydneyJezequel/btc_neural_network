@@ -22,8 +22,6 @@ SAVED_MODEL = parameters.SAVED_MODEL
 
 """ ************* Dataset Preparation ************* """
 
-prepare_dataset = PrepareDatasetService()
-
 # Loading dataset :
 initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 
@@ -31,11 +29,14 @@ initial_dataset = pd.read_csv(TRAINING_DATASET_FILE)
 lags = [1, 7]
 # lags = [1, 7, 30, 60, 90, 180, 365]
 
-# Date to separate old and new data periods:
+# Date for data splitting :
 cutoff_date = '2020-01-01'
+# Columns to delete :
+delete_columns = ['Ouv.', ' Plus Haut', 'Plus Bas', 'Vol.', 'Variation %']
 
 # Create training and test dataset :
-x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_many_dimensions_dataset(initial_dataset, cutoff_date, lags, add_volatility=True)
+prepare_dataset = PrepareDatasetService()
+x_train, y_train, x_test, y_test, test_data, dates, scaler = prepare_dataset.prepare_many_dimensions_dataset(initial_dataset, delete_columns, cutoff_date, lags, add_volatility=True)
 print("x_train shape:", x_train.shape)
 print("y_train shape:", y_train.shape)
 print("x_test shape:", x_test.shape)

@@ -38,9 +38,9 @@ class PrepareDatasetService:
 
 
 
-    def delete_columns(self, tmp_dataset):
+    def delete_columns(self, tmp_dataset, delete_columns):
         """ Removal of columns from the original dataset """
-        tmp_dataset = tmp_dataset.drop(columns=['Vol.', 'Variation %', 'Ouv.', ' Plus Haut', 'Plus Bas'])
+        tmp_dataset = tmp_dataset.drop(columns=delete_columns)
         return tmp_dataset
 
 
@@ -162,11 +162,11 @@ class PrepareDatasetService:
 
 
 
-    def prepare_many_dimensions_dataset(self, dataset, cutoff_date='2020-01-01', lags=None, add_volatility=False):
+    def prepare_many_dimensions_dataset(self, dataset, delete_columns, cutoff_date='2020-01-01', lags=None, add_volatility=False):
         """ Preparation of the multi-dimensional dataset before training """
         # Data formating and column deletion :
         tmp_dataset = self.format_dataset(dataset)
-        tmp_dataset = self.delete_columns(tmp_dataset)
+        tmp_dataset = self.delete_columns(tmp_dataset, delete_columns)
         self.save_tmp_dataset(tmp_dataset)
         # Adding technical indicators :
         """tmp_dataset = self.add_technicals_indicators(tmp_dataset) """
@@ -211,11 +211,11 @@ class PrepareDatasetService:
 
 
 
-    def prepare_one_dimension_dataset(self, dataset, cutoff_date = '2020-01-01'):
+    def prepare_one_dimension_dataset(self, dataset, delete_columns, cutoff_date = '2020-01-01'):
         """ Preparation of the one-dimensional dataset before training """
         # Preparation of the dataset :
         tmp_dataset = self.format_dataset(dataset)
-        tmp_dataset = self.delete_columns(tmp_dataset)
+        tmp_dataset = self.delete_columns(tmp_dataset, delete_columns)
         # Displaying the entire dataset before price transformation :
         display_results = DisplayResultsService()
         display_results.display_all_dataset(tmp_dataset)
@@ -457,11 +457,11 @@ class PrepareDatasetService:
 
 
 
-    def prepare_many_dimensions_dataset_for_transformer_model(self, dataset, cutoff_date='2020-01-01', lags=None, add_volatility=False):
+    def prepare_many_dimensions_dataset_for_transformer_model(self, dataset, delete_columns, cutoff_date='2020-01-01', lags=None, add_volatility=False):
         """ Preparation of the multi-dimensional dataset before training """
         # Data formating and column deletion :
         tmp_dataset = self.format_dataset(dataset)
-        tmp_dataset = self.delete_columns(tmp_dataset)
+        tmp_dataset = self.delete_columns(tmp_dataset, delete_columns)
         self.save_tmp_dataset(tmp_dataset)
         # Adding technical indicators :
         tmp_dataset = self.add_technicals_indicators(tmp_dataset)
@@ -472,6 +472,9 @@ class PrepareDatasetService:
         # Display dataset before price transformation :
         display_results = DisplayResultsService()
         display_results.display_all_dataset(tmp_dataset)
+        # Adding historical volatility if specified :
+        if add_volatility:
+            tmp_dataset = self.calculate_historical_volatility(tmp_dataset)
         # Subsampling :
         """
         tmp_dataset = self.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
@@ -481,7 +484,6 @@ class PrepareDatasetService:
         tmp_dataset.fillna(method='bfill', inplace=True)
         # Normalization :
         columns_to_normalize_for_scaler = ['Dernier']
-        # columns_to_normalize_for_scaler = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'RSI']
         """ ***** VERSION 1 ***** """
         """
         scaler = self.get_fitted_scaler(tmp_dataset[columns_to_normalize_for_scaler])
@@ -527,4 +529,75 @@ class PrepareDatasetService:
         df[columns_to_normalize_for_scaler] = scaler.transform(data)
         return df, scaler
         """ *********** TEST ********* ==> A SUPPRIMER ********** """
+
+
+
+
+
+
+    """ ************** Methods to prepare data for hourly dataset Transformer model ************** """
+
+    def prepare_many_dimensions_hourly_dataset_for_transformer_model(self, dataset, delete_columns, cutoff_date='2020-01-01', lags=None, add_volatility=False):
+        """ Preparation of the multi-dimensional dataset before training """
+        # Data formating and column deletion :
+        tmp_dataset = self.format_hourly_dataset(dataset)
+        tmp_dataset = self.delete_columns(tmp_dataset, delete_columns)
+        self.save_tmp_dataset(tmp_dataset)
+        # Adding technical indicators :
+        """ tmp_dataset = self.add_technicals_indicators(tmp_dataset) """
+        """ tmp_dataset = self.add_technicals_indicators_sma_rsi_smasignal(tmp_dataset) """
+        """ tmp_dataset = self.add_technicals_indicators_sma(tmp_dataset) """
+        tmp_dataset = self.add_technicals_indicators_rsi(tmp_dataset)
+        """ tmp_dataset = self.add_technicals_indicators_sma_signal(tmp_dataset) """
+        # Display dataset before price transformation :
+        display_results = DisplayResultsService()
+        """ ******** TEST ********* """
+        # display_results.display_all_dataset(tmp_dataset)
+        """ ******** TEST ********* """
+        # Adding historical volatility if specified :
+        if add_volatility:
+            tmp_dataset = self.calculate_historical_volatility(tmp_dataset)
+        # Subsampling :
+        # tmp_dataset = self.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
+        # Delete NaN values in datset for technical indicators and historical_volatility :
+        tmp_dataset.fillna(method='ffill', inplace=True)
+        tmp_dataset.fillna(method='bfill', inplace=True)
+        # Normalization :
+        columns_to_normalize_for_scaler = ['Dernier']
+        # columns_to_normalize_for_scaler = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'RSI']
+        """ ***** VERSION 1 ***** """
+        """
+        scaler = self.get_fitted_scaler(tmp_dataset[columns_to_normalize_for_scaler])
+        tmp_dataset[columns_to_normalize_for_scaler] = self.normalize_datas(
+            tmp_dataset[columns_to_normalize_for_scaler], scaler
+        )
+        """
+        """ ***** VERSION 1 ***** """
+        """ ***** VERSION 2 ***** """
+        tmp_dataset, scaler = self.select_and_scale_features2(tmp_dataset, columns_to_normalize_for_scaler)
+        """ ***** VERSION 2 ***** """
+        # Adding lags if specified :
+        if lags is not None:
+            tmp_dataset = self.add_lag_features(tmp_dataset, lags)
+        # Delete NaN values in datset for lags :
+        tmp_dataset.fillna(method='ffill', inplace=True)
+        tmp_dataset.fillna(method='bfill', inplace=True)
+        # creation of final dataset :
+        model_dataset = tmp_dataset.copy()
+        dates = model_dataset['Date']
+        del model_dataset['Date']
+        self.save_tmp_dataset(model_dataset)
+        # get columns of the dataset :
+        feature_cols = model_dataset.columns.tolist()
+        return model_dataset, feature_cols, scaler
+
+
+
+    def format_hourly_dataset(self, initial_dataset):
+        """ Data preparation """
+        tmp_dataset = initial_dataset.copy()
+        tmp_dataset['Date'] = pd.to_datetime(tmp_dataset['Date'])
+        tmp_dataset['Date'] = tmp_dataset['Date'].dt.strftime('%d/%m/%Y')
+        tmp_dataset = tmp_dataset.sort_values(by='Date')
+        return tmp_dataset
 
