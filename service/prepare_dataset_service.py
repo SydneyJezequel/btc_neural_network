@@ -72,6 +72,40 @@ class PrepareDatasetService:
 
 
 
+    def _fit_and_transform_data(self, data):
+        """ Internal utility to apply MinMax scaling to a NumPy array. """
+        scaler = MinMaxScaler()
+        data_scaled = scaler.fit_transform(data)
+        return data_scaled, scaler
+
+
+
+    def select_and_scale_features(self, df, feature_cols=None):
+        """
+        Given a DataFrame, selects the relevant columns and applies MinMax scaling.
+        Returns the scaled array, the fitted scaler (for inversing later), and the list of columns used.
+        """
+        if feature_cols is None:
+            feature_cols = ['Open', 'High', 'Low', 'Dernier',
+                            'rsi', 'ma_50', 'ma_50_slope']
+        data = df[feature_cols].values
+        data_scaled, scaler = self._fit_and_transform_data(data)
+        return data_scaled, scaler, feature_cols
+
+
+
+    def scale_features(self, df, columns_to_normalize_for_scaler):
+        """
+        Given a DataFrame, selects the relevant columns and applies MinMax scaling.
+        Returns the scaled array, the fitted scaler (for inversing later), and the list of columns used.
+        """
+        data = df[columns_to_normalize_for_scaler].values
+        data_scaled, scaler = self._fit_and_transform_data(data)
+        df[columns_to_normalize_for_scaler] = data_scaled
+        return df, scaler
+
+
+
     def create_train_and_test_dataset(self, model_dataset):
         """ Creation of training and test datasets """
         training_size = int(len(model_dataset) * 0.60)
@@ -425,10 +459,7 @@ class PrepareDatasetService:
 
 
     def add_technical_indicators(self, df):
-        """
-        Adds some sample technical indicators.
-        Adjust the window periods and indicators to your liking.
-        """
+        """ Adding technical indicators. """
         # RSI calculation :
         df['rsi'] = TechnicalIndicatorsService().rsi(df, 14)
         # Moving Average Slope calculation : :
@@ -438,22 +469,6 @@ class PrepareDatasetService:
         df.fillna(method='bfill', inplace=True)
         df.fillna(method='ffill', inplace=True)
         return df
-
-
-
-    def select_and_scale_features(self, df, feature_cols=None):
-        """
-        Given a DataFrame, selects the relevant columns and applies MinMax scaling.
-        Returns the scaled array, the fitted scaler (for inversing later), and the list of columns used.
-        """
-        if feature_cols is None:
-            # default feature set: O,H,L,C and a few indicators
-            feature_cols = ['Open', 'High', 'Low', 'Dernier',
-                            'rsi', 'ma_50', 'ma_50_slope']
-        data = df[feature_cols].values  # shape: (num_samples, num_features)
-        scaler = MinMaxScaler()
-        data_scaled = scaler.fit_transform(data)
-        return data_scaled, scaler, feature_cols
 
 
 
@@ -476,25 +491,13 @@ class PrepareDatasetService:
         if add_volatility:
             tmp_dataset = self.calculate_historical_volatility(tmp_dataset)
         # Subsampling :
-        """
-        tmp_dataset = self.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
-        """
+        """ tmp_dataset = self.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1) """
         # Delete NaN values in datset for technical indicators and historical_volatility :
         tmp_dataset.fillna(method='ffill', inplace=True)
         tmp_dataset.fillna(method='bfill', inplace=True)
         # Normalization :
         columns_to_normalize_for_scaler = ['Dernier']
-        """ ***** VERSION 1 ***** """
-        """
-        scaler = self.get_fitted_scaler(tmp_dataset[columns_to_normalize_for_scaler])
-        tmp_dataset[columns_to_normalize_for_scaler] = self.normalize_datas(
-            tmp_dataset[columns_to_normalize_for_scaler], scaler
-        )
-        """
-        """ ***** VERSION 1 ***** """
-        """ ***** VERSION 2 ***** """
-        tmp_dataset, scaler = self.select_and_scale_features2(tmp_dataset, columns_to_normalize_for_scaler)
-        """ ***** VERSION 2 ***** """
+        tmp_dataset, scaler = self.scale_features(tmp_dataset, columns_to_normalize_for_scaler)
         # Adding lags if specified :
         if lags is not None:
             tmp_dataset = self.add_lag_features(tmp_dataset, lags)
@@ -509,26 +512,6 @@ class PrepareDatasetService:
         # get columns of the dataset :
         feature_cols = model_dataset.columns.tolist()
         return model_dataset, feature_cols, scaler
-
-
-
-    """ *********** TEST ********* ==> A SUPPRIMER ********** """
-    def select_and_scale_features2(self, df, columns_to_normalize_for_scaler):
-        """
-        Given a DataFrame, selects the relevant columns and applies MinMax scaling.
-        Returns the scaled array, the fitted scaler (for inversing later), and the list of columns used.
-        """
-        """
-        data = df[columns_to_normalize_for_scaler].values  # shape: (num_samples, num_features)
-        scaler = MinMaxScaler()
-        df[columns_to_normalize_for_scaler] = scaler.fit_transform(data)
-        """
-        data = df[columns_to_normalize_for_scaler].values
-        scaler = MinMaxScaler()
-        scaler.fit(data)
-        df[columns_to_normalize_for_scaler] = scaler.transform(data)
-        return df, scaler
-        """ *********** TEST ********* ==> A SUPPRIMER ********** """
 
 
 
@@ -549,33 +532,18 @@ class PrepareDatasetService:
         """ tmp_dataset = self.add_technicals_indicators_sma(tmp_dataset) """
         tmp_dataset = self.add_technicals_indicators_rsi(tmp_dataset)
         """ tmp_dataset = self.add_technicals_indicators_sma_signal(tmp_dataset) """
-        # Display dataset before price transformation :
-        display_results = DisplayResultsService()
-        """ ******** TEST ********* """
-        # display_results.display_all_dataset(tmp_dataset)
-        """ ******** TEST ********* """
         # Adding historical volatility if specified :
         if add_volatility:
             tmp_dataset = self.calculate_historical_volatility(tmp_dataset)
         # Subsampling :
-        # tmp_dataset = self.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1)
+        """ tmp_dataset = self.subsample_old_data(tmp_dataset, cutoff_date, fraction=0.1) """
         # Delete NaN values in datset for technical indicators and historical_volatility :
         tmp_dataset.fillna(method='ffill', inplace=True)
         tmp_dataset.fillna(method='bfill', inplace=True)
         # Normalization :
         columns_to_normalize_for_scaler = ['Dernier']
         # columns_to_normalize_for_scaler = ['Dernier', 'MA_150', 'MA_100', 'MA_50', 'RSI']
-        """ ***** VERSION 1 ***** """
-        """
-        scaler = self.get_fitted_scaler(tmp_dataset[columns_to_normalize_for_scaler])
-        tmp_dataset[columns_to_normalize_for_scaler] = self.normalize_datas(
-            tmp_dataset[columns_to_normalize_for_scaler], scaler
-        )
-        """
-        """ ***** VERSION 1 ***** """
-        """ ***** VERSION 2 ***** """
-        tmp_dataset, scaler = self.select_and_scale_features2(tmp_dataset, columns_to_normalize_for_scaler)
-        """ ***** VERSION 2 ***** """
+        tmp_dataset, scaler = self.scale_features(tmp_dataset, columns_to_normalize_for_scaler)
         # Adding lags if specified :
         if lags is not None:
             tmp_dataset = self.add_lag_features(tmp_dataset, lags)
