@@ -29,7 +29,7 @@ class TransformerMetricsLogger:
 
     def get_predictions_and_targets(self, model, data_loader, device):
         """ Get all predictions and original targets from a DataLoader to calculate the metrics """
-        # Initialisation :
+        # Initialization :
         model.eval()
         all_predictions = []
         all_targets = []
